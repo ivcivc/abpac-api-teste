@@ -1,0 +1,8 @@
+2019/08/26 11:02:48 [emerg] 13106#0: "proxy_pass" directive is duplicate in /etc/nginx/nginx.conf:87
+2019/08/26 11:05:17 [emerg] 13478#0: invalid URL prefix in /etc/nginx/nginx.conf:87
+2019/08/26 11:08:14 [emerg] 13581#0: invalid URL prefix in /etc/nginx/nginx.conf:87
+2019/08/26 11:13:40 [emerg] 14419#0: invalid number of arguments in "proxy_set_header" directive in /etc/nginx/nginx.conf:85
+2019/08/26 11:13:48 [emerg] 14618#0: invalid number of arguments in "proxy_set_header" directive in /etc/nginx/nginx.conf:85
+2019/08/26 11:13:57 [emerg] 14717#0: invalid number of arguments in "proxy_set_header" directive in /etc/nginx/nginx.conf:85
+2019/08/26 11:14:22 [emerg] 14719#0: invalid number of arguments in "proxy_set_header" directive in /etc/nginx/nginx.conf:85
+2019/08/26 11:27:02 [emerg] 16815#0: unknown "connection_upgrade" variable
