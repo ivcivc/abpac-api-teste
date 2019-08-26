@@ -18,7 +18,7 @@ const Route = use("Route");
 
 Route.group(() => {
   Route.get("/", () => {
-    return { greeting: "Hello world in JSON....." };
+    return { greeting: "Hello world in JSON.....>>>>" };
   });
 }).prefix("api");
 
