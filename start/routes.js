@@ -20,6 +20,8 @@ Route.group(() => {
   Route.get("/", () => {
     return { greeting: "Hello world in JSON....." };
   });
-}).prefix("api");
+});
+
+//.prefix("api");
 
 //++++
