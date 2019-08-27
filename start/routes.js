@@ -14,13 +14,12 @@
 */
 
 /** @type {typeof import('@adonisjs/framework/src/Route/Manager')} */
-/*const Route = use("Route");
+const Route = use("Route");
 
 Route.group(() => {
   Route.get("/", () => {
-    return { greeting: "Hello world in JSON....." };
+    return { greeting: "Adonis - Hello world in JSON....." };
   });
 }).prefix("api");
-*/
-//++++***
 
+//++++***
