@@ -19,6 +19,13 @@ const Ws = use("Ws");
   console.log('user joined with %s socket id', socket.id)
 })*/
 
-Ws.channel("chat", "ChatController");
+Ws.channel("chat:*", "ChatController");
 
 Ws.channel("user:*", "UserController").middleware([]);
+
+Ws.channel("livre", "ChatController");
+
+/*({ socket }) => {
+  console.log("canal livre acionado.");
+  socket.emit("livre", "canal livre >>>>>>>>>");
+});*/

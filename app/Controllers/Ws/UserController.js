@@ -13,9 +13,11 @@ class UserController {
       time: new Date().valueOf()
     });
   }
+
   async onClose() {
     console.log(`Topic ${this.topic} disconnected to WS ${this.topic}`);
   }
+
   async onHello(data) {
     console.log("onHello", data);
     this.socket.emit("ABOUT_MESSAGE", {
@@ -24,6 +26,7 @@ class UserController {
   }
 
   async onOi(data) {
+    console.log("metodo onOi ");
     this.socket.emit("ABOUT_MESSAGE", {
       message: `Server handled message: de boi.`
     });

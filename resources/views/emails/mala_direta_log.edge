@@ -1,0 +1,9 @@
+<p>Log de emails</p>
+
+<ul>
+  @each(pessoa in pessoas)
+      <li>{{ ($loop.index + 1) }} - {{pessoa.pessoa}} - {{pessoa.ok=== true ? "enviado" : "não enviado"}}</li>
+      @endeach
+</ul>
+
+{{{ mala_direta_log }}}

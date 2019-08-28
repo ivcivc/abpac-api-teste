@@ -14,12 +14,21 @@
 */
 
 /** @type {typeof import('@adonisjs/framework/src/Route/Manager')} */
+
 const Route = use("Route");
 
 Route.group(() => {
   Route.get("/", () => {
     return { greeting: "Adonis - Hello world in JSON....." };
   });
-}).prefix("api");
 
-//++++***
+  Route.get("/teste", () => {
+    return { m: "teste" };
+  });
+
+  Route.post("/users", "UserController.store");
+  Route.post("/sessions", "sessionController.store");
+
+  Route.post("/passwords", "ForgotController.store");
+  Route.put("/passwords", "ForgotController.update");
+}).prefix("api");
