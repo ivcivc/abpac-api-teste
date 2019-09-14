@@ -8,8 +8,8 @@ class UserController {
 
     console.log(`Back ${this.topic} connected to WS ${this.topic}`);
 
-    this.socket.emit("HELLO_EVENT", {
-      message: "hi! my name is Example",
+    this.socket.emit("LOGIN_EVENT", {
+      message: "Conectado ao LOGIN",
       time: new Date().valueOf()
     });
   }
@@ -18,19 +18,15 @@ class UserController {
     console.log(`Topic ${this.topic} disconnected to WS ${this.topic}`);
   }
 
-  async onHello(data) {
-    console.log("onHello", data);
-    this.socket.emit("ABOUT_MESSAGE", {
-      message: `Server handled message: ${data.message}`
+  async onRefreshToken(data) {
+    console.log("onRefreshToken", data);
+    this.socket.emit("REFRESH-TOKEN", {
+      type: data==='1'? true : false,
+      token: '123', refresh_token: '456'
     });
   }
 
-  async onOi(data) {
-    console.log("metodo onOi ");
-    this.socket.emit("ABOUT_MESSAGE", {
-      message: `Server handled message: de boi.`
-    });
-  }
+
 
   async onError() {}
 }

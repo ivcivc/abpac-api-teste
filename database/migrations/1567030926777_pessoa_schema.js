@@ -1,0 +1,83 @@
+"use strict";
+
+/** @type {import('@adonisjs/lucid/src/Schema')} */
+const Schema = use("Schema");
+
+class PessoaSchema extends Schema {
+  up() {
+    this.create("pessoas", table => {
+      table.string("nome", 50).notNullable();
+      table.string("responsavel", 50)
+      table.string("apelido", 20)
+
+      table.enu("sexo", ["Masculino", "Feminino", null], {
+         useNative: true,
+         existingType: true,
+         enumName: "pessoa_sexo"
+       })
+
+      table.date('dNasc')
+
+      table.enu("tipoPessoa", ["Física", "Jurídica"], {
+         useNative: true,
+         existingType: true,
+         enumName: "pessoa_tipo_pessoa"
+       })
+
+      table
+        .string("cpfCnpj", 14)
+        .notNullable()
+
+      table.string("rg", 15);
+
+      table.string("telFixo", 15);
+      table.string("telFixoContato", 20);
+      table.string("telSms", 50);
+      table.string("telSmsContato", 20);
+      table.string("telCelular", 50);
+      table.string("telCelularContato", 20);
+
+      table.string("email", 254);
+
+      table.text("nota");
+
+      table
+        .enu("status", ["ativo", "inativo", "bloqueado"], {
+          useNative: true,
+          existingType: true,
+          enumName: "pessoa_status"
+        })
+        .notNullable()
+        .defaultTo("ativo");
+
+      table.string("endRua", 70)
+      table.string("endComplemento", 20)
+      table.string("endBairro", 30)
+      table.string("endCidade", 30)
+      table.string("endEstado", 2)
+      table.string("endCep", 8)
+
+      table
+        .enu("tipo", ["associado", "fornecedor"], {
+          useNative: true,
+          existingType: true,
+          enumName: "pessoa_tipo_status"
+        })
+        .notNullable()
+        .defaultTo("associado");
+
+        table.unique(['cpfCnpj', 'tipo'])
+
+        table.integer('user')
+
+      table.increments();
+      table.timestamps();
+    });
+  }
+
+  down() {
+    this.drop("pessoas");
+  }
+}
+
+module.exports = PessoaSchema;

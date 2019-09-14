@@ -1,5 +1,5 @@
-"use strict";
-
+'use strict'
+const path = require('path')
 /*
 |--------------------------------------------------------------------------
 | Providers
@@ -11,15 +11,20 @@
 |
 */
 const providers = [
-  "@adonisjs/framework/providers/AppProvider",
-  "@adonisjs/auth/providers/AuthProvider",
-  "@adonisjs/bodyparser/providers/BodyParserProvider",
-  "@adonisjs/cors/providers/CorsProvider",
-  "@adonisjs/lucid/providers/LucidProvider",
-  "@adonisjs/websocket/providers/WsProvider",
-  "@adonisjs/mail/providers/MailProvider",
-  "@adonisjs/framework/providers/ViewProvider"
-];
+   '@adonisjs/framework/providers/AppProvider',
+   '@adonisjs/auth/providers/AuthProvider',
+   '@adonisjs/bodyparser/providers/BodyParserProvider',
+   '@adonisjs/cors/providers/CorsProvider',
+   '@adonisjs/lucid/providers/LucidProvider',
+   '@adonisjs/websocket/providers/WsProvider',
+   '@adonisjs/mail/providers/MailProvider',
+   '@adonisjs/framework/providers/ViewProvider',
+   'adonis-acl/providers/AclProvider',
+   'adonis-acl/providers/AclProvider',
+   '@adonisjs/validator/providers/ValidatorProvider',
+   path.join(__dirname, '..', 'app/providers', 'ValidateCompoundUnique/Provider'),
+   path.join(__dirname, '..', 'app/providers', 'ValidateCpfCnpj/Provider')
+]
 
 /*
 |--------------------------------------------------------------------------
@@ -30,7 +35,11 @@ const providers = [
 | Providers for migrations, tests etc.
 |
 */
-const aceProviders = ["@adonisjs/lucid/providers/MigrationsProvider"];
+const aceProviders = [
+   '@adonisjs/lucid/providers/MigrationsProvider',
+   'adonis-acl/providers/CommandsProvider',
+   'adonis-acl/providers/CommandsProvider'
+]
 
 /*
 |--------------------------------------------------------------------------
@@ -44,7 +53,10 @@ const aceProviders = ["@adonisjs/lucid/providers/MigrationsProvider"];
 |   { Route: 'Adonis/Src/Route' }
 |
 */
-const aliases = {};
+const aliases = {
+   Role: 'Adonis/Acl/Role',
+   Permission: 'Adonis/Acl/Permission'
+}
 
 /*
 |--------------------------------------------------------------------------
@@ -54,6 +66,6 @@ const aliases = {};
 | Here you store ace commands for your package
 |
 */
-const commands = [];
+const commands = []
 
-module.exports = { providers, aceProviders, aliases, commands };
+module.exports = { providers, aceProviders, aliases, commands }

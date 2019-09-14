@@ -19,6 +19,8 @@ const Ws = use("Ws");
   console.log('user joined with %s socket id', socket.id)
 })*/
 
+Ws.channel("associado:*", "AssociadoController");
+
 Ws.channel("chat:*", "ChatController");
 
 Ws.channel("user:*", "UserController").middleware([]);
