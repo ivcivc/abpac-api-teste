@@ -85,6 +85,7 @@ class SessionController {
 
       await user.loadMany(['roles', 'permissions'])
 
+      user.id= user.id
       user.name= user.username
       user.firstname= firstname
       user.lastname= lastname
@@ -95,7 +96,7 @@ class SessionController {
       const roles = await user.roles().fetch()
 
       const oUser= {
-         name: user.username, lastname, firstname, avatar, status, token: newTokenRefresh, permissions, roles
+         id: user.id, name: user.username, lastname, firstname, avatar, status, token: newTokenRefresh, permissions, roles
       }
 
       return oUser

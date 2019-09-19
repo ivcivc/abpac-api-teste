@@ -42,7 +42,7 @@ class PessoaSchema extends Schema {
       table.text("nota");
 
       table
-        .enu("status", ["ativo", "inativo", "bloqueado"], {
+        .enu("status", ["Ativo", "Inativo", "Bloqueado"], {
           useNative: true,
           existingType: true,
           enumName: "pessoa_status"

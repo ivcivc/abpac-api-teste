@@ -7,7 +7,7 @@ class PessoaController {
     const payload = request.all();
 
     try {
-      const pessoa = await new PessoaServices().add(payload, null);
+      const pessoa = await new PessoaServices().add(payload, null, auth);
 
       response.status(200).send({ type: true, data: pessoa });
     } catch (error) {

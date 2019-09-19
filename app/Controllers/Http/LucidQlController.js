@@ -3,12 +3,16 @@
 const lucidql = require('@srtech/lucidql')
 
 const Pessoa = use('App/Models/Pessoa')
+const PessoaStatus = use('App/Models/PessoaStatus')
 const User = use('App/Models/User')
+const Categoria = use('App/Models/Categoria')
 
 const classes = {
   __proto__: null,
   Pessoa,
-  User
+  PessoaStatus,
+  User,
+  Categoria
 }
 
 class LucidQlController {
@@ -16,6 +20,7 @@ class LucidQlController {
     let { baseTable, query } = request.all()
 
       console.log(query)
+      console.log('-------------------------------------------------------------')
 
 
 

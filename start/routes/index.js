@@ -6,14 +6,23 @@ const Route = use('Route')
 
 Route.group(() => {
 
-  Route.get('/', () => {
-    return { message: 'Abpac Server' }
-  })
+   Route.get('/', () => {
+      return { message: 'Abpac Server' }
+   })
 
-  Route.resource('/pessoas', 'PessoaController').middleware([
+   Route.resource('/pessoas', 'PessoaController').middleware([
+      'auth'
+   ]).validator( new Map([
+      [['/pessoas.store'], ['Pessoa/Create']],
+
+
+   Route.resource('/pessoaStatus', 'PessoaStatusController').middleware([
     'auth'
-  ]).validator( new Map([
-   [['/pessoas.store'], ['Pessoa/Create']],
+   ]),
+
+   Route.resource('/categoria', 'CategoriaController').middleware([
+      'auth'
+     ])
 
 ]))
 

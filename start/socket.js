@@ -24,6 +24,7 @@ Ws.channel("associado:*", "AssociadoController");
 Ws.channel("chat:*", "ChatController");
 
 Ws.channel("user:*", "UserController").middleware([]);
+Ws.channel("user", "UserController");
 
 Ws.channel("livre", "ChatController");
 
