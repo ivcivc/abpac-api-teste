@@ -6,9 +6,9 @@ const Schema = use("Schema");
 class PessoaSchema extends Schema {
   up() {
     this.create("pessoas", table => {
-      table.string("nome", 50).notNullable();
+      table.string("nome", 50).notNullable().index();
       table.string("responsavel", 50)
-      table.string("apelido", 20)
+      table.string("indicacao", 20)
 
       table.enu("sexo", ["Masculino", "Feminino", null], {
          useNative: true,
@@ -37,7 +37,7 @@ class PessoaSchema extends Schema {
       table.string("telCelular", 50);
       table.string("telCelularContato", 20);
 
-      table.string("email", 254);
+      table.text("email");
 
       table.text("nota");
 
@@ -48,7 +48,7 @@ class PessoaSchema extends Schema {
           enumName: "pessoa_status"
         })
         .notNullable()
-        .defaultTo("ativo");
+        .defaultTo("ativo").index();
 
       table.string("endRua", 70)
       table.string("endComplemento", 20)
@@ -64,7 +64,7 @@ class PessoaSchema extends Schema {
           enumName: "pessoa_tipo_status"
         })
         .notNullable()
-        .defaultTo("associado");
+        .defaultTo("associado").index();
 
         table.unique(['cpfCnpj', 'tipo'])
 

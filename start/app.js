@@ -23,7 +23,8 @@ const providers = [
    'adonis-acl/providers/AclProvider',
    '@adonisjs/validator/providers/ValidatorProvider',
    path.join(__dirname, '..', 'app/providers', 'ValidateCompoundUnique/Provider'),
-   path.join(__dirname, '..', 'app/providers', 'ValidateCpfCnpj/Provider')
+   path.join(__dirname, '..', 'app/providers', 'ValidateCpfCnpj/Provider'),
+   '@adonisjs/drive/providers/DriveProvider'
 ]
 
 /*

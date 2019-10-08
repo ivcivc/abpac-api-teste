@@ -20,7 +20,7 @@ class CategoriaController {
 
          response.status(200).send({ type: true, data: categoria });
       } catch (error) {
-         console.log(error);
+
          response.status(400).send({code: error.code, message: error.message, name: error.name});
       }
   }
@@ -32,6 +32,8 @@ class CategoriaController {
   async store ({ request, response }) {
 
       const payload = request.all();
+
+      payload['status']= "Ativo"
 
       try {
       const categoria = await new CategoriaServices().add(payload);

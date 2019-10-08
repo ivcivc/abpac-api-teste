@@ -21,6 +21,7 @@
     "@adonisjs/auth": "^3.0.7",
     "@adonisjs/bodyparser": "^2.0.9",
     "@adonisjs/cors": "^1.0.7",
+    "@adonisjs/drive": "^1.0.4",
     "@adonisjs/fold": "^4.0.9",
     "@adonisjs/framework": "^5.0.9",
     "@adonisjs/ignitor": "^2.0.8",
@@ -30,6 +31,10 @@
     "@adonisjs/websocket": "^1.0.11",
     "@srtech/lucidql": "^1.8.0",
     "adonis-acl": "^1.1.1",
+    "dropbox": "^4.0.30",
+    "dropbox-v2-api": "^2.4.5",
+    "es6-promise": "^4.2.8",
+    "isomorphic-fetch": "^2.2.1",
     "mysql": "^2.17.1",
     "validator-brazil": "^1.2.0"
   },
