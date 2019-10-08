@@ -12,7 +12,6 @@ class PessoaCreate {
          nome: 'required|string|min:3|max:50',
          cpfCnpj: 'required|string|cpfCnpjValidate|uniqueCompound:pessoas,cpfCnpj/tipo',
          responsavel: 'string|max:50',
-         apelido: 'string|max:20',
          tipoPessoa: 'string',
          dNasc: 'date',
          email: 'email',
