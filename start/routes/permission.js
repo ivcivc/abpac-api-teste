@@ -14,7 +14,7 @@ Route.group(() => {
    ]))
 
    Route.post('/sessions', 'Auth/SessionController.store') //.validator('User/Session')
-   Route.post('/refresh', 'Auth/SessionController.refresh').middleware('auth')
+   Route.post('/refresh', 'Auth/SessionController.refresh') //.middleware('auth')
    Route.post('/logout', 'Auth/SessionController.logout').middleware('auth')
    Route.post('/login', 'Auth/SessionController.login')
 

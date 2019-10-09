@@ -45,9 +45,8 @@ Route.group(() => {
       'auth'
      ])
 
-   Route.resource('/ocorrenciaCausa', 'OcorrenciaCausaController').middleware([
-   'auth'
-   ])
+   Route.resource('/ocorrenciaCausa', 'OcorrenciaCausaController')
+   //.middleware(['auth'])
 
 
    Route.post('upload99', async ({ request }) => {
