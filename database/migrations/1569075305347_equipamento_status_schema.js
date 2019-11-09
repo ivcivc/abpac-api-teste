@@ -10,7 +10,7 @@ class EquipamentoStatusSchema extends Schema {
       table.varchar("motivo", 250);
 
       table
-        .enu("status", ["Ativo", "Substituido", "Inativo"], {
+        .enu("status", ["Ativo", "Endossado", "Inativo"], {
           useNative: true,
           existingType: true,
           enumName: "equipamento_status"

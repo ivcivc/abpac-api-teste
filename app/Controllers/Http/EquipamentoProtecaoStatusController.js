@@ -1,29 +1,30 @@
 'use strict'
 
-const EquipamentoService = use('App/Services/Equipamento')
-const EquipamentoStatus = use('App/Models/EquipamentoStatus')
+const EquipamentoProtecaoService = use('App/Services/EquipamentoProtecao')
+const EquipamentoProtecaoStatus = use('App/Models/EquipamentoProtecaoStatus')
 
-class EquipamentoStatusController {
+
+class EquipamentoProtecaoStatusController {
 
    async store ({ request, response, auth }) {
       const dados = request.all()
 
       try {
 
-        const equipamentoStatus = await new EquipamentoService().addStatus(dados, null, auth)
+        const equipamentoProtecaoStatus = await new EquipamentoProtecaoService().addStatus(dados, null, auth)
 
-        return equipamentoStatus
+        return equipamentoProtecaoStatus
       } catch (error) {
         console.log(error)
         return response
           .status(400)
-          .send('Não foi possível Adicionar o status do Equipamento.')
+          .send('Não foi possível Adicionar o status do Bloqueador/Localizador.')
       }
     }
 
     async show ({ params, response }) {
       try {
-        const status = EquipamentoStatus.query()
+        const status = EquipamentoProtecaoStatus.query()
         status.where('id', '=', params.id)
 
         const o = await status.fetch()
@@ -36,10 +37,10 @@ class EquipamentoStatusController {
         console.log(error)
         return response
           .status(400)
-          .send('Não foi possível exibir um status do Equipamento solicitado.')
+          .send('Não foi possível exibir um status do Bloqueador/Localizador solicitado.')
       }
     }
 
 }
 
-module.exports = EquipamentoStatusController
+module.exports = EquipamentoProtecaoStatusController

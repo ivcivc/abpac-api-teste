@@ -35,10 +35,11 @@ class CategoriaController {
 
       payload['status']= "Ativo"
 
-      try {
-      const categoria = await new CategoriaServices().add(payload);
 
-      response.status(200).send({ type: true, data: categoria });
+      try {
+         const categoria = await new CategoriaServices().add(payload);
+
+         response.status(200).send({ type: true, data: categoria });
       } catch (error) {
          response.status(400).send(error);
       }
@@ -70,9 +71,9 @@ class CategoriaController {
       const ID = params.id
 
       try {
-      const categoria = await new CategoriaServices().update(ID, payload);
+         const categoria = await new CategoriaServices().update(ID, payload);
 
-      response.status(200).send({ type: true, data: categoria });
+         response.status(200).send({ type: true, data: categoria });
       } catch (error) {
          response.status(400).send(error);
       }

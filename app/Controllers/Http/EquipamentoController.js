@@ -2,9 +2,7 @@
 
 const EquipamentoServices = use("App/Services/Equipamento");
 
-/** @typedef {import('@adonisjs/framework/src/Request')} Request */
-/** @typedef {import('@adonisjs/framework/src/Response')} Response */
-
+const Database = use('Database')
 /**
  * Resourceful controller for interacting with equipamentos
  */
@@ -24,18 +22,33 @@ class EquipamentoController {
       }
     }
 
-    async update({ request, params, response }) {
-     const payload = request.all();
-     const ID = params.id
+    async update({ request, params, response, auth }) {
+      const payload = request.all();
+      const ID = params.id
 
-     try {
-       const equipamento = await new EquipamentoServices().update(ID, payload, null);
+      //let trx = null
 
-       response.status(200).send({ type: true, data: equipamento });
-     } catch (error) {
-       console.log(error);
-       response.status(400).send(error);
-     }
+      try {
+
+         //let trx = await Database.beginTransaction()
+
+         const equipamento = await new EquipamentoServices().update(ID, payload, null, auth);
+let xx= 222
+         /*await trx.commit()
+
+         let xx= 222
+
+         await equipamento.reload()
+         await equipamento.load('equipamentoStatuses')
+         await equipamento.load('pessoa')
+         await equipamento.load('equipamentoProtecoes')*/
+
+         response.status(200).send({ type: true, data: equipamento });
+      } catch (error) {
+         //await trx.rollback()
+         console.log(error);
+         response.status(400).send(error);
+      }
     }
 
     async show({ params, response }) {

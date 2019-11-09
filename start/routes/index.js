@@ -18,6 +18,13 @@ Route.group(() => {
       [['/pessoas.store'], ['Pessoa/Create']],
       ]))
 
+   Route.resource('/fornecedores', 'FornecedorController').middleware([
+      'auth'
+   ]).validator( new Map([
+      [['/pessoas.store'], ['Pessoa/Create']],
+      ]))
+
+
    Route.resource('/pessoaStatus', 'PessoaStatusController').middleware([
     'auth'
    ])
@@ -30,13 +37,34 @@ Route.group(() => {
       'auth'
      ])
 
+     Route.resource('/os_config', 'OsConfigController').middleware([
+      'auth'
+     ])
+
    Route.resource('/equipamentos', 'EquipamentoController').middleware([
+      'auth'
+   ])
+
+   Route.post('/equipamento/endosso', 'EquipamentoOutrosController.endosso').middleware([
+      'auth'
+   ])
+
+   Route.post('/xmlToJson', 'EquipamentoOutrosController.xmlToJson').middleware([
       'auth'
    ])
 
    Route.resource('/equipamentoStatus', 'EquipamentoStatusController').middleware([
     'auth'
    ])
+
+   Route.resource('/equipamentoProtecaoStatus', 'EquipamentoProtecaoStatusController').middleware([
+      'auth'
+     ])
+
+
+   Route.resource('/bloqueadorLocalizador', 'BloqueadorLocalizadorController').middleware([
+      'auth'
+     ])
 
    Route.resource('/ocorrencias', 'OcorrenciaController').middleware([
       'auth'
@@ -47,6 +75,8 @@ Route.group(() => {
 
    Route.resource('/ocorrenciaCausa', 'OcorrenciaCausaController')
    //.middleware(['auth'])
+
+   Route.resource('/planoConta', 'PlanoDeContaController')
 
 
    Route.post('upload99', async ({ request }) => {

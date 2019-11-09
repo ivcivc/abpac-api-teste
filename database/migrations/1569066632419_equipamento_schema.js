@@ -9,13 +9,15 @@ class EquipamentoSchema extends Schema {
 
       table.integer("pessoa_id").unsigned().references('id').inTable('pessoas')
 
-      table.integer("idPrincipal").index()
-      table.integer("idPai").index()
-      table.integer("idFilho").index()
+      table.integer("idPrincipal").defaultTo(0).index()
+      table.integer("idPai").defaultTo(0).index()
+      table.integer("idFilho").defaultTo(0).index()
+
+      table.varchar("tipoEndosso", 30)
 
       table.date("dAdesao").notNullable()
       table
-        .enu("status", ["Ativo", "Substituido", "Inativo"], {
+        .enu("status", ["Ativo","Endossado", "Inativo"], {
           useNative: true,
           existingType: true,
           enumName: "equipamento_status"

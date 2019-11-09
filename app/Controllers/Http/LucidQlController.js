@@ -12,7 +12,8 @@ const Ocorrencia = use('App/Models/Ocorrencia')
 const OcorrenciaTerceiro = use('App/Models/OcorrenciaTerceiro')
 const File = use('App/Models/File')
 const OcorrenciaStatus = use('App/Models/OcorrenciaStatus')
-
+const BloqueadorLocalizador = use('App/Models/BloqueadorLocalizador')
+const EquipamentoProtecao = use('App/Models/EquipamentoProtecao')
 
 const classes = {
   __proto__: null,
@@ -25,7 +26,9 @@ const classes = {
   Ocorrencia,
   OcorrenciaTerceiro,
   OcorrenciaStatus,
-  File
+  File,
+  BloqueadorLocalizador,
+  EquipamentoProtecao
 }
 
 class LucidQlController {

@@ -44,7 +44,7 @@ class Pessoa {
       const status = {pessoa_id: pessoa.id, user_id: auth.user.id, motivo: "Inclusão de Associado gerado pelo sistema.", status: "Ativo"}
       await PessoaStatus.create(status, trx ? trx : null)
 
-      trx.commit()
+      await trx.commit()
 
       return pessoa;
     } catch (e) {
