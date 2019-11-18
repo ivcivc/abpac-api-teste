@@ -25,6 +25,9 @@ class Equipamento extends Model {
       return this.hasMany('App/Models/EquipamentoProtecao')
    }
 
+   equipamentoBeneficios () {
+      return this.hasMany('App/Models/EquipamentoBeneficio')
+   }
 }
 
 module.exports = Equipamento

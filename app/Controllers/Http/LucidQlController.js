@@ -14,6 +14,10 @@ const File = use('App/Models/File')
 const OcorrenciaStatus = use('App/Models/OcorrenciaStatus')
 const BloqueadorLocalizador = use('App/Models/BloqueadorLocalizador')
 const EquipamentoProtecao = use('App/Models/EquipamentoProtecao')
+const EquipamentoProtecaoStatus = use('App/Models/EquipamentoProtecaoStatus')
+const Beneficio = use('App/Models/Beneficio')
+const EquipamentoBeneficio = use('App/Models/EquipamentoBeneficio')
+const EquipamentoBeneficioStatus = use('App/Models/EquipamentoBeneficioStatus')
 
 const classes = {
   __proto__: null,
@@ -28,7 +32,11 @@ const classes = {
   OcorrenciaStatus,
   File,
   BloqueadorLocalizador,
-  EquipamentoProtecao
+  EquipamentoProtecao,
+  EquipamentoProtecaoStatus,
+  Beneficio,
+  EquipamentoBeneficio,
+  EquipamentoBeneficioStatus
 }
 
 class LucidQlController {

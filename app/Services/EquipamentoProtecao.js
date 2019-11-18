@@ -6,6 +6,8 @@ const Equipamento = use('App/Models/Equipamento')
 const Model = use('App/Models/EquipamentoProtecao')
 const EquipamentoProtecaoStatus = use('App/Models/EquipamentoProtecaoStatus')
 
+const moment = require('moment')
+
 
 const Database = use('Database')
 
@@ -42,57 +44,67 @@ async update(equipamento_id, data, trx, auth) {
 
 
    try {
-      let oData = {}
-      let key= null
 
-      for ( key in data){
-         oData[data[key].tipo]= data[key]
+      let addStatus = null
+      let protecao_id = null
+      let protecao = null
+
+      const query = await Model.query()
+      .where('equipamento_id', '=', equipamento_id)
+      .andWhere('tipo', 'like', data.tipo).fetch()
+
+      if ( query.rows.length > 0 ) {
+         protecao_id= query.rows[0].id
       }
 
-      if ( oData['Localizador']) {
-         delete oData['Localizador'].id
-         delete oData['Localizador'].status
+      data.user_id = auth.user.id
 
-         const query = await Model.query()
-            .where('equipamento_id', '=', equipamento_id)
-            .andWhere('tipo', 'like', 'Localizador')
-            .transacting(trx)
-            .update(oData['Localizador'])
-         if ( query > 0 ) {
-            delete oData['Localizador']
+      if ( protecao_id) {
+         protecao = await Model.findOrFail(protecao_id)
+         data.id = protecao.id
+         data.tipo = protecao.tipo
+
+         let statusAtual = protecao.status
+         let updated_at =  moment(protecao.updated_at).format("YYYY-MM-DD h:mm:s")
+         let novoUpdated_at= moment(data.updated_at).format("YYYY-MM-DD h:mm:s")
+
+         if ( updated_at !== novoUpdated_at) {
+            throw { message: 'Registro alterado por outro usuário.'}
          }
 
+         if ( data.status !== statusAtual ) {
+            addStatus = {
+               equipamento_protecao_id: protecao.id,
+               motivo : `De: ${statusAtual} para: ${data.status}`,
+               status: data.status
+            }
+            if ( data.status === "Removido") {
+               addStatus.motivo= addStatus.motivo + ` Data remoção: ${data.dRemocao}`
+            }
+
+            protecao.status= data.status
+         }
+
+         protecao.merge(data);
+
+         await protecao.save(trx ? trx : null);
       }
 
-      if ( oData['Bloqueador']) {
-         delete oData['Bloqueador'].id
-         delete oData['Bloqueador'].status
-
-         const query = await Model.query()
-            .where('equipamento_id', '=', equipamento_id)
-            .andWhere('tipo', 'like', 'Bloqueador')
-            .transacting(trx)
-            .update(oData['Bloqueador'])
-
-         if ( query > 0 ) {
-            delete oData['Bloqueador']
+      if ( ! protecao_id) {
+         protecao = await Model.create(data, trx ? trx : null);
+         addStatus = {
+            equipamento_protecao_id: protecao.id,
+            motivo : `Inclusão do status "${protecao.status}"`,
+            status: protecao.status
          }
       }
 
-      // Adicionar registro
-      if ( ! lodash.isEmpty(oData) ) {
-         let arr= []
-         Object.keys(oData).forEach(e => {
-            let reg= oData[e]
-            delete reg['id']
-            delete reg['status']
-            arr.push( reg )
-         } )
-
-         await this.add(arr, trx, auth)
+      if ( addStatus) {
+         addStatus.user_id = auth.user.id
+         await EquipamentoProtecaoStatus.create(addStatus, trx ? trx : null)
       }
 
-
+      return protecao
 
    } catch( e ) {
 
@@ -101,7 +113,19 @@ async update(equipamento_id, data, trx, auth) {
    }
 }
 
-async addStatus(data, trx, auth) {
+
+async get(ID) {
+   try {
+     const protecao = await Model.findOrFail(ID);
+
+     return protecao;
+   } catch (e) {
+     throw e;
+   }
+ }
+
+
+async addStatus_DELETAR(data, trx, auth) {
    try {
 
      if (!trx) {

@@ -6,6 +6,7 @@ const EquipamentoStatus = use('App/Models/EquipamentoStatus')
 const EquipamentoProtecao = use('App/Models/EquipamentoProtecao')
 const EquipamentoProtecaoService = use('App/Services/EquipamentoProtecao')
 const ModelOcorrencia = use("App/Models/Ocorrencia");
+const EquipamentoBeneficioService = use("App/Services/EquipamentoBeneficio")
 
 
 const Database = use('Database')
@@ -23,7 +24,7 @@ class Equipamento {
       }
 
       let equipamento = await Model.findOrFail(ID);
-      let protecoes= data['protecoes']
+      //let protecoes= data['protecoes']
 
       delete data['status']
       delete data['protecoes']
@@ -37,7 +38,7 @@ class Equipamento {
       await equipamento.save(trx ? trx : null);
 
       // Protecoes (localizador e bloqueador)
-      if ( protecoes) {
+      /*if ( protecoes) {
          for (let i=0; i < protecoes.length; i++ ) {
             let item = protecoes[i]
             item.equipamento_id= equipamento.id
@@ -46,7 +47,7 @@ class Equipamento {
         const protecaoServ = await new EquipamentoProtecaoService().add( equipamento.id,protecoes, trx, auth)
         //const protecaoServ = await new EquipamentoProtecaoService().update(equipamento.id, protecoes, trx, auth)
         let a=1
-      }
+      }*/
 
       if ( showNewTrx) {
          await trx.commit()
@@ -79,8 +80,10 @@ class Equipamento {
        console.log('metodo add')
 
       let protecoes = data.protecoes
+      let beneficios= data.beneficios
 
       delete data['protecoes']
+      delete data['beneficios']
 
       if (!trx) {
          showNewTrx= true
@@ -103,14 +106,25 @@ class Equipamento {
             item.equipamento_id= equipamento.id
         }
 
-        await new EquipamentoProtecaoService().add(protecoes, trx, auth)
+        await new EquipamentoProtecaoService().add(equipamento.id, protecoes, trx, auth)
 
+      }
+
+      if ( beneficios) {
+         for (const key in beneficios) {
+            if (beneficios.hasOwnProperty(key)) {
+               const element = beneficios[key];
+               element.equipamento_id= equipamento.id
+               await new EquipamentoBeneficioService().add(element, trx, auth)
+            }
+         }
       }
 
       if ( showNewTrx) {
          await trx.commit()
       }
 
+      await equipamento.load('equipamentoProtecoes')
 
       return equipamento;
     } catch (e) {
@@ -331,6 +345,8 @@ class Equipamento {
 
     await trx.commit()
 
+    await equipamentoAdd.load('equipamentoProtecoes')
+
      return equipamentoAdd;
    } catch (e) {
      await trx.rollback()
@@ -346,6 +362,8 @@ class Equipamento {
       await equipamento.load('pessoa')
       await equipamento.load('categoria')
       await equipamento.load('equipamentoProtecoes')
+      await equipamento.load('equipamentoBeneficios')
+
       //await equipamento.load('ocorrencias')
 
       return equipamento;

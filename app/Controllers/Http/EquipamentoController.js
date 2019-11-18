@@ -1,7 +1,6 @@
 'use strict'
 
 const EquipamentoServices = use("App/Services/Equipamento");
-
 const Database = use('Database')
 /**
  * Resourceful controller for interacting with equipamentos
@@ -33,7 +32,7 @@ class EquipamentoController {
          //let trx = await Database.beginTransaction()
 
          const equipamento = await new EquipamentoServices().update(ID, payload, null, auth);
-let xx= 222
+         let xx= 222
          /*await trx.commit()
 
          let xx= 222

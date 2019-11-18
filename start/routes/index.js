@@ -57,7 +57,15 @@ Route.group(() => {
     'auth'
    ])
 
+   Route.resource('/equipamentoProtecao', 'EquipamentoProtecaoController').middleware([
+      'auth'
+     ])
+
    Route.resource('/equipamentoProtecaoStatus', 'EquipamentoProtecaoStatusController').middleware([
+      'auth'
+     ])
+
+   Route.resource('/equipamentoBeneficio', 'EquipamentoBeneficioController').middleware([
       'auth'
      ])
 
@@ -78,6 +86,7 @@ Route.group(() => {
 
    Route.resource('/planoConta', 'PlanoDeContaController')
 
+   Route.resource('/beneficio', 'BeneficioController')
 
    Route.post('upload99', async ({ request }) => {
 
