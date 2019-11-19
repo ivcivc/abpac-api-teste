@@ -7,6 +7,7 @@ const EquipamentoProtecao = use('App/Models/EquipamentoProtecao')
 const EquipamentoProtecaoService = use('App/Services/EquipamentoProtecao')
 const ModelOcorrencia = use("App/Models/Ocorrencia");
 const EquipamentoBeneficioService = use("App/Services/EquipamentoBeneficio")
+const EquipamentoBeneficio = use("App/Models/EquipamentoBeneficio")
 
 
 const Database = use('Database')
@@ -28,6 +29,7 @@ class Equipamento {
 
       delete data['status']
       delete data['protecoes']
+      delete data['categoria']
 
       if ( lodash.has(data, 'placa1') && lodash.has(data, 'placa2') && lodash.has(data, 'placa3')) {
          data.placas= gerarPlacas(data)
@@ -337,6 +339,20 @@ class Equipamento {
     if ( tipo_endosso !== 'substituicao-equipamento') {
 
          await ModelOcorrencia
+            .query()
+            .where('equipamento_id', equipamento.id)
+            .transacting(trx ? trx : null)
+            .update({ equipamento_id: equipamentoAdd.id })
+
+         // Transferir beneficios para o equipamento atual (endosso)
+         await EquipamentoProtecao
+            .query()
+            .where('equipamento_id', equipamento.id)
+            .transacting(trx ? trx : null)
+            .update({ equipamento_id: equipamentoAdd.id })
+
+         // Transferir Proteção (bloequeador e Localizador) para o equipamento atual (endosso)
+         await EquipamentoBeneficio
             .query()
             .where('equipamento_id', equipamento.id)
             .transacting(trx ? trx : null)

@@ -20,6 +20,6 @@ Route.group(() => {
 
    Route.resource('/permissions', 'Auth/PermissionController')
 
-   Route.resource('/roles', 'Auth/roleController') //.apiOnly() // .middleware('auth')
+   Route.resource('/roles', 'Auth/RoleController') //.apiOnly() // .middleware('auth')
 
 }).prefix('api')
