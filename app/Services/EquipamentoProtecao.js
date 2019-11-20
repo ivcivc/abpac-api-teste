@@ -79,7 +79,8 @@ async update(equipamento_id, data, trx, auth) {
                status: data.status
             }
             if ( data.status === "Removido") {
-               addStatus.motivo= addStatus.motivo + ` Data remoção: ${data.dRemocao}`
+               let dDRemocao=  moment(data.dRemocao).format("YYYY-MM-DD h:mm:s")
+               addStatus.motivo= addStatus.motivo + ` Data remoção: ${dDRemocao}`
             }
 
             protecao.status= data.status

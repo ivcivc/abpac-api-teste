@@ -29,6 +29,15 @@ class OcorrenciaTerceiroSchema extends Schema {
          .onUpdate('CASCADE')
          .onDelete('RESTRICT')
 
+      table
+         .enu("atender", ["Sim", "Não"], {
+           useNative: true,
+           existingType: true,
+           enumName: "enu_atender"
+         })
+         .notNullable()
+         .defaultTo("Não").index();
+
       table.text("obs")
 
       table.increments()
