@@ -19,12 +19,7 @@ class PendenciaSetupSchema extends Schema {
          .defaultTo("manual")
 
       table
-         .integer('modelo_setup_id')
-         .unsigned()
-         .references('id')
-         .inTable('pendencia_modelos')
-         .onUpdate('CASCADE')
-         .onDelete('RESTRICT')
+         .text('modelo')
 
       table
          .enu("status", ["Ativo", "Inativo"], {
@@ -34,6 +29,19 @@ class PendenciaSetupSchema extends Schema {
          })
          .notNullable()
          .defaultTo("Ativo").index();
+
+      table.varchar("modulo").notNullable()
+
+      table.unique(['descricao', 'modulo'])
+
+      table
+         .enu("gerarAuto", ["Sim", "Não"], {
+           useNative: true,
+           existingType: true,
+           enumName: "enu_gerarAuto"
+         })
+         .notNullable()
+         .defaultTo("Sim").index()
 
       table.text("obs")
 
