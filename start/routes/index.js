@@ -88,6 +88,15 @@ Route.group(() => {
 
    Route.resource('/beneficio', 'BeneficioController')
 
+   Route.resource('/pendenciaSetup', 'PendenciaSetupController').middleware([
+      'auth'
+     ])
+
+   Route.resource('/pendencia', 'PendenciaController').middleware([
+      'auth'
+   ])
+
+
    Route.post('upload99', async ({ request }) => {
 
       request.multipart.file('file', {}, async (file) => {
@@ -130,6 +139,9 @@ Route.group(() => {
 
       await request.multipart.process()
     })
+
+
+    Route.post('/email', 'EmailController.enviar')
 
 
 }).prefix('api')

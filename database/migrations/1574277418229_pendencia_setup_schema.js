@@ -9,17 +9,18 @@ class PendenciaSetupSchema extends Schema {
       table.increments()
 
       table.varchar("descricao", 40)
-      table
-         .enu("disparo", ["email", "sms", 'manual'], {
+      /*table
+         .enu("disparo", ["email", "sms", "email_sms",'manual'], {
            useNative: true,
            existingType: true,
            enumName: "enu_disparo"
          })
          .notNullable()
-         .defaultTo("manual")
+         .defaultTo("manual")*/
 
-      table
-         .text('modelo')
+
+      /*table
+         .text('modelo')*/
 
       table
          .enu("status", ["Ativo", "Inativo"], {
@@ -32,16 +33,9 @@ class PendenciaSetupSchema extends Schema {
 
       table.varchar("modulo").notNullable()
 
-      table.unique(['descricao', 'modulo'])
+      table.varchar("modelo")
 
-      table
-         .enu("gerarAuto", ["Sim", "Não"], {
-           useNative: true,
-           existingType: true,
-           enumName: "enu_gerarAuto"
-         })
-         .notNullable()
-         .defaultTo("Sim").index()
+      table.unique(['descricao', 'modulo'])
 
       table.text("obs")
 

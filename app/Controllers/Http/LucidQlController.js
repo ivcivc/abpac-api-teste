@@ -18,6 +18,8 @@ const EquipamentoProtecaoStatus = use('App/Models/EquipamentoProtecaoStatus')
 const Beneficio = use('App/Models/Beneficio')
 const EquipamentoBeneficio = use('App/Models/EquipamentoBeneficio')
 const EquipamentoBeneficioStatus = use('App/Models/EquipamentoBeneficioStatus')
+const PendenciaSetup = use('App/Models/PendenciaSetup')
+const Pendencia = use('App/Models/Pendencia')
 
 const classes = {
   __proto__: null,
@@ -36,7 +38,9 @@ const classes = {
   EquipamentoProtecaoStatus,
   Beneficio,
   EquipamentoBeneficio,
-  EquipamentoBeneficioStatus
+  EquipamentoBeneficioStatus,
+  PendenciaSetup,
+  Pendencia
 }
 
 class LucidQlController {

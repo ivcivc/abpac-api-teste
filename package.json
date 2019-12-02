@@ -34,6 +34,7 @@
     "dropbox": "^4.0.30",
     "dropbox-v2-api": "^2.4.5",
     "es6-promise": "^4.2.8",
+    "html-to-pdf-studio": "^1.15.0",
     "isomorphic-fetch": "^2.2.1",
     "mysql": "^2.17.1",
     "validator-brazil": "^1.2.0",

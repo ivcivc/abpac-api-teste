@@ -15,6 +15,10 @@ class Pessoa extends Model {
    pessoaStatuses () {
       return this.hasMany('App/Models/PessoaStatus')
     }
+
+    pendencias() {
+      return this.hasMany('App/Models/Pendencia')
+    }
 }
 
 module.exports = Pessoa
