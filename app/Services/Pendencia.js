@@ -5,10 +5,10 @@ const Model = use("App/Models/Pendencia")
 
 class Pendencia {
 
-   async add(data) {
+   async add(data, trx) {
       try {
 
-        const model = await Model.create(data);
+        const model = await Model.create(data, trx ? trx : null);
 
         return model;
 

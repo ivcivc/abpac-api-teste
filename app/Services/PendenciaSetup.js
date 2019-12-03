@@ -4,10 +4,10 @@ const Model = use("App/Models/PendenciaSetup")
 
 class PendenciaSetup {
 
-   async add(data) {
+   async add(data, trx) {
       try {
 
-        const model = await Model.create(data);
+        const model = await Model.create(data, trx ? trx : null);
 
         return model;
 

@@ -3,6 +3,7 @@
 const Model = use("App/Models/Pessoa");
 const PessoaStatus = use('App/Models/PessoaStatus')
 const Equipamento = use('App/Models/Equipamento')
+const Pendencia = use('App/Models/Pendencia')
 
 const Database = use('Database')
 
@@ -39,10 +40,20 @@ class Pessoa {
 
       data.tipo= "Associado"
 
+      let pendencias= data.pendencias
+      delete data['pendencias']
+
       const pessoa = await Model.create(data, trx ? trx : null);
 
       const status = {pessoa_id: pessoa.id, user_id: auth.user.id, motivo: "Inclusão de Associado gerado pelo sistema.", status: "Ativo"}
       await PessoaStatus.create(status, trx ? trx : null)
+
+      if ( pendencias) {
+        pendencias.forEach( e => {
+          e.pessoa_id= pessoa.id
+        })
+        await new Pendencia().add(pendencias, trx)
+      }
 
       await trx.commit()
 
