@@ -14,9 +14,11 @@ Route.group(() => {
 
    Route.resource('/pessoas', 'PessoaController').middleware([
       'auth'
-   ]).validator( new Map([
+     ]).validator( new Map([
       [['/pessoas.store'], ['Pessoa/Create']],
       ]))
+
+   Route.post('/localizar', 'LocalizarController.proxy')
 
    Route.resource('/fornecedores', 'FornecedorController').middleware([
       'auth'
@@ -88,6 +90,7 @@ Route.group(() => {
 
    Route.resource('/beneficio', 'BeneficioController')
 
+
    Route.resource('/pendenciaSetup', 'PendenciaSetupController').middleware([
       'auth'
      ])
@@ -95,7 +98,6 @@ Route.group(() => {
    Route.resource('/pendencia', 'PendenciaController').middleware([
       'auth'
    ])
-
 
    Route.post('upload99', async ({ request }) => {
 

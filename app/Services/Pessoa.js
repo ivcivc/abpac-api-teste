@@ -3,7 +3,7 @@
 const Model = use("App/Models/Pessoa");
 const PessoaStatus = use('App/Models/PessoaStatus')
 const Equipamento = use('App/Models/Equipamento')
-const Pendencia = use('App/Models/Pendencia')
+const PendenciaServices = use("App/Services/Pendencia");
 
 const Database = use('Database')
 
@@ -14,6 +14,9 @@ class Pessoa {
 
       delete data['status']
       delete data['cpfCnpj']
+
+      //let pendencias= data.pendencias
+      delete data['pendencias']
 
       pessoa.merge(data);
 
@@ -49,10 +52,12 @@ class Pessoa {
       await PessoaStatus.create(status, trx ? trx : null)
 
       if ( pendencias) {
-        pendencias.forEach( e => {
-          e.pessoa_id= pessoa.id
-        })
-        await new Pendencia().add(pendencias, trx)
+        for (let i= 0; i < pendencias.length; i++) {
+            pendencias[i].pessoa_id= pessoa.id
+          console.log('e= ', pendencias[i])
+          await new PendenciaServices().add(pendencias[i], trx)
+        }
+
       }
 
       await trx.commit()
@@ -148,12 +153,22 @@ class Pessoa {
  }
 
 
-  async index() {
+  async index(payload) {
    try {
-      const pessoa = await Model.query().fetch();
+      const pessoa = Model.query();
+      pessoa.where('tipo', 'like', 'Associado')
+      pessoa.orderBy('nome', "asc")
+      pessoa.select('id','nome', 'status')
 
-      return pessoa;
+      if (payload.where ) {
+         pessoa.andWhere(payload.where[0], payload.where[1], payload.where[2])
+      }
+
+      let res= await pessoa.paginate(payload.page, payload.limit)
+
+      return res;
     } catch (e) {
+       let r=1
       throw e;
     }
   }

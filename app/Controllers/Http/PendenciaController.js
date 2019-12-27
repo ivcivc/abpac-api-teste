@@ -62,6 +62,8 @@ class PendenciaController {
 
      async destroy ({ params, request, response }) {
      }
+
+
 }
 
 module.exports = PendenciaController
