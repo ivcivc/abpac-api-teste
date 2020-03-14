@@ -9,23 +9,17 @@ class FileSchema extends Schema {
       table.increments()
 
       table.string('descricao')
-      table.string('file').notNullable()
-      table.string('name').notNullable()
-      table.string('path').notNullable()
-      table.string('fileId').notNullable()
-      table.string('type', 20)
-      table.string('subtype', 255)
 
-      table.enu("status", ["Ativo", "Vencido", "Cancelado", "Recuperado"], {
+      table.enu("status", ["Pendente", "Concluído", "Cancelado", "Vencido", "Renovado"], {
          useNative: true,
          existingType: true,
          enumName: "file_status"
        }).notNullable()
-       .defaultTo("Ativo");
+       .defaultTo("Concluído").index();
 
        table.string('modulo').notNullable().index()
-       table.string('grupo').index()
        table.integer('idParent').index()
+       table.integer('pessoa_id').index()
 
        table.date('dVencimento').defaultTo(null)
 

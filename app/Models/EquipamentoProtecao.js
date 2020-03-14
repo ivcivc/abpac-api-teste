@@ -14,6 +14,10 @@ class EquipamentoProtecao extends Model {
       return this.hasMany('App/Models/EquipamentoProtecaoStatus')
    }
 
+   equipamento() {
+      return this.hasOne('App/Models/Equipamento', 'equipamento_id','id')
+   }
+
 
 }
 

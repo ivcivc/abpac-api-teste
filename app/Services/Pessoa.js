@@ -4,6 +4,8 @@ const Model = use("App/Models/Pessoa");
 const PessoaStatus = use('App/Models/PessoaStatus')
 const Equipamento = use('App/Models/Equipamento')
 const PendenciaServices = use("App/Services/Pendencia");
+const Galeria = use('App/Models/File')
+const FileConfig = use('App/Models/FileConfig')
 
 const Database = use('Database')
 
@@ -51,13 +53,25 @@ class Pessoa {
       const status = {pessoa_id: pessoa.id, user_id: auth.user.id, motivo: "Inclusão de Associado gerado pelo sistema.", status: "Ativo"}
       await PessoaStatus.create(status, trx ? trx : null)
 
-      if ( pendencias) {
+      /*if ( pendencias) {
         for (let i= 0; i < pendencias.length; i++) {
             pendencias[i].pessoa_id= pessoa.id
           console.log('e= ', pendencias[i])
           await new PendenciaServices().add(pendencias[i], trx)
         }
 
+      }*/
+
+      const fileConfig = await FileConfig.query().where('modulo', "like", "Associado").fetch()
+
+      for ( const i in fileConfig.rows) {
+         const payload= {
+            descricao: fileConfig.rows[i].descricao,
+            modulo: fileConfig.rows[i].modulo,
+            idParent: pessoa.id,
+            "pessoa_id": pessoa.id,
+            status: "Pendente" }
+         const model = await Galeria.create(payload, trx)
       }
 
       await trx.commit()
@@ -69,11 +83,26 @@ class Pessoa {
     }
   }
 
+  async isCpfCnpj(doc) {
+     console.log('rodando isCpfCnpj service')
+    try {
+      const pessoa = await Model.query().where('tipo', 'Associado').where("cpfCnpj", doc).fetch()
+
+      console.log(pessoa)
+
+//return pessoa
+      return { isCpfCnpj: pessoa.rows.length > 0};
+    } catch (e) {
+      throw e;
+    }
+  }
+
   async get(ID) {
     try {
       const pessoa = await Model.findOrFail(ID);
 
       await pessoa.load('pessoaStatuses')
+
 
       return pessoa;
     } catch (e) {
@@ -155,6 +184,7 @@ class Pessoa {
 
   async index(payload) {
    try {
+
       const pessoa = Model.query();
       pessoa.where('tipo', 'like', 'Associado')
       pessoa.orderBy('nome', "asc")

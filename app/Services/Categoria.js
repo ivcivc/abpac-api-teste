@@ -60,6 +60,19 @@ class Categoria {
       }
     }
 
+   async del(ID) {
+      try {
+
+         const categoria = await Model.findOrFail(ID)
+         await categoria.delete()
+
+         return categoria;
+
+      } catch (e) {
+         throw e;
+      }
+   }
+
 
 }
 

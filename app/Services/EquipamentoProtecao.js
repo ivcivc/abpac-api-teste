@@ -105,6 +105,8 @@ async update(equipamento_id, data, trx, auth) {
          await EquipamentoProtecaoStatus.create(addStatus, trx ? trx : null)
       }
 
+      //await protecao.load('equipamento')
+
       return protecao
 
    } catch( e ) {
@@ -118,6 +120,8 @@ async update(equipamento_id, data, trx, auth) {
 async get(ID) {
    try {
      const protecao = await Model.findOrFail(ID);
+
+     //protecao.load('equipamentoProtecaoStatuses')
 
      return protecao;
    } catch (e) {

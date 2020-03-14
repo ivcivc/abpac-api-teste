@@ -96,6 +96,14 @@ class PessoaController {
    }
  }
 
+ async isCpfCnpj({params, response}) {
+    const doc= params.cpfCnpj
+    console.log('recebi ', doc)
+    const res = await new PessoaServices().isCpfCnpj(doc)
+
+    return res
+ }
+
 }
 
 module.exports = PessoaController;

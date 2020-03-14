@@ -7,7 +7,7 @@ class CategoriaSchema extends Schema {
   up () {
     this.create('categorias', (table) => {
 
-      table.varchar("nome", 20).unique();
+      table.varchar("nome", 55).unique();
       table.varchar("descricao", 150);
 
       table

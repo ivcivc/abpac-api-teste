@@ -8,7 +8,28 @@ class EquipamentoProtecaoController {
   async index ({ request, response, view }) {
   }
 
-  async store ({ request, response }) {
+  async store ({ request, response, auth }) {
+   const payload = request.all();
+
+   let equipamento_id= payload.equipamento_id
+   let trx= null
+
+
+   try {
+
+      trx = await Database.beginTransaction()
+
+      const protecao = await new EquipamentoProtecaoServices().update(equipamento_id, payload, null, auth);
+
+      await trx.commit()
+
+      response.status(200).send({ type: true, data: protecao });
+   } catch (error) {
+      await trx.rollback()
+      console.log(error);
+      response.status(400).send(error);
+   }
+
   }
 
 

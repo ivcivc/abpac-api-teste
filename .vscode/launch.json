@@ -12,6 +12,14 @@
          "runtimeArgs": ["run", "dev"],
          "port": 9229,
          "internalConsoleOptions": "openOnSessionStart"
+      },
+      {
+         "type": "node",
+         "request": "launch",
+         "name": "Debug Tests",
+         "program": "${workspaceFolder}/ace.js",
+         "args": ["test"],
+         "internalConsoleOptions": "openOnSessionStart"
       }
    ]
 }

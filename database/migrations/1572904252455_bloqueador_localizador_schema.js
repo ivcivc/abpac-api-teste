@@ -19,6 +19,14 @@ class BloqueadorLocalizadorSchema extends Schema {
         .notNullable()
         .defaultTo("Ativo");
 
+        table
+        .enu("tipo", ["Bloqueador", "Localizador"], {
+          useNative: true,
+          existingType: true,
+          enumName: "bloq_localizador_tipo"
+        })
+        .notNullable().index()
+
 
       table.timestamps()
     })

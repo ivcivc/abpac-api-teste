@@ -35,7 +35,9 @@ class EquipamentoBeneficioSchema extends Schema {
       }).notNullable()
       .defaultTo("Ativo");
 
-      table.unique(['equipamento_id', 'beneficio_id'])
+      table.unique(['equipamento_id', 'beneficio_id', 'status'])
+
+      table.text("obs")
 
       table.timestamps()
     })

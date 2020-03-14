@@ -28,7 +28,7 @@ class PessoaSchema extends Schema {
         .string("cpfCnpj", 14)
         .notNullable()
 
-      table.string("rg", 15);
+      table.string("rg", 16);
 
       table.string("telFixo", 15);
       table.string("telFixoContato", 20);
@@ -51,7 +51,7 @@ class PessoaSchema extends Schema {
         .defaultTo("ativo").index();
 
       table.string("endRua", 70)
-      table.string("endComplemento", 20)
+      table.string("endComplemento", 25)
       table.string("endBairro", 30)
       table.string("endCidade", 30)
       table.string("endEstado", 2)

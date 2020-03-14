@@ -87,8 +87,21 @@ class CategoriaController {
    * @param {Request} ctx.request
    * @param {Response} ctx.response
    */
-  async destroy ({ params, request, response }) {
+  async destroy({ params, response }) {
+
+     const ID = params.id
+
+     try {
+        const categoria = await new CategoriaServices().del(ID)
+
+        response.status(200).send({ type: true, data: categoria })
+
+     } catch (error) {
+        response.status(400).send(error);
+     }
+
   }
+
 }
 
 module.exports = CategoriaController

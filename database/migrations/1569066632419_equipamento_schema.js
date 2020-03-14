@@ -13,7 +13,7 @@ class EquipamentoSchema extends Schema {
       table.integer("idPai").defaultTo(0).index()
       table.integer("idFilho").defaultTo(0).index()
 
-      table.varchar("tipoEndosso", 30)
+      table.varchar("tipoEndosso", 40)
 
       table.date("dAdesao").notNullable()
       table

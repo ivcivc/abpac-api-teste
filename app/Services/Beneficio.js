@@ -58,6 +58,24 @@ class Beneficio {
       }
     }
 
+   async del(ID) {
+
+      return new Promise(async (resolve, reject) => {
+
+         try {
+
+            const model = await Model.findOrFail(ID)
+            await model.delete()
+
+            resolve(model)
+
+         } catch (e) {
+            reject(e)
+         }
+      })
+
+   }
+
 
 }
 

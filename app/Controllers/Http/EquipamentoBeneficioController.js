@@ -44,10 +44,14 @@ class EquipamentoBeneficioController {
      }
 
      async show ({ params, response }) {
+      console.log('foi....')
          try {
             const model = await new Services().get(params.id);
 
             await model.load('equipamentoBeneficioStatuses')
+            //await model.load('equipamentoBeneficioStatuses.beneficio')
+            //const bs= model.equipamentoBeneficioStatuses
+            //bs.rows.forEach( e => console.log(e))
 
             response.status(200).send({ type: true, data: model });
          } catch (error) {
@@ -82,8 +86,21 @@ class EquipamentoBeneficioController {
          }
      }
 
-     async destroy ({ params, request, response }) {
-     }
+     async destroy ({ params,  response }) {
+      let trx= null
+
+      try {
+         trx = await Database.beginTransaction()
+
+         const model= await new Services().del(params.id, trx)
+
+         return model
+
+      } catch (error) {
+         await trx.rollback()
+         response.status(400).send(error);
+      }
+   }
 }
 
 module.exports = EquipamentoBeneficioController

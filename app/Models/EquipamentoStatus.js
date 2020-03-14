@@ -13,6 +13,11 @@ class EquipamentoStatus extends Model {
       return this.hasOne('App/Models/User','user_id', 'id')
    }
 
+   equipamento () {
+      return this.belongsTo('App/Models/Equipamento', 'equipamento_id', 'id')
+    }
+
+
 }
 
 module.exports = EquipamentoStatus

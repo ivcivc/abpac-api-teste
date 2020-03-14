@@ -74,6 +74,34 @@ class EquipamentoController {
      }
    }
 
+   async buscarProtecoes({ request, response }) {
+
+      const payload = request.all()
+
+      try {
+         const equipamento = await new EquipamentoServices().buscarProtecoes(payload);
+
+         response.status(200).send({ type: true, data: equipamento });
+      } catch (error) {
+         console.log(error);
+         response.status(400).send({code: error.code, message: error.message, name: error.name});
+      }
+   }
+
+   async buscarBeneficios({ request, response }) {
+
+      const payload = request.all()
+
+      try {
+         const equipamento = await new EquipamentoServices().buscarBeneficios(payload);
+
+         response.status(200).send({ type: true, data: equipamento });
+      } catch (error) {
+         console.log(error);
+         response.status(400).send({code: error.code, message: error.message, name: error.name});
+      }
+   }
+
 }
 
 module.exports = EquipamentoController

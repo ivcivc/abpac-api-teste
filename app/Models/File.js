@@ -6,7 +6,11 @@ const Model = use('Model')
 class File extends Model {
 
    pessoa() {
-      return this.hasOne('App/Models/Pessoa', 'idParent','id')
+      return this.hasOne('App/Models/Pessoa', 'pessoa_id','id')
+   }
+
+   FileItems() {
+      return this.hasMany('App/Models/FileItem')
    }
 
 }

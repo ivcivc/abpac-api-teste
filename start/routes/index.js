@@ -18,6 +18,10 @@ Route.group(() => {
       [['/pessoas.store'], ['Pessoa/Create']],
       ]))
 
+   Route.get('/pessoa/IsCpfCnpj/:cpfCnpj', 'PessoaController.isCpfCnpj').middleware([
+      'auth'
+   ])
+
    Route.post('/localizar', 'LocalizarController.proxy')
 
    Route.resource('/fornecedores', 'FornecedorController').middleware([
@@ -46,6 +50,9 @@ Route.group(() => {
    Route.resource('/equipamentos', 'EquipamentoController').middleware([
       'auth'
    ])
+
+   Route.post('/equipamentos/buscarProtecoes', 'EquipamentoController.buscarProtecoes')
+   Route.post('/equipamentos/buscarBeneficios', 'EquipamentoController.buscarBeneficios')
 
    Route.post('/equipamento/endosso', 'EquipamentoOutrosController.endosso').middleware([
       'auth'
@@ -109,9 +116,14 @@ Route.group(() => {
       await request.multipart.process()
     })
 
+   Route.resource('/fileConfig', 'FileConfigController')
+
    Route.post('/upload', 'FileController.store')
+   Route.post('/upload_file', 'FileController.upload_file')
    Route.put('/files/:id', 'FileController.update')
    Route.post('/list', 'FileController.list')
+   Route.get('/file', 'FileController.index')
+   Route.post('/controle/file', 'FileController.busca')
 
    Route.post('/delete', 'FileController.delete')
    Route.post('/preview', 'FileController.preview')
@@ -144,6 +156,10 @@ Route.group(() => {
 
 
     Route.post('/email', 'EmailController.enviar')
+
+    Route.post('/converter', 'ConverterController.converter').middleware([
+       'auth'
+    ])
 
 
 }).prefix('api')

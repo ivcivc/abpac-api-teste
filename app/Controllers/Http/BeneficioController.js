@@ -53,8 +53,20 @@ class BeneficioController {
       }
   }
 
-  async destroy ({ params, request, response }) {
-  }
+   async destroy({ params, response }) {
+
+      const ID = params.id
+
+      try {
+         const model = await new Services().del(ID)
+
+         response.status(200).send({ type: true, data: model })
+
+      } catch (error) {
+         response.status(400).send(error);
+      }
+
+   }
 }
 
 module.exports = BeneficioController
