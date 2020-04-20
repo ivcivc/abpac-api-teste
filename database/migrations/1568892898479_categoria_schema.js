@@ -6,6 +6,7 @@ const Schema = use('Schema')
 class CategoriaSchema extends Schema {
   up () {
     this.create('categorias', (table) => {
+       table.increments()
 
       table.varchar("nome", 55).unique();
       table.varchar("descricao", 150);
@@ -29,8 +30,6 @@ class CategoriaSchema extends Schema {
         .defaultTo("Ativo");
 
 
-
-      table.increments()
       table.timestamps()
     })
   }

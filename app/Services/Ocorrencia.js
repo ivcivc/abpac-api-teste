@@ -1,15 +1,16 @@
 "use strict";
 const lodash = require('lodash')
-
+const moment = require('moment')
 const Model = use("App/Models/Ocorrencia");
 const Terceiro = use("App/Models/OcorrenciaTerceiro")
 const OcorrenciaStatus = use('App/Models/OcorrenciaStatus')
-
+//const OcorrenciaTerceiroStatus = use("/App/Models/OcorrenciaTerceiroStatus")
+const ModelTerceiroStatus = use("App/Models/OcorrenciaTerceiroStatus")
 
 const Database = use('Database')
 
 class Ocorrencia {
-  async update(ID, data, trx) {
+   async update(ID, data, trx) {
     try {
 
       if (!trx) {
@@ -48,7 +49,7 @@ class Ocorrencia {
 
       await ocorrencia.load('pessoa')
 
-      trx.commit()
+      await trx.commit()
 
       return ocorrencia;
     } catch (e) {
@@ -63,7 +64,7 @@ class Ocorrencia {
     }
   }
 
-  async add(data, trx, auth) {
+   async add(data, trx, auth) {
     try {
 
       if (!trx) {
@@ -72,25 +73,130 @@ class Ocorrencia {
 
       data.status= "Aberto"
 
+      let terceiros= []
+       if ( data.terceiros) {
+          terceiros= data.terceiros
+          delete data['terceiros']
+       }
+
       const ocorrencia = await Model.create(data, trx ? trx : null);
 
-      if ( data.terceiros) {
-         await ocorrencia.terceiros().attach(data.terceiros)
+      if ( terceiros.length > 0) {
+         const terceiroModel= await ocorrencia.terceiros().createMany(terceiros, trx ? trx : null)
+         for (const key in terceiroModel ) {
+            const status= {ocorrencia_terceiro_id: terceiroModel[key].id, user_id: auth.user.id, motivo: "Inclusão de Terceiro", status: "Aberto"}
+            //await terceiroModel.statuses().create(status, trx ? trx : null)
+            await ModelTerceiroStatus.create(status, trx ? trx : null)
+         }
+
       }
 
-      const status = {ocorrencia_id: ocorrencia.id, user_id: auth.user.id, motivo: "Inclusão de Ocorrência gerado pelo sistema.", status: "Aberto"}
+      const status = {ocorrencia_id: ocorrencia.id, user_id: auth.user.id, motivo: "Inclusão de Ocorrência", status: "Aberto"}
       await OcorrenciaStatus.create(status, trx ? trx : null)
 
-      trx.commit()
+     /*await ocorrencia.load('pessoa')
+      await ocorrencia.load('equipamento')
+      await ocorrencia.load('statuses')
+      await ocorrencia.load('terceiros')*/
 
-      return ocorrencia;
+       await trx.commit()
+
+      const query= await Model.query()
+         .with('pessoa')
+         .with('equipamento')
+         .with('statuses')
+         .with('terceiros')
+         .with('terceiros.statuses')
+         .where('id', '=', ocorrencia.id)
+         .fetch()
+
+      return query;
     } catch (e) {
       await trx.rollback()
       throw e;
     }
   }
 
-  async get(ID) {
+   async addTerceiro(data, trx, auth) {
+      try {
+
+         if (!trx) {
+            trx = await Database.beginTransaction()
+         }
+
+         const  ocorrencia_id= data.ocorrencia_id
+
+         if ( ! ocorrencia_id) {
+            throw { message: 'ID de ocorrência não foi fornecido.'}
+         }
+
+         data.status= "Aberto"
+
+         const ocorrencia = await Model.findOrFail(ocorrencia_id)
+
+         const terceiroModel= await ocorrencia.terceiros().create(data, trx ? trx : null)
+         // Status terceiro
+         const statusTerceiro= {ocorrencia_terceiro_id: terceiroModel.id, user_id: auth.user.id, motivo: "Inclusão de Terceiro", status: "Aberto"}
+         await terceiroModel.statuses().create(statusTerceiro, trx ? trx : null)
+
+         await trx.commit()
+
+         return terceiroModel
+      } catch (e) {
+         await trx.rollback()
+         throw e
+      }
+   }
+
+   async updateTerceiro(ID, data, trx, auth) {
+      try {
+
+         if (!trx) {
+            trx = await Database.beginTransaction()
+         }
+
+         const  ocorrencia_id= data.ocorrencia_id
+
+         if ( ! ocorrencia_id) {
+            throw { message: 'ID de ocorrência não foi fornecido.'}
+         }
+
+         const ocorrencia = await Model.findOrFail(ocorrencia_id)
+
+         const terceiroModel= await Terceiro.findOrFail(ID)
+         const dbStatus= terceiroModel.status
+
+         const timestamp= terceiroModel.updated_at
+         const update_at_db= moment(timestamp).format()
+         const update_at = moment(data.updated_at).format()
+
+
+         if ( update_at_db !== update_at) {
+            throw { message: 'Registro alterado por outro usuário.'}
+         }
+
+         if ( data.status !== dbStatus) {
+            const statusTerceiro= {ocorrencia_terceiro_id: terceiroModel.id, user_id: auth.user.id, motivo: "Mudança de Status", status: data.status}
+            await terceiroModel.statuses().create(statusTerceiro, trx ? trx : null)
+         }
+
+         terceiroModel.merge(data)
+         // Status terceiro
+         //const statusTerceiro= {ocorrencia_terceiro_id: terceiroModel.id, user_id: auth.user.id, motivo: "Alteração de Terceiro", status: data.status}
+         //await terceiroModel.statuses().create(statusTerceiro, trx ? trx : null)
+
+         await terceiroModel.save(trx ? trx : null);
+
+         trx.commit()
+
+         return terceiroModel
+      } catch (e) {
+         await trx.rollback()
+         throw e
+      }
+   }
+
+   async get(ID) {
     try {
       const ocorrencia = await Model.findOrFail(ID);
 
@@ -104,7 +210,7 @@ class Ocorrencia {
     }
   }
 
-  async index() {
+   async index() {
    try {
       const ocorrencia = await Model.query().with('terceiros').fetch();
 
@@ -114,7 +220,7 @@ class Ocorrencia {
     }
   }
 
-  async addStatus(data, trx, auth) {
+   async addStatus(data, trx, auth) {
    try {
 
      if (!trx) {
@@ -130,7 +236,7 @@ class Ocorrencia {
      const status = data
      await OcorrenciaStatus.create(status, trx ? trx : null)
 
-     trx.commit()
+     await trx.commit()
 
      return ocorrencia;
    } catch (e) {
@@ -139,7 +245,55 @@ class Ocorrencia {
    }
  }
 
+   async destroyTerceiro(ID, trx, auth) {
 
+      try {
+
+         if (!trx) {
+            trx = await Database.beginTransaction()
+         }
+
+         const terceiro = await Terceiro.findOrFail(ID)
+
+         await terceiro.statuses().where('ocorrencia_terceiro_id', ID).delete()
+
+         await terceiro.delete(trx)
+
+         await trx.commit()
+
+         return terceiro
+      } catch (e) {
+         await trx.rollback()
+         throw e
+      }
+   }
+
+ /*
+   async addStatusTerceiro(data, trx, auth) {
+      try {
+
+         if (!trx) {
+            trx = await Database.beginTransaction()
+         }
+
+         data.user_id = auth.user.id
+
+         const ocorrenciaTerceiroStatus = await OcorrenciaTerceiroStatus.findOrFail(data.ocorrencia_terceiro_id);
+         ocorrenciaTerceiroStatus.status= data.status
+         ocorrenciaTerceiroStatus.save(trx ? trx : null)
+
+         const status = data
+         await ocorrenciaTerceiroStatus.create(status, trx ? trx : null)
+
+         trx.commit()
+
+         return ocorrenciaTerceiroStatus;
+      } catch (e) {
+         await trx.rollback()
+         throw e;
+      }
+   }
+*/
 
 }
 

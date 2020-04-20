@@ -11,6 +11,8 @@ class EquipamentoProtecaoSchema extends Schema {
       table.date('dAtivacao')
       table.date('dRemocao')
 
+      table.varchar("dono", 10);
+
       table
         .integer('bloqueador_localizador_id')
         .unsigned()

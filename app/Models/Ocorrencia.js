@@ -5,7 +5,7 @@ const Model = use('Model')
 
 class Ocorrencia extends Model {
 
-   OcorrenciaStatuses () {
+   statuses () {
       return this.hasMany('App/Models/OcorrenciaStatus')
    }
 

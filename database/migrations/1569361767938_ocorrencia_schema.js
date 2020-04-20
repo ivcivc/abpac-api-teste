@@ -7,6 +7,8 @@ class OcorrenciaSchema extends Schema {
   up () {
     this.create('ocorrencias', (table) => {
 
+       table.increments()
+
       table.integer('pessoa_id').notNullable()
       table
          .enu("status", ["Aberto", "Complemento", "Concluído"], {
@@ -77,7 +79,6 @@ class OcorrenciaSchema extends Schema {
       table.text("descricao")
       table.text("nota",25)
 
-      table.increments()
       table.timestamps()
     })
   }

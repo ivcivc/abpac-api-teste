@@ -4,6 +4,11 @@
 const Model = use('Model')
 
 class OcorrenciaTerceiro extends Model {
+
+   statuses () {
+      return this.hasMany('App/Models/OcorrenciaTerceiroStatus')
+   }
+
    terceiros() {
       return this.belongsToMany('App/Models/Ocorrencia')
    }

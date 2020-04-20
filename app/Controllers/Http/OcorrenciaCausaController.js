@@ -77,6 +77,13 @@ class OcorrenciaCausaController {
    * @param {Response} ctx.response
    */
   async destroy ({ params, request, response }) {
+     const ID = params.id
+     try {
+        const causa = await new OcorrenciaCausa().del(ID)
+        response.status(200).send(true);
+     } catch (error) {
+        response.status(400).send(error);
+     }
   }
 
 }

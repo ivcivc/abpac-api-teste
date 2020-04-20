@@ -10,6 +10,7 @@ const Equipamento = use('App/Models/Equipamento')
 const EquipamentoStatus = use('App/Models/EquipamentoStatus')
 const Ocorrencia = use('App/Models/Ocorrencia')
 const OcorrenciaTerceiro = use('App/Models/OcorrenciaTerceiro')
+const OcorrenciaTerceiroStatus = use('App/Models/OcorrenciaTerceiroStatus')
 const File = use('App/Models/File')
 const FileItem = use('App/Models/FileItem')
 const OcorrenciaStatus = use('App/Models/OcorrenciaStatus')
@@ -42,7 +43,8 @@ const classes = {
   EquipamentoBeneficio,
   EquipamentoBeneficioStatus,
   PendenciaSetup,
-  Pendencia
+  Pendencia,
+   OcorrenciaTerceiroStatus
 }
 
 class LucidQlController {

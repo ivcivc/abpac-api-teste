@@ -21,6 +21,7 @@ class FileSchema extends Schema {
        table.integer('idParent').index()
        table.integer('pessoa_id').index()
 
+
        table.date('dVencimento').defaultTo(null)
 
       table.timestamps()

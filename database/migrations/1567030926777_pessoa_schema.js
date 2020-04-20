@@ -6,6 +6,9 @@ const Schema = use("Schema");
 class PessoaSchema extends Schema {
   up() {
     this.create("pessoas", table => {
+
+       table.increments();
+
       table.string("nome", 50).notNullable().index();
       table.string("responsavel", 50)
       table.string("indicacao", 20)
@@ -34,7 +37,7 @@ class PessoaSchema extends Schema {
       table.string("telFixoContato", 20);
       table.string("telSms", 50);
       table.string("telSmsContato", 20);
-      table.string("telCelular", 50);
+      table.string("telCelular", 15);
       table.string("telCelularContato", 20);
 
       table.text("email");
@@ -70,7 +73,7 @@ class PessoaSchema extends Schema {
 
         table.integer('user')
 
-      table.increments();
+
       table.timestamps();
     });
   }

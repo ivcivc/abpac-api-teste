@@ -188,7 +188,12 @@ class Equipamento {
      let equipamento = await Model.findOrFail(id)
 
      if ( equipamento.status !== 'Ativo') {
-        throw { message: "Status não permitido.", type: false }
+        if ( lodash.isEmpty(equipamento.idParent) && equipamento.status === 'Inativo') {
+           // permitir endosso de reativação (tornar ativo).
+        } else {
+           throw { message: "Status não permitido.", type: false }
+        }
+
      }
 
      let oEquipamento = {}
@@ -316,6 +321,96 @@ class Equipamento {
         status = {equipamento_id: equipamentoAdd.id, user_id: auth.user.id, motivo: "Endosso de acerto nos dados do equipamento", status: "Ativo"}
         await EquipamentoStatus.create(status, trx ? trx : null)
     }
+
+    // Valor de Mercado
+      if ( tipo_endosso === 'acerto-valorMercado') {
+         let novoEquipamento= equipamento.toJSON()
+         delete novoEquipamento['id']
+         novoEquipamento.idPai= equipamento.id
+         novoEquipamento.idFilho= null
+         novoEquipamento.idPrincipal= oEquipamento.idPrincipal
+         novoEquipamento.status= "Ativo"
+
+         novoEquipamento.valorMercado1= data.valorMercado
+         novoEquipamento.tipoEndosso =  "Alteração do Valor de Mercado"
+
+         // Adincionar novo equipamento (endosso)
+         equipamentoAdd = await Model.create(novoEquipamento, trx ? trx : null);
+         oEquipamento.idFilho= equipamentoAdd.id
+
+         equipamento.merge(oEquipamento);
+         equipamento.save(trx ? trx : null)
+
+         // status equipamento
+         let status = {equipamento_id: equipamento.id, user_id: auth.user.id, motivo: "Endosso de alteração do Valor de Mercado", status: "Endossado"}
+         await EquipamentoStatus.create(status, trx ? trx : null)
+
+         // status novo equipamento (endosso)
+         status = {equipamento_id: equipamentoAdd.id, user_id: auth.user.id, motivo: "Endosso de alteração do Valor de Mercado", status: "Ativo"}
+         await EquipamentoStatus.create(status, trx ? trx : null)
+      }
+    // Fim Valor de Mercado
+
+      // Baixa (inativação)
+      if ( tipo_endosso === 'baixa') {
+         let novoEquipamento= equipamento.toJSON()
+         delete novoEquipamento['id']
+         novoEquipamento.idPai= equipamento.id
+         novoEquipamento.idFilho= null
+         novoEquipamento.idPrincipal= oEquipamento.idPrincipal
+         novoEquipamento.status= "Inativo"
+
+         //novoEquipamento.valorMercado1= data.valorMercado
+         novoEquipamento.tipoEndosso =  "Baixa do Equipamento"
+
+         // Adincionar novo equipamento (endosso)
+         equipamentoAdd = await Model.create(novoEquipamento, trx ? trx : null);
+         oEquipamento.idFilho= equipamentoAdd.id
+
+         equipamento.merge(oEquipamento);
+         equipamento.save(trx ? trx : null)
+
+         // status equipamento
+         let motivo = lodash.isEmpty(data.motivo) ? "Endosso de Baixa do Equipamento" : data.motivo
+         let status = {equipamento_id: equipamento.id, user_id: auth.user.id, motivo: motivo, status: "Endossado"}
+         await EquipamentoStatus.create(status, trx ? trx : null)
+
+         // status novo equipamento (endosso)
+         status = {equipamento_id: equipamentoAdd.id, user_id: auth.user.id, motivo: motivo, status: "Inativo"}
+         await EquipamentoStatus.create(status, trx ? trx : null)
+      }
+      // Baixa (inativação)
+
+      // Reativar (tornar ativo)
+      if ( tipo_endosso === 'reativacao') {
+         let novoEquipamento= equipamento.toJSON()
+         delete novoEquipamento['id']
+         novoEquipamento.idPai= equipamento.id
+         novoEquipamento.idFilho= null
+         novoEquipamento.idPrincipal= oEquipamento.idPrincipal
+         novoEquipamento.status= "Ativo"
+
+         //novoEquipamento.valorMercado1= data.valorMercado
+         novoEquipamento.tipoEndosso =  "Reativação do Equipamento"
+
+         // Adincionar novo equipamento (endosso)
+         equipamentoAdd = await Model.create(novoEquipamento, trx ? trx : null);
+         oEquipamento.idFilho= equipamentoAdd.id
+
+         equipamento.merge(oEquipamento);
+         equipamento.save(trx ? trx : null)
+
+         // status equipamento
+         let motivo = lodash.isEmpty(data.motivo) ? "Endosso de Reativação do Equipamento" : data.motivo
+         let status = {equipamento_id: equipamento.id, user_id: auth.user.id, motivo: motivo, status: "Endossado"}
+         await EquipamentoStatus.create(status, trx ? trx : null)
+
+         // status novo equipamento (endosso)
+         status = {equipamento_id: equipamentoAdd.id, user_id: auth.user.id, motivo: motivo, status: "Ativo"}
+         await EquipamentoStatus.create(status, trx ? trx : null)
+      }
+      // Fim reativação
+
 
     // substituição de equipamento
     if ( tipo_endosso === 'substituicao-equipamento') {
@@ -486,6 +581,33 @@ class Equipamento {
     }
   }
 
+  async getEndossos(ID) {
+      try {
+         const query = await Model.query()
+            .where('idPrincipal', ID).orderBy('ID', 'desc')
+            .with('pessoa')
+            .with('categoria')
+            .with('equipamentoProtecoes')
+            .with('equipamentoBeneficios')
+            .with('equipamentoStatuses')
+            .with('equipamentoStatuses.user')
+            .fetch()
+
+         /*await equipamento.load('equipamentoStatuses')
+         await equipamento.load('pessoa')
+         await equipamento.load('categoria')
+         await equipamento.load('equipamentoProtecoes')
+         await equipamento.load('equipamentoBeneficios')*/
+
+         //await equipamento.load('ocorrencias')
+
+         return query;
+      } catch (e) {
+         throw e;
+      }
+   }
+
+
   async index() {
    try {
       const equipamento = await Model.query().fetch();
@@ -524,6 +646,8 @@ class Equipamento {
   async isDuplicidadePlaca(id, placa) {
 
      const query = await Model.query().where('placa1', "like", placa).where("status", "like", "Ativo").fetch()
+
+     placa= placa.replace('-','')
 
      let recno = query.rows.length
 
@@ -579,8 +703,22 @@ class Equipamento {
                let protecoes= await e.equipamentoProtecoes().fetch()
 
                protecoes.rows.forEach( x => {
-                  if (x.tipo === 'Localizador')  x.status.includes('Removido', 'Perdido') ? o.localizador= null : o.localizador= x.status
-                  if (x.tipo === 'Bloqueador')  x.status.includes('Removido', 'Perdido') ? o.bloqueador= null: o.bloqueador= x.status
+                  if ( x.tipo === 'Localizador') {
+                     if ( x.status === 'Removido' || x.status === 'Perdido') {
+                        o.localizador= null
+                     } else {
+                        o.localizador= x.status
+                     }
+                  }
+                  if ( x.tipo === 'Bloqueador') {
+                     if ( x.status === 'Removido' || x.status === 'Perdido') {
+                        o.bloqueador= null
+                     } else {
+                        o.bloqueador= x.status
+                     }
+                  }
+                  //if (x.tipo === 'Localizador')  x.status.includes('Removido', 'Perdido') ? o.localizador= null : o.localizador= x.status
+                  //if (x.tipo === 'Bloqueador')  x.status.includes('Removido', 'Perdido') ? o.bloqueador= null: o.bloqueador= x.status
 
                })
 

@@ -57,6 +57,9 @@ Route.group(() => {
    Route.post('/equipamento/endosso', 'EquipamentoOutrosController.endosso').middleware([
       'auth'
    ])
+   Route.get('/equipamentos/getIDEndossos/:id', 'EquipamentoOutrosController.getIDEndossos').middleware([
+      'auth'
+   ])
 
    Route.post('/xmlToJson', 'EquipamentoOutrosController.xmlToJson').middleware([
       'auth'
@@ -86,6 +89,19 @@ Route.group(() => {
    Route.resource('/ocorrencias', 'OcorrenciaController').middleware([
       'auth'
    ])
+
+   Route.post('/ocorrencias/addTerceiro', 'OcorrenciaController.addTerceiro').middleware([
+      'auth'
+   ])
+
+   Route.delete('/ocorrencias/deleteTerceiro/:id', 'OcorrenciaController.destroyTerceiro').middleware([
+      'auth'
+   ])
+
+   Route.put('/ocorrencias/updateTerceiro/:id', 'OcorrenciaController.updateTerceiro').middleware([
+      'auth'
+   ])
+
    Route.resource('/ocorrenciaStatus', 'OcorrenciaStatusController').middleware([
       'auth'
      ])
@@ -161,7 +177,13 @@ Route.group(() => {
        'auth'
     ])
 
-
+   /*Route.get('/filemanager/folders', 'GerenciadorArquivoController.folders')
+   Route.get('/filemanager/files', 'GerenciadorArquivoController.files')
+   Route.get('/filemanager/info', 'GerenciadorArquivoController.info')
+   Route.get('/filemanager/preview', 'GerenciadorArquivoController.preview')
+   Route.get('/filemanager/meta', 'GerenciadorArquivoController.meta')
+   Route.get('/filemanager/direct', 'GerenciadorArquivoController.direct')
+    */
 }).prefix('api')
 
 // middleware(['auth', 'is:(admin || manager')])

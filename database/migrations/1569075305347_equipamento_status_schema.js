@@ -7,6 +7,8 @@ class EquipamentoStatusSchema extends Schema {
   up () {
     this.create('equipamento_statuses', (table) => {
 
+       table.increments()
+
       table.varchar("motivo", 250);
 
       table
@@ -29,7 +31,7 @@ class EquipamentoStatusSchema extends Schema {
 
       table.integer('user_id').notNullable()
 
-      table.increments()
+
       table.timestamps()
     })
   }

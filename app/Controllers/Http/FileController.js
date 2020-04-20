@@ -37,7 +37,7 @@ class FileController {
 
       return new Promise( (resolve, reject) => {
 
-         dbx.sharingGetSharedLinkFile({ url: 'id:vNe542VRdrAAAAAAAAAAZg' })
+         /*dbx.sharingGetSharedLinkFile({ url: 'id:vNe542VRdrAAAAAAAAAAZg' })
          .then(function (data) {
            fs.writeFile(data.name, data.fileBinary, 'binary', function (err) {
              if (err) { throw err; }
@@ -48,9 +48,9 @@ class FileController {
          .catch(function (err) {
             reject( err)
            throw err;
-         });
+         });*/
 
-         /*dbx.filesListFolder({ path: '' })
+         dbx.filesListFolder({ path: '' })
          .then(function (response) {
          console.log(response);
          resolve( response)
@@ -58,7 +58,7 @@ class FileController {
          .catch(function (err) {
          console.log(err);
          reject( err)
-         });*/
+         });
 
       })
 
@@ -101,6 +101,8 @@ class FileController {
 
       try {
          item= await FileItem.findOrFail(id)
+
+         console.log('linkTemp pagth= ', item.key )
 
          return new Promise((resolve, reject)  => {
 
@@ -412,10 +414,10 @@ class FileController {
 
       const payload = request.all()
 
-      let modulo = ""
+      let modulos = []
 
-      if ( payload.modulo) {
-         modulo = payload.modulo
+      if ( payload.modulos) {
+         modulos = payload.modulos
       }
 
       try {
@@ -431,6 +433,45 @@ class FileController {
             .fetch()*/
 
          let query = null
+
+         let arrQuery= []
+
+         modulos.forEach( modulo => {
+            if ( modulo === 'Associado') {
+               arrQuery.push(
+                  Database.select(['files.*', 'files.status as placa ', 'pessoas.nome as nome']).table('files')
+                     .where('modulo', "Associado").whereIn('files.status', status)
+                     .leftOuterJoin('pessoas', 'files.pessoa_id', 'pessoas.id')
+               )
+            }
+
+            if ( modulo === 'Equipamento') {
+               arrQuery.push(
+                  Database.select(['files.*', 'placa1 as placa ', 'pessoas.nome as nome']).table('files')
+                     .where('modulo', "Equipamento")
+                     .leftOuterJoin('equipamentos', 'files.idParent', 'equipamentos.id')
+                     .leftOuterJoin('pessoas', 'files.pessoa_id', 'pessoas.id')
+                     .whereIn('files.status', status)
+                     .where('equipamentos.status', 'Ativo')
+               )
+            }
+
+         })
+
+
+         query =await Database.select(['files.*', 'files.status as placa ', 'files.status as nome']).table('files')
+            .where(1, 0)
+            .union(
+               arrQuery
+            )
+
+         /*query = await File.query()
+            .join('problem_permissions as pp', 'pp.problemId', 'problems.problemId')
+            .where('pp.userId', userId)
+            .orderBy('problems.problemId', 'asc')
+            .select('problems.*')
+            .fetch()
+
 
          if ( lodash.isEmpty(modulo)) {
 
@@ -451,7 +492,7 @@ class FileController {
                .leftOuterJoin('pessoas', 'files.pessoa_id', 'pessoas.id') //.where('pessoas.modulo', 'Associado')
                .orderBy(['pessoas.nome', 'files.modulo'])
 
-         }
+         }*/
 
 
          response.status(200).send({ type: true, data: query });

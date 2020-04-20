@@ -60,6 +60,19 @@ class OcorrenciaCausa {
     }
 
 
+   async del(ID) {
+      try {
+
+         const causa = await Model.findOrFail(ID)
+         await causa.delete()
+
+         return causa;
+
+      } catch (e) {
+         throw e;
+      }
+   }
+
 }
 
 

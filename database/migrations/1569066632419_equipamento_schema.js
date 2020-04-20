@@ -7,6 +7,8 @@ class EquipamentoSchema extends Schema {
   up () {
     this.create('equipamentos', (table) => {
 
+       table.increments()
+
       table.integer("pessoa_id").unsigned().references('id').inTable('pessoas')
 
       table.integer("idPrincipal").defaultTo(0).index()
@@ -72,8 +74,6 @@ class EquipamentoSchema extends Schema {
 
       table.varchar("placas",26).index()
 
-
-      table.increments()
       table.timestamps()
     })
   }
