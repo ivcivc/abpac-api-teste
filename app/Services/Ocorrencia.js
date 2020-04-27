@@ -48,6 +48,7 @@ class Ocorrencia {
       await ocorrencia.save(trx ? trx : null);
 
       await ocorrencia.load('pessoa')
+       await ocorrencia.load('terceiros')
 
       await trx.commit()
 

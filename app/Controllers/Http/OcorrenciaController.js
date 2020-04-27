@@ -64,6 +64,7 @@ class OcorrenciaController {
          try {
             const res = await new OcorrenciaServices().updateTerceiro(ID, payload, null, auth );
 
+
             response.status(200).send({ type: true, data: res });
          } catch (error) {
             console.log(error);
