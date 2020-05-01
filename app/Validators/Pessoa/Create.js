@@ -14,7 +14,7 @@ class PessoaCreate {
          responsavel: 'string|max:50',
          tipoPessoa: 'string',
          dNasc: 'date',
-         email: 'email',
+         email: 'string',
          tipo: 'string'
       }
     }
