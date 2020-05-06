@@ -8,6 +8,7 @@ class BeneficioSchema extends Schema {
     this.create('beneficios', (table) => {
       table.increments()
 
+      //table.varchar("abrev", 10).index().notNullable()
       table.varchar("descricao", 45).unique()
 
       table
@@ -25,6 +26,9 @@ class BeneficioSchema extends Schema {
         enumName: "beneficio_status_enu"
       }).notNullable()
       .defaultTo("Ativo");
+
+
+      //table.unique(['abrev','status']);
 
 
       table.float("valor").defaultTo(0.00)

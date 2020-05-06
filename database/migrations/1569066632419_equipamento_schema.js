@@ -72,6 +72,8 @@ class EquipamentoSchema extends Schema {
       table.varchar("modeloF3",4)
       table.varchar("renavam3",12)
 
+      table.text("obs");
+
       table.varchar("placas",26).index()
 
       table.timestamps()

@@ -27,7 +27,7 @@ class EquipamentoProtecaoSchema extends Schema {
       table.varchar("local", 40);
 
       table
-        .enu("status", ["Instalar", "Revisar", "Renovar", "Instalado", "Revisado", "Removido", "Perdido"], {
+        .enu("status", ["Instalar", "Revisar", "Remover", "Instalado", "Revisado", "Removido", "Perdido"], {
           useNative: true,
           existingType: true,
           enumName: "equipamento_protecao_status"
