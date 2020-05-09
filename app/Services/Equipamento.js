@@ -61,11 +61,31 @@ class Equipamento {
          await trx.commit()
       }
 
-      await equipamento.load('equipamentoStatuses')
+      /*await equipamento.load('equipamentoStatuses')
       await equipamento.load('pessoa')
       await equipamento.load('equipamentoProtecoes')
+      let bene = await equipamento.load('equipamentoBeneficios')
+      console.log(bene)
+     // await equipamento.with('equipamentoBeneficios.beneficio')
+      //await bene.load('beneficio')
+      await equipamento.load('categoria')*/
 
-      return equipamento;
+      const query = await Model
+         .query()
+         .where('id', equipamento.id)
+         .with('equipamentoStatuses')
+         .with('pessoa')
+         .with('categoria')
+         .with('equipamentoProtecoes')
+         .with('equipamentoBeneficios')
+         .with('equipamentoBeneficios.beneficio')
+         /*.with('posts.comments', (builder) => {
+            builder.where('approved', true)
+         })*/
+         .fetch()
+
+
+      return query;
     } catch (e) {
       if ( showNewTrx) {
          await trx.rollback()
@@ -148,12 +168,23 @@ class Equipamento {
          await trx.commit()
       }
 
-      await equipamento.load('equipamentoStatuses')
+      /*await equipamento.load('equipamentoStatuses')
       await equipamento.load('pessoa')
       await equipamento.load('equipamentoProtecoes')
-      await equipamento.load('categoria')
+      await equipamento.load('categoria')*/
 
-      return equipamento;
+      const query = await Model
+         .query()
+         .where('id', equipamento.id)
+         .with('equipamentoStatuses')
+         .with('pessoa')
+         .with('categoria')
+         .with('equipamentoProtecoes')
+         .with('equipamentoBeneficios')
+         .with('equipamentoBeneficios.beneficio')
+         .fetch()
+
+      return query;
     } catch (e) {
        if ( showNewTrx) {
           await trx.rollback()
