@@ -17,6 +17,8 @@ class EquipamentoBeneficio {
          const status = {equipamento_beneficio_id: model.id, user_id: auth.user.id, motivo: "Inclusão de registro", status: model.status}
          await ModelStatus.create(status, trx ? trx : null)
 
+         //await model.load('beneficio')
+
          return model;
 
       } catch (e) {
@@ -39,7 +41,7 @@ class EquipamentoBeneficio {
      try {
         const model = await Model.query().with('equipamentoBeneficioStatuses').fetch();
 
-        console.log(112)
+
         return model;
       } catch (e) {
         throw e;
@@ -68,6 +70,8 @@ class EquipamentoBeneficio {
         if ( oStatus ) {
           await ModelStatus.create(oStatus, trx ? trx : null)
         }
+
+
 
         return model;
       } catch (e) {
