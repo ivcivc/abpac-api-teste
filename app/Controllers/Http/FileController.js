@@ -180,9 +180,79 @@ class FileController {
 
    }
 
-   // Upload de arquivo no dropbox
+
    async upload_file ({ request, response, params }) {
 
+      let fileOriginal= ''
+
+      console.log('response.id ', response.id)
+
+         try {
+
+            const query = request.get()
+
+            let payload= query
+
+            if ( !lodash.isObject) {
+               payload= JSON.parse(query.payload)
+            }
+
+            let retorno= null
+
+            await request.multipart.file('upload', {}, async (file) => {
+
+               try {
+                  const fileName= `${Date.now()}.${file.extname}`
+                  fileOriginal= file.clientName
+
+                  console.log('arquivo: ', fileName)
+
+                  //const fileContent = await getStream.buffer(file.stream);
+
+                  let res= await dbx.filesUpload({path: '/' + fileName, contents: file.stream})
+
+                  console.log('acabou de fazer upload no dropbox')
+                  console.log('response.id ', res.id)
+
+                  const fileModelItem = await FileItem.create({
+                     file: fileName,
+                     name: fileOriginal,
+                     path: res.path_lower,
+                     type: file.type,
+                     subtype: file.subtype,
+                     key: res.id,
+                     status: 'Aprovado'
+                  })
+
+                  retorno= {arquivo: fileName, value: fileModelItem.id, status: "server"}
+
+               } catch (err ) {
+                  console.log('retorno catch.... ')
+                  response.status(200).send({arquivo: fileOriginal, value: 'falha', status: "error", err})
+                  return
+               }
+
+            })
+            .process()
+
+            console.log('resolvendo...')
+
+            response.status(200).send(retorno)
+
+
+         } catch(err) {
+            response.status(200).send({arquivo: fileOriginal, value: 'falha', status: "error", err})
+         }
+
+
+
+
+   }
+
+
+   // Upload de arquivo no dropbox
+   async upload_file_original ({ request, response, params }) {
+      console.log('response.id ', response.id)
       return new Promise((resolve, reject)  => {
 
          try {
@@ -206,7 +276,7 @@ class FileController {
                dbx.filesUpload({path: '/' + fileName, contents: fileContent})
 
                .then( async response => {
-
+                  console.log('passou no upload.... ', response)
                   const fileModelItem = await FileItem.create({
                      file: fileName,
                      name: fileOriginal,
@@ -219,8 +289,9 @@ class FileController {
 
                   resolve({arquivo: fileName, value: fileModelItem.id, status: "server"})
                })
-               .catch(function(error) {
-                  reject(error)
+               .catch((error) =>  {
+                  console.log('falhou no upload.... ', error)
+                  reject({arquivo: fileName, value: 'falha', status: "error"})
                });
 
             })
@@ -309,6 +380,8 @@ class FileController {
          const file = await new FileServices().update(ID, payload, trx);
 
          await trx.commit()
+
+         //await file.load('FileItems')
 
          response.status(200).send({ type: true, data: file });
       } catch (error) {

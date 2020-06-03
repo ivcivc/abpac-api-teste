@@ -82,12 +82,16 @@ class LocalizarController {
       }
 
       if ( payload.field_name === 'Placa' ) {
+
+         payload.field_value= payload.field_value.replace('-','')
+
          if ( ! lodash.isEmpty(payload.field_value )) {
-            o.where= ['equipamentos.placa1','like', '%'+payload.field_value+"%"]
+            /*o.where= ['equipamentos.placa1','like', '%'+payload.field_value+"%"]
             o.orWhere= ['equipamentos.placa2','like', '%'+payload.field_value+"%"]
-            o.orWhere= ['equipamentos.placa3','like', '%'+payload.field_value+"%"]
+            o.orWhere= ['equipamentos.placa3','like', '%'+payload.field_value+"%"]*/
+            o.where= ['equipamentos.placas','like', '%'+payload.field_value+"%"]
          } else {
-            o.where= ['equipamentos.placa1','like', '%%']
+            o.where= ['equipamentos.placas','like', '%%']
          }
          if ( payload.status) {
             o.whereStatus= payload.status
@@ -99,8 +103,6 @@ class LocalizarController {
    }
 
    async localizarAssociado(response, payload) {
-
-      console.log('metodo localizarAssociado ')
 
       try {
         const pessoa = await new PessoaServices().index(payload);
