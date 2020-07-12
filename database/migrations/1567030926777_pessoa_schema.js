@@ -60,6 +60,8 @@ class PessoaSchema extends Schema {
       table.string("endEstado", 2)
       table.string("endCep", 8)
 
+      table.string("parcela", 2)
+
       table
         .enu("tipo", ["associado", "fornecedor"], {
           useNative: true,

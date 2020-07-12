@@ -78,6 +78,17 @@ class LocalizarController {
          if ( ! lodash.isEmpty(payload.field_value )) {
             o.where= [payload.field_name,'like', '%'+payload.field_value+"%"]
          }
+         o.whereStatus= null
+
+         return this.localizarAssociado(response, o)
+      }
+
+      if ( payload.field_name === 'parcela' ) {
+
+         if ( ! lodash.isEmpty(payload.field_value )) {
+            o.where= [payload.field_name,'like', '%'+payload.field_value+"%"]
+         }
+         o.whereStatus= ['status', 'like', 'Ativo']
          return this.localizarAssociado(response, o)
       }
 

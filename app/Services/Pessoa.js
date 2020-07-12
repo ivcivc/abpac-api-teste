@@ -187,11 +187,17 @@ class Pessoa {
 
       const pessoa = Model.query();
       pessoa.where('tipo', 'like', 'Associado')
+      //pessoa.where('status', 'like', 'Ativo')
       pessoa.orderBy('nome', "asc")
       pessoa.select('id','nome', 'status')
 
       if (payload.where ) {
          pessoa.andWhere(payload.where[0], payload.where[1], payload.where[2])
+
+      }
+
+      if (payload.whereStatus ) {
+         pessoa.andWhere(payload.whereStatus[0], payload.whereStatus[1], payload.whereStatus[2])
       }
 
       let res= await pessoa.paginate(payload.page, payload.limit)

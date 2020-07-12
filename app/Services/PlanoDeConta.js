@@ -50,22 +50,24 @@ class PlanoDeConta {
 
     async getCombo() {
       try {
-         const planoConta = await Model.query().orderBy('idParent', 'asc').fetch();
+         const planoConta = await Model.query().orderBy('level', 'asc').fetch();
 
          let arr = []
 
          const search= ( registro, el ) => {
             let idParent= registro.idParent
             el.forEach( e => {
+               e._id= e.id
+               //delete e['id']
                if ( e.id === idParent) {
-                  if ( !lodash.has( e, 'children')) {
-                     e['children']= []
+                  if ( !lodash.has( e, 'data')) {
+                     e['data']= []
                   }
-                  e.children.push(registro)
+                  e.data.push(registro)
                   return true
                } else {
-                  if ( lodash.has( e, 'children')) {
-                     return search(registro, e.children)
+                  if ( lodash.has( e, 'data')) {
+                     return search(registro, e.data)
                   } else {
                      return false
                   }
@@ -75,25 +77,26 @@ class PlanoDeConta {
          }
 
          planoConta.rows.forEach( e => {
-            let registro = {id: e.id, idParent: e.idParent, label: e.descricao, tipo: e.tipo, status: e.status}
+            let registro = {id: e.id, idParent: e.idParent, value: e.descricao, tipo: e.tipo, isLancar: e.isLancar, isDR: e.isDR, isFluxoCaixa: e.isFluxoCaixa, level: e.level, status: e.status}
             if ( e.idParent === 0) {
                return arr.push(registro)
             }
             arr.forEach( lista => {
                if ( lista.id === e.idParent) {
-                  if ( !lodash.has( lista, 'children')) {
-                     lista['children']= []
+                  if ( !lodash.has( lista, 'data')) {
+                     lista['data']= []
                   }
-                  lista.children.push(registro)
+                  lista.data.push(registro)
                   return true
                }
-               if ( lodash.has( lista, 'children')) {
-                  let ret= search(registro, lista['children'])
+               if ( lodash.has( lista, 'data')) {
+                  let ret= search(registro, lista['data'])
                     if ( ret ) return true
                }
             })
 
          })
+
 
          return arr;
        } catch (e) {

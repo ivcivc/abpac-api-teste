@@ -8,7 +8,7 @@ class PlanoDeContaSchema extends Schema {
     this.create('plano_de_contas', (table) => {
       table.increments()
 
-      table.varchar("descricao", 45)
+      table.varchar("descricao", 60)
 
       table.integer("idParent").defaultTo(0)
 
@@ -22,12 +22,25 @@ class PlanoDeContaSchema extends Schema {
       .defaultTo("Ativo").index();
 
       table
-      .enu("tipo", ["Receita", "Despesa"], {
+      .enu("natureza", ["Receita", "Despesa"], {
+        useNative: true,
+        existingType: true,
+        enumName: "plano_conta_natureza"
+      })
+      .notNullable().index();
+
+      table
+      .enu("tipo", ["Sintético", "Analítico"], {
         useNative: true,
         existingType: true,
         enumName: "plano_conta_tipo"
       })
       .notNullable().index();
+
+      table.boolean("isLancar").defaultTo(true)
+      table.boolean("isDR").defaultTo(true)
+      table.boolean("isFluxoCaixa").defaultTo(true)
+
 
       table.unique(['descricao', 'tipo'])
 
