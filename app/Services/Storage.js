@@ -5,6 +5,9 @@ const File = use('App/Models/File')
 const FileItem = use('App/Models/FileItem')
 const Database = use('Database')
 
+const Kue = use('Kue')
+const Job = use('App/Jobs/SincronizarDropbox')
+
 class Storage {
 
    async update(ID, data, trx) {
@@ -30,6 +33,12 @@ class Storage {
         if ( items) {
             items.forEach(e => {
                delete e.link
+               delete e.key
+               delete e.file
+               delete e.name
+               delete e.path
+               delete e.type
+               delete e.subtype
             })
             for (let e in items) {
                let x= 1
@@ -39,21 +48,26 @@ class Storage {
                .where('id', items[e].id)
                .update(items[e])
             }
-            //await file.FileItems().saveMany(items)
+
          }
 
         await file.save(trx ? trx : null);
 
         if (arr_files_id.length > 0 ) {
 
-         for (let e in arr_files_id) {
-            let itemId= arr_files_id[e]
-            let itemModel = await FileItem.findOrFail(itemId)
-            itemModel.merge({file_id: ID})
-            await itemModel.save(trx ? trx : null);
+            for (let e in arr_files_id) {
+               let itemId= arr_files_id[e]
+               let itemModel = await FileItem.findOrFail(itemId)
+               itemModel.merge({file_id: ID})
+               await itemModel.save(trx ? trx : null);
+               if ( itemModel.key === 'pendente') {
+                  const job= Kue.dispatch(Job.key, parseInt(itemModel.id), {attempts: 3})
+               }
 
-         }
+
+            }
         }
+
 
         return file;
       } catch (e) {

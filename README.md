@@ -27,3 +27,7 @@ Run the following command to run startup migrations.
 adonis migration:run
 ```
 # abpac-api
+
+
+# Instalar Redis
+http://formvalidate.com/how-to-install-and-configure-redis-into-centos-8

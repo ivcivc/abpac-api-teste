@@ -134,9 +134,13 @@ Route.group(() => {
 
    Route.resource('/fileConfig', 'FileConfigController')
 
-   Route.post('/upload', 'FileController.store')
-   Route.post('/upload_file', 'FileController.upload_file')
-   Route.put('/files/:id', 'FileController.update')
+   Route.put('/files/:id', 'StorageController.update')
+   Route.post('/files', 'StorageController.store')
+   Route.post('/upload', 'StorageController.upload') // 13-07-2020
+
+  // Route.post('/upload', 'FileController.store')
+  // Route.post('/upload_file', 'FileController.upload_file')
+  // Route.put('/files/:id', 'FileController.update')
    Route.post('/list', 'FileController.list')
    Route.get('/file', 'FileController.index')
    Route.post('/controle/file', 'FileController.busca')

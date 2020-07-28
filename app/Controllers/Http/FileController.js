@@ -14,6 +14,7 @@ const Helpers = use('Helpers')
 const fs = require('fs');
 const getStream = use("get-stream")
 
+const Kue = use('Kue')
 
 require('es6-promise').polyfill();
 const fetch = require('isomorphic-fetch'); // or another library of choice.
@@ -95,16 +96,16 @@ class FileController {
 
       const {id} = request.all()
 
-      console.log('path ', id)
-
       let item= null
 
       try {
          item= await FileItem.findOrFail(id)
 
-         console.log('linkTemp pagth= ', item.key )
-
          return new Promise((resolve, reject)  => {
+
+            if ( item.key === 'pendente') {
+               return resolve({link:"pendente"})
+            }
 
             dbx.filesGetTemporaryLink({ path: item.key })
 
@@ -312,10 +313,10 @@ class FileController {
       Recebe o cabeçalho do File e grava a referencia id (file_id)
       no filho (fileItem - referencia dropbox)
    */
-   async store({request,response}) {
+   /*async store({request,response}) {
       let {files} = request.only('files')
       let payload = request.all()
-
+      console.log('store')
 
       let arrFiles= []
       let trx= null
@@ -351,6 +352,8 @@ class FileController {
 
          await trx.commit()
 
+         this.setAddKue(fileModelItem.id)
+
          return response.status(200).send( {status: "server", id: fileModelItem.id })
 
        } catch (e) {
@@ -358,10 +361,30 @@ class FileController {
          throw e;
        }
 
-   }
+   }*/
 
-   async update ({ request, response,params }) {
+   /*async setAddKue(ID) {
+      try {
+            // Ativar envio para o Dropbox (kue), caso key == pendente.
+            let query = await FileItem.query()
+            .where('file_id', ID)
+            .fetch()
+            query.rows.forEach( o => {
+               console.log('query : ',o.key)
+               if ( o.key === 'pendente') {
+                  console.log('dispatch tarefa ', o.key , ' ', o.id)
+                  const job= Kue.dispatch(Job.key, parseInt(o.id), {attempts: 3})
+               }
+            })
+            // fim envio para dropbox (kue)
+      } catch(err) {
+         return err
+      }
 
+   }*/
+
+   /*async update ({ request, response,params }) {
+      console.log('update ')
       let trx= null
 
       const payload = request.all();
@@ -381,18 +404,20 @@ class FileController {
 
          await trx.commit()
 
+         this.setAddKue(ID)
+
          //await file.load('FileItems')
 
          response.status(200).send({ type: true, data: file });
       } catch (error) {
          await trx.rollback()
-         console.log(error);
+
          response.status(400).send(error);
       }
 
-   }
+   }*/
 
-   async store_oroginal ({ request, response, params }) {
+   /*async store_oroginal ({ request, response, params }) {
 
       return new Promise((resolve, reject)  => {
 
@@ -406,8 +431,6 @@ class FileController {
                payload= JSON.parse(query.payload)
             }
 
-
-            console.log('store ', payload)
 
             request.multipart.file('upload', {}, async (file) => {
                const fileName= `${Date.now()}.${file.extname}`
@@ -453,7 +476,7 @@ class FileController {
       })
 
 
-   }
+   }*/
 
    async index({  response, request }) {
 

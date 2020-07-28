@@ -4,7 +4,7 @@
 const Model = use('Model')
 
 class FileItem extends Model {
-   file () {
+   galeria() {
       return this.belongsTo('App/Models/File')
     }
 }

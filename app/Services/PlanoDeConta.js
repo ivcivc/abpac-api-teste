@@ -77,7 +77,7 @@ class PlanoDeConta {
          }
 
          planoConta.rows.forEach( e => {
-            let registro = {id: e.id, idParent: e.idParent, value: e.descricao, tipo: e.tipo, isLancar: e.isLancar, isDR: e.isDR, isFluxoCaixa: e.isFluxoCaixa, level: e.level, status: e.status}
+            let registro = {id: e.id, idParent: e.idParent, value: e.descricao, natureza: e.natureza, tipo: e.tipo, isLancar: e.isLancar, isDR: e.isDR, isFluxoCaixa: e.isFluxoCaixa, level: e.level, status: e.status}
             if ( e.idParent === 0) {
                return arr.push(registro)
             }
@@ -165,16 +165,16 @@ class PlanoDeConta {
     async update(ID, data) {
       try {
 
-         if ( lodash.has(data, 'OrderIndex')) {
+         /*if ( lodash.has(data, 'OrderIndex')) {
             return this.update_moved(data.id, data.OrderIndex)
-         }
+         }*/
 
          let idParent = data['idParent']
 
-         if ( idParent >  0 ) {
+         /*if ( idParent >  0 ) {
             const plano = await Model.findOrFail(idParent);
             data['tipo']= plano.tipo
-         }
+         }*/
 
         let planoConta = await Model.findOrFail(ID);
 

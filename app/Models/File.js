@@ -13,6 +13,10 @@ class File extends Model {
       return this.hasMany('App/Models/FileItem')
    }
 
+   FileNotification() {
+      return this.hasMany('App/Models/FileNotification')
+   }
+
 }
 
 module.exports = File

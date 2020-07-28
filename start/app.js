@@ -24,7 +24,9 @@ const providers = [
    '@adonisjs/validator/providers/ValidatorProvider',
    path.join(__dirname, '..', 'app/providers', 'ValidateCompoundUnique/Provider'),
    path.join(__dirname, '..', 'app/providers', 'ValidateCpfCnpj/Provider'),
-   '@adonisjs/drive/providers/DriveProvider'
+   '@adonisjs/drive/providers/DriveProvider',
+   '@adonisjs/redis/providers/RedisProvider',
+   'adonis-kue/providers/KueProvider'
 ]
 
 /*
@@ -39,7 +41,8 @@ const providers = [
 const aceProviders = [
    '@adonisjs/lucid/providers/MigrationsProvider',
    'adonis-acl/providers/CommandsProvider',
-   'adonis-acl/providers/CommandsProvider'
+   'adonis-acl/providers/CommandsProvider',
+   'adonis-kue/providers/CommandsProvider'
 ]
 
 /*
@@ -69,4 +72,8 @@ const aliases = {
 */
 const commands = []
 
-module.exports = { providers, aceProviders, aliases, commands }
+/* Meus jobs para Redis */
+const jobs = ['App/Jobs/SincronizarDropbox']
+//****** */
+
+module.exports = { providers, aceProviders, aliases, commands, jobs }
