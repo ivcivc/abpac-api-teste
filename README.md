@@ -31,3 +31,8 @@ adonis migration:run
 
 # Instalar Redis
 http://formvalidate.com/how-to-install-and-configure-redis-into-centos-8
+
+
+# configurações apache
+https://www.it-swarm.dev/pt/node.js/websockets-e-proxy-do-apache-como-configurar-o-mod-proxy-wstunnel/1050133925/
+

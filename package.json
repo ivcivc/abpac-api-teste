@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node server.js",
     "test": "node ace test",
-    "dev": "adonis serve --dev --debug"
+    "dev": "adonis serve --dev --debug",
+    "kue": "adonis kue:listen"
   },
   "keywords": [
     "adonisjs",

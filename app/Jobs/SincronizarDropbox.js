@@ -12,7 +12,7 @@ const FileNotification = use('App/Models/FileNotification')
 const fetch = require('isomorphic-fetch'); // or another library of choice.
 const Dropbox = require('dropbox').Dropbox;
 const dbx = new Dropbox({ accessToken: 'Oa8F7Dr5mzAAAAAAAAAAdCtu2ZHPDca4bFFIBz_uuRhcTRoXHRjtf_CZJqz7rOPp', fetch });
-
+const Env = use("Env");
 
 const lodash = use('lodash')
 
@@ -89,7 +89,9 @@ class SincronizarDropbox {
 
                const binario= await Drive.get(Helpers.tmpPath('uploads')+filePath)
 
-               const caminho_arquivo=  "/" + modelFile.modulo + "/" + modelFile.idParent + filePath
+               const pastaTeste= Env.get('NODE_ENV') === 'production' ? '' : '/teste'
+
+               const caminho_arquivo=  pastaTeste + "/" + modelFile.modulo + "/" +  modelFile.idParent + filePath
 
                let res= await dbx.filesUpload({path:caminho_arquivo, contents: binario})
 

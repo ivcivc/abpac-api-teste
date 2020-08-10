@@ -25,7 +25,7 @@ class ChatController {
   async onLivre(data) {
     console.log("onLivre ativada.");
     //this.broadcastToAll("message", data);
-    this.socket.emit("livre", data);
+    this.socket.emit("livre", data + ' server.');
   }
 }
 

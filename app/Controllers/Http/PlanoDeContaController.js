@@ -53,7 +53,7 @@ class PlanoDeContaController {
   async update ({ params, request, response }) {
       const payload = request.all();
       const ID = params.id
-console.log('payload ', payload)
+
       try {
       const planoConta = await new PlanoDeContaServices().update(ID, payload);
 

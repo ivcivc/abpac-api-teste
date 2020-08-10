@@ -19,6 +19,10 @@ const Ws = use("Ws");
   console.log('user joined with %s socket id', socket.id)
 })*/
 
+// Financeiro
+Ws.channel("ordem-servico:*", "OrdemServicoController");
+
+
 Ws.channel("associado:*", "AssociadoController");
 
 Ws.channel("chat:*", "ChatController");
