@@ -29,7 +29,8 @@ class OsConfigController {
 
          response.status(200).send({ type: true, data: config });
       } catch (error) {
-         response.status(400).send(error);
+         throw error
+         //response.status(400).send(error);
       }
   }
 
@@ -40,8 +41,9 @@ class OsConfigController {
 
          response.status(200).send({ type: true, data: config });
       } catch (error) {
-         console.log(error);
-         response.status(400).send({code: error.code, message: error.message, name: error.name});
+         throw error
+         //console.log(error);
+         //response.status(400).send({code: error.code, message: error.message, name: error.name});
       }
   }
 
@@ -55,11 +57,21 @@ class OsConfigController {
 
          response.status(200).send({ type: true, data: config });
       } catch (error) {
-         response.status(400).send(error);
+         //response.status(400).send(error);
+         throw error
       }
   }
 
   async destroy ({ params, request, response }) {
+      try {
+         const config = await new Services().delete(params.id);
+
+         response.status(200).send({ type: true, message: "Excluído com sucesso!"});
+      } catch (error) {
+         throw error
+         //console.log(error);
+         //response.status(400).send({code: error.code, message: error.message, name: error.name});
+      }
   }
 
 }

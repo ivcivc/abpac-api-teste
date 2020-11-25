@@ -1,6 +1,6 @@
 'use strict'
 
-const Env = use("Env");
+const Env = use('Env')
 const lodash = use('lodash')
 
 const Database = use('Database')
@@ -8,51 +8,51 @@ const Database = use('Database')
 const File = use('App/Models/File')
 const FileItem = use('App/Models/FileItem')
 
-const FileServices = use("App/Services/Storage")
+const FileServices = use('App/Services/Storage')
 
 const Helpers = use('Helpers')
 
 const Kue = use('Kue')
 const Job = use('App/Jobs/SincronizarDropbox')
 
-
 class StorageController {
-
-   async store({request,response}) {
+   async store({ request, response }) {
       console.log('store em ação')
-      let {files} = request.only('files')
+      let { files } = request.only('files')
       let payload = request.all()
 
       console.log('store em ação.......')
-      let arrFiles= []
-      let trx= null
+      let arrFiles = []
+      let trx = null
 
       try {
-
          if (files) {
-            arrFiles= files.split(',')
+            arrFiles = files.split(',')
          }
 
          trx = await Database.beginTransaction()
 
-         let status= "Concluído"
+         let status = 'Concluído'
 
-         if ( arrFiles.length === 0 ) {
-            status= 'Pendente'
+         if (arrFiles.length === 0) {
+            status = 'Pendente'
          }
 
-         const fileModelItem = await File.create({
-            modulo: payload.modulo,
-            descricao: payload.descricao,
-            dVencimento: payload.dVencimento,
-            idParent: payload.idParent,
-            pessoa_id: payload.pessoa_id,
-            status
-         }, trx)
+         const fileModelItem = await File.create(
+            {
+               modulo: payload.modulo,
+               descricao: payload.descricao,
+               dVencimento: payload.dVencimento,
+               idParent: payload.idParent,
+               pessoa_id: payload.pessoa_id,
+               status,
+            },
+            trx
+         )
 
          for (let value of arrFiles) {
             const item = await FileItem.findOrFail(value)
-            item.merge({ file_id : fileModelItem.id})
+            item.merge({ file_id: fileModelItem.id })
             await item.save(trx)
          }
 
@@ -62,7 +62,7 @@ class StorageController {
 
          this.setAddKue(fileModelItem.id)
 
-        /*// Ativar envio para o Dropbox (kue), caso key == pendente.
+         /*// Ativar envio para o Dropbox (kue), caso key == pendente.
         const query = await FileItem.query()
         .where('file_id', fileModelItem.id)
         .fetch()
@@ -78,63 +78,91 @@ class StorageController {
 
         // fim envio para dropbox (kue)*/
 
-         return response.status(200).send( {status: "server", id: fileModelItem.id })
-
-       } catch (err) {
-          await trx.rollback()
-          return response.status(err.status).send({ status: "error", error: { message: "Erro no cadastro de arquivo"}})
-       }
-
+         return response
+            .status(200)
+            .send({ status: 'server', id: fileModelItem.id })
+      } catch (err) {
+         await trx.rollback()
+         return response.status(err.status).send({
+            status: 'error',
+            error: { message: 'Erro no cadastro de arquivo' },
+         })
+      }
    }
 
    async setAddKue(ID) {
       try {
-            // Ativar envio para o Dropbox (kue), caso key == pendente.
-            let query = await FileItem.query()
-            .where('file_id', ID)
-            .fetch()
-            query.rows.forEach( o => {
-               console.log('query : ',o.key)
-               if ( o.key === 'pendente') {
-                  console.log('dispatch tarefa ', o.key , ' ', o.id)
-                  const job= Kue.dispatch(Job.key, parseInt(o.id), {attempts: 3})
-               }
-            })
-            // fim envio para dropbox (kue)
-      } catch(err) {
+         // Ativar envio para o Dropbox (kue), caso key == pendente.
+         let query = await FileItem.query().where('file_id', ID).fetch()
+         query.rows.forEach(o => {
+            console.log('query : ', o.key)
+            if (o.key === 'pendente') {
+               console.log('dispatch tarefa ', o.key, ' ', o.id)
+               const job = Kue.dispatch(Job.key, parseInt(o.id), {
+                  attempts: 3,
+               })
+            }
+         })
+         // fim envio para dropbox (kue)
+      } catch (err) {
          return err
       }
-
    }
 
    async upload({ request, response }) {
       try {
-
          console.log('entrando upload....')
 
          const validationOptions = {
-            types: ['image', 'pdf','application', 'plain', 'text'],
+            types: ['image', 'pdf', 'application', 'plain', 'text'],
             size: '40mb',
-            extnames: ['png', 'PNG', 'gif', 'GIF', 'pdf', 'PDF', 'doc', 'DOC', 'docx', 'DOCX',
-               'xls', 'XLS', 'xlsx', 'XLSX', 'bmp', 'BMP', 'tif', 'TIF',
-             'jpg', 'JPG', 'jpeg', 'JPEG', 'jfif', 'JFIF', 'txt', 'TXT']
-          }
+            extnames: [
+               'png',
+               'PNG',
+               'gif',
+               'GIF',
+               'pdf',
+               'PDF',
+               'doc',
+               'DOC',
+               'docx',
+               'DOCX',
+               'xls',
+               'XLS',
+               'xlsx',
+               'XLSX',
+               'bmp',
+               'BMP',
+               'tif',
+               'TIF',
+               'jpg',
+               'JPG',
+               'jpeg',
+               'JPEG',
+               'jfif',
+               'JFIF',
+               'txt',
+               'TXT',
+               'vp',
+               'VP',
+            ],
+         }
 
          if (!request.file('upload')) throw upload.error()
          const upload = request.file('upload', validationOptions)
 
-         const fileName= `${Date.now()}.${upload.extname}`
+         const fileName = `${Date.now()}.${upload.extname}`
 
          console.log('upload ', upload)
 
-         await upload.move( Helpers.tmpPath('uploads'), {
-            name: fileName
+         await upload.move(Helpers.tmpPath('uploads'), {
+            name: fileName,
          })
 
          if (!upload.moved()) {
             console.log('move falhou ')
-            let error= upload.error()
-            error.status= 400
+            let error = upload.error()
+            error.status = 400
             throw error
          }
 
@@ -142,68 +170,73 @@ class StorageController {
 
          const fileModelItem = await FileItem.create({
             file: fileName,
-            name: upload.clientName.normalize("NFD").replace(/[^a-zA-Zs0-9.]/g, ""),
-            path: '/'+upload.clientName.normalize("NFD").replace(/[^a-zA-Zs0-9.]/g, ""),
+            name: upload.clientName
+               .normalize('NFD')
+               .replace(/[^a-zA-Zs0-9.]/g, ''),
+            path:
+               '/' +
+               upload.clientName
+                  .normalize('NFD')
+                  .replace(/[^a-zA-Zs0-9.]/g, ''),
             type: upload.type,
             subtype: upload.subtype,
             key: 'pendente',
-            status: 'Aprovado'
+            status: 'Aprovado',
          })
-
 
          //console.log('enviar um dispach ')
 
          //const job= Kue.dispatch(Job.key, parseInt(fileModelItem.id), {attempts: 3})
 
-         return {arquivo: fileName, value: fileModelItem.id, status: "server"}
-
-      } catch(err) {
-         console.log('catch ', err )
-         if ( lodash.has(err, 'type')) {
-            console.log('tipo: ' , err.type)
-            if ( err.type === 'size') {
-               err.message= `Arquivo: ${err.clientName}.</br>Tamanho de arquivo deve ser menor que 40MB.`
+         return { arquivo: fileName, value: fileModelItem.id, status: 'server' }
+      } catch (err) {
+         console.log('catch ', err)
+         if (lodash.has(err, 'type')) {
+            console.log('tipo: ', err.type)
+            if (err.type === 'size') {
+               err.message = `Arquivo: ${err.clientName}.</br>Tamanho de arquivo deve ser menor que 40MB.`
             }
 
-            if ( err.type === 'extname') {
-               err.message= `Arquivo: ${err.clientName}.</br>Extensão de arquivo não permitida.`
+            if (err.type === 'extname') {
+               err.message = `Arquivo: ${err.clientName}.</br>Extensão de arquivo não permitida.`
             }
 
-            if ( err.type === 'size' && err.type === 'extname') {
-               err.message= `Arquivo: ${err.clientName}.</br>Extensão de arquivon não permitida e tamanho de arquivo superior a 40MB.`
+            if (err.type === 'size' && err.type === 'extname') {
+               err.message = `Arquivo: ${err.clientName}.</br>Extensão de arquivon não permitida e tamanho de arquivo superior a 40MB.`
             }
 
-            if ( err.type === 'type' ) {
-               err.message= `Arquivo: ${err.clientName}.</br>Tipo de arquivo não permitido para upload.`
+            if (err.type === 'type') {
+               err.message = `Arquivo: ${err.clientName}.</br>Tipo de arquivo não permitido para upload.`
             }
 
-            return response.status(err.status).send({ status: "error", error: { message: err.message}})
+            return response
+               .status(err.status)
+               .send({ status: 'error', error: { message: err.message } })
          }
 
-         return response.status(err.status).send({ status: "error", error: { message: "Erro no upload de arquivo"}})
-
+         return response.status(err.status).send({
+            status: 'error',
+            error: { message: 'Erro no upload de arquivo' },
+         })
       }
-
    }
 
-   async update ({ request, response,params }) {
+   async update({ request, response, params }) {
+      let trx = null
 
-      let trx= null
-
-      const payload = request.all();
+      const payload = request.all()
       const ID = params.id
-      let items= payload.FileItems
-      if ( items ) {
-         items= JSON.parse(items)
+      let items = payload.FileItems
+      if (items) {
+         items = JSON.parse(items)
       }
 
-      payload.FileItems= items
+      payload.FileItems = items
 
       try {
-
          trx = await Database.beginTransaction()
 
-         const file = await new FileServices().update(ID, payload, trx);
+         const file = await new FileServices().update(ID, payload, trx)
 
          await trx.commit()
 
@@ -239,13 +272,12 @@ class StorageController {
 
          //const job= Kue.dispatch(Job.key, parseInt(ID), {attempts: 3})
 
-         response.status(200).send({ type: true, data: file });
+         response.status(200).send({ type: true, data: file })
       } catch (error) {
          await trx.rollback()
-         console.log(error);
-         response.status(400).send(error);
+         console.log(error)
+         response.status(400).send(error)
       }
-
    }
 }
 

@@ -22,6 +22,10 @@ Route.group(() => {
       'auth'
    ])
 
+   Route.get('/fornecedor/IsCpfCnpj/:cpfCnpj', 'PessoaController.isCpfCnpjFornecedor').middleware([
+      'auth'
+   ])
+
    Route.post('/localizar', 'LocalizarController.proxy')
 
    Route.resource('/fornecedores', 'FornecedorController').middleware([
@@ -43,11 +47,17 @@ Route.group(() => {
       'auth'
      ])
 
-     Route.resource('/os_config', 'OsConfigController').middleware([
+     Route.resource('/os_config', 'ordem_servico/OsConfigController').middleware([
       'auth'
-     ])
+     ]).validator( new Map([ [['/os_config.store'], ['ordem_servico/os_config']],
+      [['/os_config.update'], ['ordem_servico/os_config']]]))
+
 
    Route.resource('/equipamentos', 'EquipamentoController').middleware([
+      'auth'
+   ])
+
+   Route.post('/equipamentos/localizarPor', 'EquipamentoController.localizarPor').middleware([
       'auth'
    ])
 
@@ -90,6 +100,10 @@ Route.group(() => {
       'auth'
    ])
 
+   Route.post('/ocorrencias/localizar', 'OcorrenciaController.localizar').middleware([
+      'auth'
+   ])
+
    Route.post('/ocorrencias/addTerceiro', 'OcorrenciaController.addTerceiro').middleware([
       'auth'
    ])
@@ -109,7 +123,33 @@ Route.group(() => {
    Route.resource('/ocorrenciaCausa', 'OcorrenciaCausaController')
    //.middleware(['auth'])
 
+   Route.resource('/lancamento', 'LancamentoController').middleware([
+      'auth'
+     ])
+   Route.post('/lancamento/localizarPor', 'LancamentoController.localizarPor').middleware([
+      'auth'
+     ])
+   Route.post('/lancamento/cancelar', 'LancamentoController.cancelar').middleware([
+      'auth'
+     ])
+   Route.post('/lancamento/reverter-cancelamento', 'LancamentoController.reverter_cancelamento').middleware([
+      'auth'
+     ])
+   Route.post('/lancamento/inadimplente', 'LancamentoController.inadimplente').middleware([
+      'auth'
+     ])
+   Route.post('/lancamento/reverter_inadimplente', 'LancamentoController.reverter_inadimplente').middleware([
+      'auth'
+     ])
+   Route.resource('/lancamentoConfig', 'LancamentoConfigController').middleware([
+      'auth'
+     ])
+
    Route.resource('/planoConta', 'PlanoDeContaController')
+
+   Route.resource('/conta', 'ContaController').middleware([
+      'auth'
+     ])
 
    Route.resource('/beneficio', 'BeneficioController')
 
@@ -121,6 +161,13 @@ Route.group(() => {
    Route.resource('/pendencia', 'PendenciaController').middleware([
       'auth'
    ])
+
+   Route.resource('/ordemServico', 'ordem_servico/OrdemServicoController').middleware([
+      'auth'
+     ])
+
+   Route.post('/ordemServico/localizarPor', 'ordem_servico/OrdemServicoController.localizarPor')
+
 
    Route.post('upload99', async ({ request }) => {
 

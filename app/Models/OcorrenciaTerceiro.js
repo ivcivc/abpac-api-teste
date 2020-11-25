@@ -4,14 +4,21 @@
 const Model = use('Model')
 
 class OcorrenciaTerceiro extends Model {
-
-   statuses () {
+   statuses() {
       return this.hasMany('App/Models/OcorrenciaTerceiroStatus')
    }
 
-   terceiros() {
-      return this.belongsToMany('App/Models/Ocorrencia')
+   ocorrencia() {
+      return this.hasOne('App/Models/Ocorrencia', 'ocorrencia_id', 'id')
    }
+
+   /*ordemServico() {
+      return this.hasOne(
+         'App/Models/ordem_servico/OrdemServico',
+         'ocorrencia_terceiro_id',
+         'id'
+      )
+   }*/
 }
 
 module.exports = OcorrenciaTerceiro

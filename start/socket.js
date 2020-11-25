@@ -20,19 +20,16 @@ const Ws = use("Ws");
 })*/
 
 // Financeiro
-Ws.channel("ordem-servico:*", "OrdemServicoController");
+Ws.channel("ordem-servico:*", "OrdemServicoController") //.topic("ordem-servico");
+Ws.channel("ordem-servico-config:*", "ordem_servico/OsConfigController")
+
+Ws.channel("plano-de-contas:*", "financeiro/planoContasController")
 
 
 Ws.channel("associado:*", "AssociadoController");
 
-Ws.channel("chat:*", "ChatController");
 
 Ws.channel("user:*", "UserController").middleware([]);
 Ws.channel("user", "UserController");
 
-Ws.channel("livre", "ChatController");
 
-/*({ socket }) => {
-  console.log("canal livre acionado.");
-  socket.emit("livre", "canal livre >>>>>>>>>");
-});*/

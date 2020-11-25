@@ -1,65 +1,63 @@
-"use strict";
+'use strict'
 
-const Model = use("App/Models/OSConfig")
+const Model = use('App/Models/ordem_servico/OSConfig')
+const Erro = use('App/Exceptions/Handler')
 
 class OSConfig {
-
    async add(data) {
       try {
+         const config = await Model.create(data)
 
-        const config = await Model.create(data);
-
-        return config;
-
+         return config
       } catch (e) {
-        throw e;
+         throw e
       }
-    }
+   }
 
-    async get(ID) {
-
+   async get(ID) {
       try {
+         const config = await Model.findOrFail(ID)
 
-        const config = await Model.findOrFail(ID);
-
-        return config;
+         return config
       } catch (e) {
-        throw e;
+         throw e
       }
-    }
+   }
 
-    async index() {
-     try {
-        const config = await Model.query().with('planoDeConta').fetch();
-
-        return config;
-      } catch (e) {
-        throw e;
-      }
-    }
-
-    async update(ID, data) {
+   async index() {
       try {
-        let config = await Model.findOrFail(ID);
+         const config = await Model.query().with('planoDeConta').fetch()
 
-        config.merge(data);
-
-        await config.save();
-
-        return config;
+         return config
       } catch (e) {
-        throw {
-          message: e.message,
-          sqlMessage: e.sqlMessage,
-          sqlState: e.sqlState,
-          errno: e.errno,
-          code: e.code
-        };
+         throw e
       }
-    }
+   }
 
+   async update(ID, data) {
+      try {
+         let config = await Model.findOrFail(ID)
 
+         config.merge(data)
+
+         await config.save()
+
+         return config
+      } catch (e) {
+         throw e
+      }
+   }
+
+   async delete(ID) {
+      try {
+         const config = await Model.findOrFail(ID)
+         config.delete()
+
+         return config
+      } catch (e) {
+         throw e
+      }
+   }
 }
 
-
-module.exports = OSConfig;
+module.exports = OSConfig

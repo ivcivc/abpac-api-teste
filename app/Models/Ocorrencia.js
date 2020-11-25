@@ -4,13 +4,12 @@
 const Model = use('Model')
 
 class Ocorrencia extends Model {
-
-   statuses () {
+   statuses() {
       return this.hasMany('App/Models/OcorrenciaStatus')
    }
 
    pessoa() {
-      return this.hasOne('App/Models/Pessoa', 'pessoa_id','id')
+      return this.hasOne('App/Models/Pessoa', 'pessoa_id', 'id')
    }
 
    causa() {
@@ -18,11 +17,15 @@ class Ocorrencia extends Model {
    }
 
    equipamento() {
-      return this.hasOne('App/Models/Equipamento', 'equipamento_id','id')
+      return this.hasOne('App/Models/Equipamento', 'equipamento_id', 'id')
    }
 
    terceiros() {
       return this.hasMany('App/Models/OcorrenciaTerceiro')
+   }
+
+   user() {
+      return this.hasOne('App/Models/User', 'user_id', 'id')
    }
 }
 
