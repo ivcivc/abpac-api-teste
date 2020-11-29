@@ -4,15 +4,17 @@
 const Model = use('Model')
 
 class EquipamentoBeneficio extends Model {
-
-   equipamentoBeneficioStatuses () {
+   equipamentoBeneficioStatuses() {
       return this.hasMany('App/Models/EquipamentoBeneficioStatus')
    }
 
-   beneficio() {
-      return this.hasOne('App/Models/Beneficio', 'beneficio_id','id')
+   equipamentos() {
+      return this.hasMany('App/Models/Equipamento')
    }
 
+   beneficio() {
+      return this.hasOne('App/Models/Beneficio', 'beneficio_id', 'id')
+   }
 }
 
 module.exports = EquipamentoBeneficio

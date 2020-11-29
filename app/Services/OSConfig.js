@@ -1,6 +1,6 @@
 'use strict'
 
-const Model = use('App/Models/ordem_servico/OSConfig')
+const Model = use('App/Models/ordem_servico/OsConfig')
 const Erro = use('App/Exceptions/Handler')
 
 class OSConfig {

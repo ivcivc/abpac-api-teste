@@ -10,7 +10,7 @@ const ModelTerceiroStatus = use('App/Models/OcorrenciaTerceiroStatus')
 const Database = use('Database')
 
 class Ocorrencia {
-   async update(ID, data, trx) {
+   async update(ID, data, trx, auth) {
       try {
          if (!trx) {
             trx = await Database.beginTransaction()
@@ -24,6 +24,17 @@ class Ocorrencia {
          }
 
          delete data['terceiros']
+
+         if (ocorrencia.status != data.status) {
+            const status = {
+               ocorrencia_id: ocorrencia.id,
+               user_id: auth.user.id,
+               motivo: `De: ${ocorrencia.status} para: ${data.status}`,
+               status: data.status,
+            }
+            //await terceiroModel.statuses().create(status, trx ? trx : null)
+            await OcorrenciaStatus.create(status, trx ? trx : null)
+         }
 
          ocorrencia.merge(data)
 
@@ -300,6 +311,7 @@ class Ocorrencia {
             'ocorrencias.equipamento_id',
             'ocorrencias.dEvento',
             'ocorrencias.status',
+            'ocorrencias.tipoAcidente',
             'equipamentos.placa1',
             'equipamentos.marca1',
             'equipamentos.modelo1',

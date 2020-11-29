@@ -440,7 +440,8 @@ class Lancamento {
             }
          }
 
-         if (moment(model.dVencimento) < moment()) {
+         if (moment(model.dVencimento).isAfter(moment())) {
+            // moment(model.dVencimento) < moment()
             nrErro = -100
             throw {
                success: false,

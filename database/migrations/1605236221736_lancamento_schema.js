@@ -29,6 +29,15 @@ class LancamentoSchema extends Schema {
          table.integer('rateio_id').index()
 
          table
+            .integer('equipamento_id')
+            .unsigned()
+            .references('id')
+            .inTable('equipamentos')
+            .onUpdate('CASCADE')
+            .onDelete('RESTRICT')
+            .defaultTo(0)
+
+         table
             .integer('ordem_servico_id')
             .unsigned()
             .references('id')

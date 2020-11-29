@@ -29,7 +29,7 @@ class OrdemServicoStatusSchema extends Schema {
             .references('id')
             .inTable('ordem_servicos')
             .onUpdate('CASCADE')
-            .onDelete('RESTRICT')
+            .onDelete('CASCADE')
 
          table.integer('user_id').notNullable()
 

@@ -10,11 +10,15 @@ class OcorrenciaSchema extends Schema {
 
          table.integer('pessoa_id').notNullable()
          table
-            .enu('status', ['Aberto', 'Complemento', 'Concluído'], {
-               useNative: true,
-               existingType: true,
-               enumName: 'ocorrencia_status',
-            })
+            .enu(
+               'status',
+               ['Aberto', 'Complemento', 'Concluído', 'Cancelado'],
+               {
+                  useNative: true,
+                  existingType: true,
+                  enumName: 'ocorrencia_status',
+               }
+            )
             .notNullable()
             .defaultTo('Aberto')
             .index()

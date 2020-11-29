@@ -1,5 +1,6 @@
 'use strict'
 const lodash = require('lodash')
+const moment = require('moment')
 
 const Model = use('App/Models/Equipamento')
 const EquipamentoStatus = use('App/Models/EquipamentoStatus')
@@ -229,6 +230,10 @@ class Equipamento {
 
          const id = data.endosso.id
          const tipo_endosso = data.endosso.tipo_endosso
+         let dEndosso = data.dEndosso
+         if (!dEndosso) {
+            dEndosso = moment().format('YYYY-MM-DD')
+         }
 
          let equipamento = await Model.findOrFail(id)
 
@@ -251,6 +256,10 @@ class Equipamento {
          }
          oEquipamento.idFilho = ''
 
+         /*if (dEndosso) {
+            oEquipamento.dEndosso = dEndosso
+         }*/
+
          if (tipo_endosso === 'categoria-rateio') {
             let novoEquipamento = equipamento.toJSON()
             delete novoEquipamento['id']
@@ -261,6 +270,8 @@ class Equipamento {
 
             novoEquipamento.categoria_id = data.categoria_id
             novoEquipamento.tipoEndosso = 'Alteração de categoria de rateio'
+
+            novoEquipamento.dEndosso = dEndosso
 
             // Adincionar novo equipamento (endosso)
             equipamentoAdd = await Model.create(
@@ -301,6 +312,7 @@ class Equipamento {
 
             novoEquipamento.dAdesao = data.dAdesao
             novoEquipamento.tipoEndosso = 'Acerto na data de adesão'
+            novoEquipamento.dEndosso = dEndosso
 
             // Adincionar novo equipamento (endosso)
             equipamentoAdd = await Model.create(
@@ -343,6 +355,8 @@ class Equipamento {
             novoEquipamento.idFilho = null
             novoEquipamento.idPrincipal = oEquipamento.idPrincipal
             novoEquipamento.status = 'Ativo'
+
+            novoEquipamento.dEndosso = dEndosso
 
             novoEquipamento.tipoEndosso = 'Acerto nos dados do equipamento'
 
@@ -413,6 +427,8 @@ class Equipamento {
             novoEquipamento.idPrincipal = oEquipamento.idPrincipal
             novoEquipamento.status = 'Ativo'
 
+            novoEquipamento.dEndosso = dEndosso
+
             novoEquipamento.valorMercado1 = data.valorMercado
             novoEquipamento.tipoEndosso = 'Alteração do Valor de Mercado'
 
@@ -457,6 +473,7 @@ class Equipamento {
 
             //novoEquipamento.valorMercado1= data.valorMercado
             novoEquipamento.tipoEndosso = 'Baixa do Equipamento'
+            novoEquipamento.dEndosso = dEndosso
 
             // Adincionar novo equipamento (endosso)
             equipamentoAdd = await Model.create(
@@ -472,6 +489,7 @@ class Equipamento {
             let motivo = lodash.isEmpty(data.motivo)
                ? 'Endosso de Baixa do Equipamento'
                : data.motivo
+            motivo = motivo + `(${moment(dEndosso).format('DD/MM/YYYY')})`
             let status = {
                equipamento_id: equipamento.id,
                user_id: auth.user.id,
@@ -502,6 +520,7 @@ class Equipamento {
 
             //novoEquipamento.valorMercado1= data.valorMercado
             novoEquipamento.tipoEndosso = 'Reativação do Equipamento'
+            novoEquipamento.dEndosso = dEndosso
 
             // Adincionar novo equipamento (endosso)
             equipamentoAdd = await Model.create(
@@ -517,6 +536,7 @@ class Equipamento {
             let motivo = lodash.isEmpty(data.motivo)
                ? 'Endosso de Reativação do Equipamento'
                : data.motivo
+            motivo = motivo + `(${moment(dEndosso).format('DD/MM/YYYY')})`
             let status = {
                equipamento_id: equipamento.id,
                user_id: auth.user.id,
@@ -552,6 +572,8 @@ class Equipamento {
             novoEquipamento.categoria_id = data.categoria_id
 
             novoEquipamento.tipoEndosso = 'Substituição de equipamento'
+
+            novoEquipamento.dEndosso = dEndosso
 
             novoEquipamento.especie1 = data.especie1
             novoEquipamento.valorMercado1 = data.valorMercado1
@@ -1043,9 +1065,18 @@ class Equipamento {
             'modeloF2',
             'modeloF3',
             'categoria_id',
+            //'equipamento_beneficios.benefico_id as beneficio_id',
+            //'beneficios.descricao',
          ])
             .table('equipamentos')
             .leftOuterJoin('pessoas', 'equipamentos.pessoa_id', 'pessoas.id')
+
+            .table('equipamentos')
+            .leftOuterJoin(
+               'equipamento_beneficios',
+               'equipamentos.id',
+               'equipamento_beneficios.equipamento_id'
+            )
 
          if (field_name === 'placa') {
             query.where('placas', 'like', '%' + field_value + '%')
@@ -1055,7 +1086,85 @@ class Equipamento {
             query.where('pessoas.nome', 'like', '%' + field_value + '%')
          }
 
-         return await query.paginate(1, 30)
+         return await query.paginate(1, 40)
+      } catch (e) {
+         throw e
+      }
+   }
+   //localizarEquipaPorBeneficio
+   async localizarEquipaPorAssist24h(payload) {
+      try {
+         let field_name = payload.field_name
+         let field_value = payload.field_value
+         let beneficio_id = payload.beneficio_id
+
+         let where = ''
+
+         if (field_name === 'placa') {
+            where = 'equipamentos.placas LIKE ?'
+            field_value = '%' + field_value + '%'
+         }
+
+         if (field_name === 'nome') {
+            where = 'pessoas.nome LIKE ?'
+            field_value = '%' + field_value + '%'
+         }
+
+         const limit = ' LIMIT 30'
+
+         let sql = `
+         SELECT
+            equipamentos.id,
+            placas,
+            dAdesao,
+            pessoa_id,
+            equipamentos.status,
+            especie1,
+            especie2,
+            especie3,
+            placa1,
+            placa2,
+            placa3,
+            marca1,
+            marca2,
+            marca3,
+            modelo1,
+            modelo2,
+            modelo3,
+            anoF1,
+            anoF2,
+            anoF3,
+            modeloF1,
+            modeloF2,
+            modeloF3,
+            categoria_id,
+            beneficios.id as beneficios_id,
+            beneficios.descricao as beneficios_descricao,
+            beneficios.status as beneficios_status,
+            equipamento_beneficios.dTermino as equipamento_beneficio_dTermino,
+            equipamento_beneficios.status as equipamento_beneficio_status,
+            pessoas.nome AS pessoa_nome,
+            pessoas.cpfCnpj AS pessoa_cpfCnpj
+         FROM
+               abpac.equipamento_beneficios
+                  LEFT outer JOIN
+               abpac.equipamentos ON equipamento_beneficios.equipamento_id = equipamentos.id
+               LEFT outer  JOIN
+               abpac.beneficios ON equipamento_beneficios.beneficio_id = beneficios.id
+               LEFT  outer JOIN
+               abpac.pessoas on equipamentos.pessoa_id = pessoas.id
+         WHERE
+
+               equipamento_beneficios.beneficio_id = ? and ${where}
+
+         ${limit}
+
+
+         `
+
+         const query = await Database.raw(sql, [beneficio_id, field_value])
+
+         return query
       } catch (e) {
          throw e
       }

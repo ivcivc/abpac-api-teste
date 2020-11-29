@@ -11,6 +11,10 @@ class Lancamento extends Model {
    pessoa() {
       return this.hasOne('App/Models/Pessoa', 'pessoa_id', 'id')
    }
+
+   equipamento() {
+      return this.hasOne('App/Models/Equipamento', 'equipamento_id', 'id')
+   }
 }
 
 module.exports = Lancamento

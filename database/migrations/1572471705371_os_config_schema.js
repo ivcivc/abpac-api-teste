@@ -40,15 +40,15 @@ class OsConfigSchema extends Schema {
             .enu(
                'modelo',
                [
-                  'Padrão (O.S.),',
+                  'Padrão (O.S.)',
                   'Ordem Serviço (O.S.)',
                   'Terceiro (O.S.)',
                   'Participação (O.S.)',
                   'Salvado (O.S.)',
                   'Indenização (O.S.)',
                   'Adesão',
+                  'Assistencia 24h',
                   'Entrada Estoque',
-                  'Terceiro (O.S.)',
                   'Livre',
                ],
                {
@@ -58,7 +58,15 @@ class OsConfigSchema extends Schema {
                }
             )
             .notNullable()
-            .defaultTo('Padrão')
+            .defaultTo('Padrão (O.S.)')
+
+         table
+            .integer('beneficio_id')
+            .unsigned()
+            .references('id')
+            .inTable('beneficios')
+            .onUpdate('CASCADE')
+            .onDelete('RESTRICT')
 
          table
             .integer('planoDeConta_id')
