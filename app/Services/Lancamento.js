@@ -23,6 +23,7 @@ class Lancamento {
          }
 
          await model.load('items')
+         await model.load('boletos')
 
          let json = model.toJSON()
 
@@ -39,7 +40,7 @@ class Lancamento {
             trx = await Database.beginTransaction()
          }
 
-         data.historico = ''
+         data.historico = !lodash.isEmpty(data.historico) ? data.historico : ''
          let items = data.items
          let isFixo = false
          let sair = false
@@ -49,13 +50,16 @@ class Lancamento {
                delete e['id']
             }
             if (e.tag === 'LF') {
-               data.historico = e.descricao
+               if (lodash.isEmpty(data.historico)) {
+                  data.historico = e.descricao
+               }
+
                isFixo = true
                sair = true
                return
             }
             if (!sair) {
-               data.historico = e.descricao
+               data.historico = data.historico = e.descricao
                sair = true
             }
          })
@@ -102,14 +106,6 @@ class Lancamento {
             status.motivo = 'Aberto/Compensado'
          }
          await ModelStatus.create(status, trx ? trx : null)
-
-         await trx.commit()
-
-         if (model.pessoa_id) {
-            await model.load('pessoa')
-         }
-
-         await model.load('items')
 
          return model
       } catch (e) {
@@ -232,7 +228,6 @@ class Lancamento {
             dVencInicio = payload.field_value_periodo.start
             dVencFim = payload.field_value_periodo.end
          }
-         console.log(payload.field_value_periodo.start)
 
          let query = null //.fetch()
 
@@ -244,8 +239,52 @@ class Lancamento {
                      dVencInicio.substr(0, 10),
                      dVencFim.substr(0, 10),
                   ])
+                  .whereNot({ situacao: 'Bloqueado' })
                   .fetch()
             }
+         }
+
+         if (modulo === 'atrasado') {
+            if (dVencInicio) {
+               query = await Model.query()
+                  .with('pessoa')
+                  .whereBetween('dVencimento', [
+                     dVencInicio.substr(0, 10),
+                     dVencFim.substr(0, 10),
+                  ])
+                  .where({ situacao: 'aberto' })
+                  .fetch()
+            }
+         }
+
+         if (modulo === 'acordo') {
+            const pessoa_id = payload.field_value_pessoa_id
+            const tipo = payload.tipo
+
+            query = await Model.query()
+               .with('pessoa')
+               .where('pessoa_id', pessoa_id)
+               .andWhere('tipo', tipo)
+               .orderBy('situacao', 'asc')
+               .fetch()
+         }
+
+         if (modulo === 'os') {
+            if (dVencInicio) {
+               query = await Model.query()
+                  .with('pessoa')
+                  .whereBetween('dVencimento', [
+                     dVencInicio.substr(0, 10),
+                     dVencFim.substr(0, 10),
+                  ])
+                  .where({ situacao: 'Bloqueado' })
+                  .fetch()
+            }
+            /*query = await Model.query()
+               .with('pessoa')
+               .where('situacao', 'Bloqueado')
+               .orderBy('situacao', 'asc')
+               .fetch()*/
          }
 
          //await query.paginate(1, 20) //.fetch()
@@ -284,12 +323,12 @@ class Lancamento {
          }
          await ModelStatus.create(status, trx ? trx : null)
 
-         if (model.situacao !== 'Aberto' && model.tipo === 'Pagar') {
+         if (model.situacao !== 'Aberto' && model.tipo === 'Despesa') {
             nrErro = -100
             throw { success: false, message: 'Cancelamento não autorizado.' }
          }
 
-         if (model.situacao !== 'Aberto' && model.tipo === 'Receber') {
+         if (model.situacao !== 'Aberto' && model.tipo === 'Receita') {
             nrErro = -100
             throw { success: false, message: 'Cancelamento não autorizado.' }
          }
@@ -359,12 +398,12 @@ class Lancamento {
             }
          }
 
-         if (model.situacao !== 'Cancelado' && model.tipo === 'Pagar') {
+         if (model.situacao !== 'Cancelado' && model.tipo === 'Despesa') {
             nrErro = -100
             throw { success: false, message: 'Reversão não autorizada.' }
          }
 
-         if (model.situacao !== 'Cancelado' && model.tipo === 'Receber') {
+         if (model.situacao !== 'Cancelado' && model.tipo === 'Receita') {
             nrErro = -100
             throw { success: false, message: 'Cancelamento não autorizado.' }
          }
@@ -487,7 +526,7 @@ class Lancamento {
          await ModelItem.create(
             {
                DC: 'C',
-               tag: 'ID',
+               tag: 'IC',
                lancamento_id: modelAdd.id,
                descricao: 'Inadimplente',
                planoDeConta_id: planoContaID,
@@ -631,7 +670,300 @@ class Lancamento {
       }
    }
 
+   async acordo(payload, trx, auth) {
+      let nrErro = null
+
+      try {
+         if (!trx) {
+            trx = await Database.beginTransaction()
+         }
+
+         let operacao = payload.operacao
+         let conta_id = payload.conta_id
+         let inadimplente = null
+         let forma = payload.forma
+         let tipo = payload.tipo
+
+         let grupo_id = payload.grupo_id
+         if (!operacao) {
+            nrErro = -100
+            throw {
+               success: false,
+               message: 'Grupo não informado.',
+            }
+         }
+
+         if (!operacao) {
+            nrErro = -100
+            throw {
+               success: false,
+               message: 'Não foi informado o tipo de operação.',
+            }
+         }
+
+         let arrAddLancamentos = payload.addLancamentos
+         if (arrAddLancamentos.length <= 0) {
+            nrErro = -100
+            throw {
+               success: false,
+               message: 'Lista de novas contas não recebida.',
+            }
+         }
+
+         let arrLista = []
+         let arrListaID = []
+         payload.lista.forEach(e => {
+            arrLista.push({ id: e.id, updated_at: e.updated_at })
+            arrListaID.push(e.id)
+         })
+
+         if (arrLista.length <= 0) {
+            nrErro = -100
+            throw {
+               success: false,
+               message: 'Selecione as contas para efetivação do acordo.',
+            }
+         }
+
+         const modelLista = await Model.query()
+            //.transacting(trx ? trx : null)
+            //.update({ equipamento_id: equipamentoAdd.id })
+            .whereIn('id', arrListaID)
+            .fetch()
+
+         modelLista.rows.forEach(e => {
+            inadimplente = e.inadimplente
+
+            let o = lodash.find(arrLista, { id: e.id })
+            if (!o) {
+               nrErro = -100
+               throw {
+                  success: false,
+                  message: 'Conta não localizada no servidor.',
+               }
+            }
+            const update_at_db = moment(e.updated_at).format()
+            const update_at = moment(o.updated_at).format()
+
+            if (update_at_db !== update_at) {
+               nrErro = -100
+               throw {
+                  success: false,
+                  message:
+                     'Transação abortada. Uma conta selecionada foi alterada por outro usuário.',
+               }
+            }
+         })
+
+         //arrAddLancamentos.forEach( e => {
+         for (let i in arrAddLancamentos) {
+            let o = {
+               forma: arrAddLancamentos[i].forma,
+               subGrupo_id: grupo_id,
+               conta_id: conta_id,
+               dCompetencia: arrAddLancamentos[i].dCompetencia,
+               dVencimento: arrAddLancamentos[i].dVencimento,
+               historico:
+                  operacao === 'acordo' ? 'Acordo' : 'Acordo inadimplente',
+               inadimplente: inadimplente,
+               isConciliado: 0,
+               nota: arrAddLancamentos[i].nota,
+               parcelaF: arrAddLancamentos[i].parcelaF,
+               parcelaI: arrAddLancamentos[i].parcelaI,
+               pessoa_id: arrAddLancamentos[i].pessoa_id,
+               tipo: tipo,
+               valorBase: arrAddLancamentos[i].valorBase,
+               valorAcresc: arrAddLancamentos[i].valorAcrescimo,
+               valorDesc:
+                  arrAddLancamentos[i].valorDesconto > 0
+                     ? arrAddLancamentos[i].valorDesconto
+                     : arrAddLancamentos[i].valorPrejuizo,
+               //valorPrejuizo: arrAddLancamentos[i].valorPrejuizo,
+               valorTotal: arrAddLancamentos[i].valorTotal,
+               status: operacao === 'acordo' ? 'Acordado' : 'Acordado',
+               situacao: operacao === 'acordo' ? 'Aberto' : 'Aberto',
+            }
+
+            let model = await Model.create(o, trx ? trx : null)
+            await model
+               .items()
+               .createMany(arrAddLancamentos[i].items, trx ? trx : null)
+
+            /* Status */
+            let status = {
+               lancamento_id: model.id,
+               user_id: auth.user.id,
+               motivo:
+                  operacao === 'acordo' ? 'Acordado' : 'Acordo inadimplente',
+               status: operacao === 'acordo' ? 'Acordado' : 'Aberto',
+            }
+            await ModelStatus.create(status, trx ? trx : null)
+         }
+
+         //payload.lista.forEach(e => {
+         for (let i in arrLista) {
+            let modelUpdate = await Model.findOrFail(arrLista[i].id)
+            if (operacao === 'acordo-inadimplente') {
+               modelUpdate.situacao = 'Acordado'
+            }
+            if (operacao === 'acordo') {
+               modelUpdate.situacao = 'Compensado'
+               modelUpdate.valorCompensado = modelUpdate.valorTotal
+            }
+
+            modelUpdate.grupo_id = grupo_id
+
+            let status = {
+               lancamento_id: modelUpdate.id,
+               user_id: auth.user.id,
+               motivo: operacao === 'acordo' ? 'Acordo' : 'Acordo inadimplente',
+               status: operacao === 'acordo' ? 'Acordado' : 'Acordado',
+            }
+            await ModelStatus.create(status, trx ? trx : null)
+
+            await modelUpdate.save(trx ? trx : null)
+         }
+
+         await trx.commit()
+         //await trx.rollback()
+
+         return { modelLista }
+         //await trx.commit()
+      } catch (e) {
+         await trx.rollback()
+         if (nrErro) {
+            if (nrErro === -100) {
+               throw e
+            }
+         }
+         throw {
+            message: e.message,
+            sqlMessage: e.sqlMessage,
+            sqlState: e.sqlState,
+            errno: e.errno,
+            code: e.code,
+         }
+      }
+   }
+
+   async gerarLancamentos(payload, trx, auth, onTrx = true) {
+      let nrErro = null
+
+      try {
+         if (!trx) {
+            trx = await Database.beginTransaction()
+         }
+         const grupo_id = payload.grupo_id
+         const historico = payload.historico
+         const tipo = payload.tipo
+         const status = 'Aberto'
+         let situacao = 'Bloqueado'
+         const ordem_servico_status = payload.ordem_servico_status
+         const ordem_servico_id = payload.ordem_servico_id
+         const equipamento_id = payload.equipamento_id
+
+         const listaID = []
+
+         if (ordem_servico_id && ordem_servico_status === 'Finalizado') {
+            situacao = 'Aberto'
+         }
+
+         const arrAddLancamentos = payload.addLancamentos
+
+         for (let i in arrAddLancamentos) {
+            let o = {
+               forma: arrAddLancamentos[i].forma,
+               subGrupo_id: grupo_id,
+               conta_id: arrAddLancamentos[i].conta_id,
+               dCompetencia: arrAddLancamentos[i].dCompetencia,
+               dVencimento: arrAddLancamentos[i].dVencimento,
+               historico: arrAddLancamentos[i].historico,
+               isConciliado: 0,
+               nota: arrAddLancamentos[i].nota,
+               ordem_servico_id: ordem_servico_id,
+               equipamento_id: equipamento_id,
+               parcelaF: arrAddLancamentos[i].parcelaF,
+               parcelaI: arrAddLancamentos[i].parcelaI,
+               pessoa_id: arrAddLancamentos[i].pessoa_id,
+               tipo: tipo,
+               valorBase: arrAddLancamentos[i].valorBase,
+               valorAcresc: arrAddLancamentos[i].valorAcrescimo,
+               valorDesc:
+                  arrAddLancamentos[i].valorDesconto > 0
+                     ? arrAddLancamentos[i].valorDesconto
+                     : arrAddLancamentos[i].valorPrejuizo,
+               //valorPrejuizo: arrAddLancamentos[i].valorPrejuizo,
+               valorTotal: arrAddLancamentos[i].valorTotal,
+               status: status,
+               situacao: situacao,
+            }
+
+            let model = await Model.create(o, trx ? trx : null)
+            await model
+               .items()
+               .createMany(arrAddLancamentos[i].items, trx ? trx : null)
+
+            listaID.push(model.id)
+
+            /* Status */
+            let oStatus = {
+               lancamento_id: model.id,
+               user_id: auth.user.id,
+               motivo:
+                  parseInt(ordem_servico_id) > 0
+                     ? `Criado O.S. ${ordem_servico_id}`
+                     : 'Conta gerada pelo sistema',
+               status: 'Bloqueado',
+            }
+            await ModelStatus.create(oStatus, trx ? trx : null)
+
+            if (
+               ordem_servico_status === 'Finalizado' &&
+               parseInt(ordem_servico_id) > 0
+            ) {
+               oStatus = {
+                  lancamento_id: model.id,
+                  user_id: auth.user.id,
+                  motivo: `O.S. ${ordem_servico_id} finalizada`,
+                  status,
+               }
+               await ModelStatus.create(oStatus, trx ? trx : null)
+            }
+         }
+
+         if (onTrx) {
+            await trx.commit()
+         }
+
+         let query = {}
+
+         if (onTrx) {
+            query = await Model.query().whereIn('id', listaID).fetch()
+         }
+
+         return query
+      } catch (e) {
+         if (onTrx) {
+            await trx.rollback()
+         }
+
+         if (nrErro) {
+            if (nrErro === -100) {
+               throw e
+            }
+         }
+         throw {
+            message: e.message,
+            sqlMessage: e.sqlMessage,
+            sqlState: e.sqlState,
+            errno: e.errno,
+            code: e.code,
+         }
+      }
+   }
+
    async addStatus(data, trx, auth) {
+      let nrErro = null
       try {
          if (!trx) {
             trx = await Database.beginTransaction()
@@ -651,7 +983,71 @@ class Lancamento {
          return model
       } catch (e) {
          await trx.rollback()
-         throw e
+         if (nrErro) {
+            if (nrErro === -100) {
+               throw e
+            }
+         }
+         throw {
+            message: e.message,
+            sqlMessage: e.sqlMessage,
+            sqlState: e.sqlState,
+            errno: e.errno,
+            code: e.code,
+         }
+      }
+   }
+
+   async destroyOS(ordem_servico_id, trx, auth) {
+      let nrErro = null
+      try {
+         if (!trx) {
+            trx = await Database.beginTransaction()
+         }
+
+         const query = await Model.query()
+            .where('ordem_servico_id', ordem_servico_id)
+            .fetch()
+
+         let arrID = []
+         let isError = false
+
+         for (let i in query.rows) {
+            let e = query.rows[i]
+            let situacao = e.situacao
+            arrID.push(e.id)
+            if (situacao !== 'Aberto' && situacao !== 'Bloqueado') {
+               isError = true
+            }
+         }
+
+         if (isError) {
+            nrErro = -100
+            throw { success: false, message: 'Exclusão não autorizada.' }
+         }
+
+         const queryDelete = await Model.query()
+            .where('ordem_servico_id', ordem_servico_id)
+            .transacting(trx ? trx : null)
+            .delete()
+
+         await trx.commit()
+
+         return { success: true, message: 'Excluido com sucesso' }
+      } catch (e) {
+         await trx.rollback()
+         if (nrErro) {
+            if (nrErro === -100) {
+               throw e
+            }
+         }
+         throw {
+            message: e.message,
+            sqlMessage: e.sqlMessage,
+            sqlState: e.sqlState,
+            errno: e.errno,
+            code: e.code,
+         }
       }
    }
 }

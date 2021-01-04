@@ -12,6 +12,22 @@ class Lancamento extends Model {
       return this.hasOne('App/Models/Pessoa', 'pessoa_id', 'id')
    }
 
+   ordemServico() {
+      return this.belongsTo('App/Models/ordem_servico/OrdemServico')
+   }
+
+   boletos() {
+      return this.hasMany('App/Models/Boleto')
+   }
+
+   /*ordemServico() {
+      return this.belongsTo('App/Models/ordem_servico/OrdemServico')
+   }*/
+
+   /*os() {
+      return this.hasOne('App/Models/ordem_servico/OrdemServico', 'ordem_servico_id', 'id')
+   } */
+
    equipamento() {
       return this.hasOne('App/Models/Equipamento', 'equipamento_id', 'id')
    }

@@ -37,8 +37,11 @@ class ContaSchema extends Schema {
          table.date('dInicio').defaultTo(null)
          table.float('saldo').defaultTo(0.0)
 
+         table.varchar('modeloBoleto', 20).defaultTo('-1')
+         table.varchar('convenio', 10).defaultTo('')
+
          table
-            .enu('disponivel', ['pagar', 'receber', 'ambos'], {
+            .enu('disponivel', ['despesa', 'receita', 'ambos'], {
                useNative: true,
                existingType: true,
                enumName: 'conta_disponivel',

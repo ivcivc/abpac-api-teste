@@ -20,13 +20,21 @@ class OsConfigSchema extends Schema {
             .defaultTo('Não')
 
          table
-            .enu('gerarConta', ['Pagar', 'Receber', 'Não'], {
+            .enu('gerarConta', ['Despesa', 'Receita', 'Não'], {
                useNative: true,
                existingType: true,
                enumName: 'gerar_conta_enu',
             })
             .notNullable()
             .defaultTo('Não')
+
+         table
+            .integer('conta_id')
+            .unsigned()
+            .references('id')
+            .inTable('contas')
+            .onUpdate('CASCADE')
+            .onDelete('RESTRICT')
 
          /*table
       .enu("estoque", ["Entrada", "Baixa","Não"], {

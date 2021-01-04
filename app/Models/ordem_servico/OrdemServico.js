@@ -32,6 +32,14 @@ class OrdemServico extends Model {
       return this.hasOne('App/Models/ordem_servico/OsConfig', 'config_id', 'id')
    }
 
+   lancamentos() {
+      return this.hasMany('App/Models/Lancamento') //, 'ordem_servico_id', 'id'
+   }
+
+   equipamento() {
+      return this.hasOne('App/Models/Equipamento', 'equipamento_id', 'id')
+   }
+
    /*statuses () {
       return this.hasMany('App/Models/OcorrenciaStatus')
    }

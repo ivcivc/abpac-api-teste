@@ -24,14 +24,12 @@ class ExceptionHandler extends BaseExceptionHandler {
     */
    async handle(error, { request, response }) {
       if (error.name === 'ValidationException') {
-         return response
-            .status(error.status)
-            .send({
-               type: false,
-               name: 'Validation',
-               message: 'Ocorreu uma falha de validação.',
-               messages: error.messages,
-            })
+         return response.status(error.status).send({
+            type: false,
+            name: 'Validation',
+            message: 'Ocorreu uma falha de validação.',
+            messages: error.messages,
+         })
       }
 
       if (error.code === 'ER_BAD_FIELD_ERROR') {
@@ -49,12 +47,10 @@ class ExceptionHandler extends BaseExceptionHandler {
       }
 
       if (error.code === 'ER_DUP_ENTRY') {
-         return response
-            .status(error.status)
-            .send({
-               type: false,
-               message: 'Ocorreu um erro de duplicidade de registro.',
-            })
+         return response.status(error.status).send({
+            type: false,
+            message: 'Ocorreu um erro de duplicidade de registro.',
+         })
       }
 
       if (error.code === 'E_MISSING_DATABASE_ROW') {
@@ -66,16 +62,22 @@ class ExceptionHandler extends BaseExceptionHandler {
 
       if (error.code === 'WARN_DATA_TRUNCATED') {
          // status 404 - findorFail
-         return response
-            .status(error.status)
-            .send({
-               type: false,
-               message: 'Campos com informações não permitida.',
-            })
+         return response.status(error.status).send({
+            type: false,
+            message: 'Campos com informações não permitida.',
+         })
       }
 
       if (error.code === 'PERSONALIZADO') {
          // status 404 - findorFail
+         return response
+            .status(error.status)
+            .send({ type: false, message: error.message })
+      }
+
+      if (error.status === 500) {
+         // statis= 500
+
          return response
             .status(error.status)
             .send({ type: false, message: error.message })
@@ -101,6 +103,16 @@ class ExceptionHandler extends BaseExceptionHandler {
          console.log({
             error: error.errno,
             sqlMessage: error.sqlMessage,
+            status: error.status,
+            code: error.code,
+         })
+         return
+      }
+      if (error.status === 500) {
+         // statis= 500
+         console.log({
+            error: error.stack,
+            message: error.message,
             status: error.status,
             code: error.code,
          })

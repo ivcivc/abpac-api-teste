@@ -8,6 +8,8 @@ class OrdemServicoSchema extends Schema {
       this.create('ordem_servicos', table => {
          table.increments()
 
+         table.integer('rateio_id').index()
+
          table
             .integer('pessoa_id')
             .unsigned()

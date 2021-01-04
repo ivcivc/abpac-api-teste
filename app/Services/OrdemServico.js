@@ -8,6 +8,8 @@ const ModelItem = use('App/Models/ordem_servico/OrdemServicoItem')
 const ModelEquipamento = use('App/Models/Equipamento')
 const ModelPessoa = use('App/Models/Pessoa')
 const ModelOcorrencia = use('App/Models/Ocorrencia')
+const ModelLancamento = use('App/Models/Lancamento')
+const ServiceLancamento = use('App/Services/Lancamento')
 
 const lodash = require('lodash')
 
@@ -28,6 +30,7 @@ class OrdemServico {
          //await model.load('terceiro')
          await model.load('user')
          await model.load('config')
+         await model.load('lancamentos')
 
          let json = model.toJSON()
 
@@ -106,6 +109,12 @@ class OrdemServico {
          let items = data.items
          delete data['items']
 
+         let objFinanceiro = null
+         if (lodash.has(data, 'financeiro')) {
+            objFinanceiro = data.financeiro
+            delete data['financeiro']
+         }
+
          const os = await Model.create(data, trx ? trx : null)
 
          const status = {
@@ -128,11 +137,23 @@ class OrdemServico {
 
          await os.items().createMany(items, trx ? trx : null)
 
+         if (objFinanceiro) {
+            objFinanceiro.ordem_servico_id = os.id
+
+            await new ServiceLancamento().gerarLancamentos(
+               objFinanceiro,
+               trx,
+               auth,
+               false
+            )
+         }
+
          await trx.commit()
 
          await os.load('pessoa')
          await os.load('items')
          await os.load('user')
+         await os.load('lancamentos')
 
          return os
       } catch (e) {
@@ -143,6 +164,9 @@ class OrdemServico {
 
    async update(ID, data, trx, auth) {
       let nrErro = null
+      if (!trx) {
+         trx = await Database.beginTransaction()
+      }
       try {
          let os = await Model.findOrFail(ID)
 
@@ -155,6 +179,51 @@ class OrdemServico {
                success: false,
                message:
                   'Transação abortada! Este registro foi alterado por outro usuário.',
+            }
+         }
+
+         if (data.status !== os.status) {
+            if (os.status !== 'Finalizado' && data.status === 'Finalizado') {
+               await ModelLancamento.query()
+                  .where('ordem_servico_id', os.id)
+                  .where('situacao', 'Bloqueado')
+                  .update({
+                     situacao: 'Aberto',
+                     pessoa_id: data.pessoa_id,
+                     updated_at: moment(),
+                  })
+                  .transacting(trx ? trx : null)
+            }
+
+            if (os.status === 'Finalizado') {
+               let modelLancamentoArr = await Database.from('lancamentos')
+                  .where('ordem_servico_id', os.id)
+                  .whereNotIn('situacao', ['Bloqueado', 'Aberto'])
+               //.fetch()
+               if (modelLancamentoArr.length > 0) {
+                  nrErro = -100
+                  throw {
+                     success: false,
+                     message:
+                        'Transação abortada! Não é possível alterar o status. Houve movimentação no financeiro.',
+                  }
+               }
+               //  Database.from('lancamentos')
+               await ModelLancamento.query()
+                  .where('ordem_servico_id', os.id)
+                  .update({
+                     situacao: 'Bloqueado',
+                     pessoa_id: data.pessoa_id,
+                     updated_at: moment(),
+                  })
+                  .transacting(trx ? trx : null)
+            }
+         } else {
+            if (data.pessoa_id !== os.pessoa_id) {
+               await ModelLancamento.query()
+                  .where('ordem_servico_id', os.id)
+                  .update({ pessoa_id: data.pessoa_id, updated_at: moment() })
+                  .transacting(trx ? trx : null)
             }
          }
 
@@ -224,8 +293,12 @@ class OrdemServico {
 
          await os.save(trx ? trx : null)
 
+         await trx.commit()
+
          return itemsDB
       } catch (e) {
+         await trx.rollback()
+
          if (nrErro) {
             if (nrErro === -100) {
                throw e

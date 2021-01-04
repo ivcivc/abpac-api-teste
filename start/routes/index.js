@@ -144,11 +144,96 @@ Route.group(() => {
    Route.post('/lancamento/reverter_inadimplente', 'LancamentoController.reverter_inadimplente').middleware([
       'auth'
      ])
+   Route.post('/lancamento/acordo', 'LancamentoController.acordo').middleware([
+      'auth'
+     ])
+   Route.post('/lancamento/gerarLancamentos', 'LancamentoController.gerarLancamentos').middleware([
+      'auth'
+     ])
    Route.resource('/lancamentoConfig', 'LancamentoConfigController').middleware([
       'auth'
      ])
 
+   Route.post('/lancamento/destroyOS', 'LancamentoController.destroyOS').middleware([
+      'auth'
+     ])
+
+   /*Route.resource('/rateio', 'RateioController').middleware([
+      'auth'
+     ])*/
+
+   Route.get('/rateio/statusEmailMassa/:boleto_id', 'RateioController.statusEmailMassa').middleware([
+      'auth'
+     ])
+
+   Route.post('/rateio/dispararEmailMassa', 'RateioController.dispararEmailMassa').middleware([
+      'auth'
+     ])
+
+     Route.get('/rateio/localizarEmailMassa/:id', 'RateioController.localizarEmailMassa').middleware([
+      'auth'
+     ])
+
+   Route.get('/rateio/equipamentosAtivos', 'RateioController.equipamentosAtivos').middleware([
+      'auth'
+     ])
+
+   Route.get('/rateio/lista_os', 'RateioController.lista_os').middleware([
+      'auth'
+     ])
+
+   Route.get('/rateio/inadimplentes', 'RateioController.inadimplentes').middleware([
+      'auth'
+     ])
+
+   Route.post('/rateio', 'RateioController.store').middleware([
+      'auth'
+     ])
+
+   Route.post('/rateio/simulador', 'RateioController.simulador').middleware([
+   'auth'
+   ])
+
+   Route.get('/rateio/:id', 'RateioController.show').middleware([
+      'auth'
+      ])
+
+   Route.get('/rateio', 'RateioController.index').middleware([
+         'auth'
+         ])
+
+   Route.post('/rateio/config', 'RateioController.config').middleware([
+            'auth'
+            ])
+
+   Route.post('/rateio/addOrUpdateConfig', 'RateioController.addOrUpdateConfig').middleware([
+               'auth'
+               ])
+
+   Route.put('/rateio/:id', 'RateioController.update').middleware([
+            'auth'
+            ])
+
+   Route.get('/rateio/gerarFinanceiroLoc/:id', 'RateioController.gerarFinanceiroLoc').middleware([
+               'auth'
+               ])
+
+   Route.post('/rateio/gerarFinanceiro', 'RateioController.gerarFinanceiro').middleware([
+      'auth'
+      ])
+
    Route.resource('/planoConta', 'PlanoDeContaController')
+
+
+  /* Route.get('/cnab/job/:id', 'CnabController.job').middleware([
+      'auth'
+      ])*/
+
+   Route.get('/lancamento/pdf/:boleto_id', 'LancamentoController.pdf')
+   Route.get('/lancamento/pdfDownload/:arquivo', 'LancamentoController.pdfDownload')
+
+   //Route.resource('/cnab', 'CnabController')
+
 
    Route.resource('/conta', 'ContaController').middleware([
       'auth'

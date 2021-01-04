@@ -731,7 +731,8 @@ class Equipamento {
          await equipamento.load('pessoa')
          await equipamento.load('categoria')
          await equipamento.load('equipamentoProtecoes')
-         await equipamento.load('equipamentoBeneficios')
+         //await equipamento.load('equipamentoBeneficios')
+         await equipamento.load('equipamentoBeneficios.beneficio')
 
          //await equipamento.load('ocorrencias')
 

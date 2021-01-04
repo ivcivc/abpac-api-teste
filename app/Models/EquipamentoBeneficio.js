@@ -14,6 +14,7 @@ class EquipamentoBeneficio extends Model {
 
    beneficio() {
       return this.hasOne('App/Models/Beneficio', 'beneficio_id', 'id')
+      //return this.belongsTo('App/Models/Beneficio')
    }
 }
 

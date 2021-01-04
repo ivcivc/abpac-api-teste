@@ -8,8 +8,11 @@ class CategoriaSchema extends Schema {
       this.create('categorias', table => {
          table.increments()
 
+         table.integer('ordem').defaultTo(0)
+
          table.varchar('nome', 55).unique()
          table.varchar('descricao', 150)
+         table.varchar('abreviado', 5)
 
          table
             .enu('tipo', ['Rebocador', 'Semi-Reboque', 'Caminhão'], {
@@ -21,7 +24,7 @@ class CategoriaSchema extends Schema {
             .defaultTo('Rebocador')
 
          table.float('valorTaxaAdm', 8, 2).defaultTo(0.0)
-         table.float('percentualRateio', 6, 2).defaultTo(0.0)
+         table.float('percentualRateio', 8, 4).defaultTo(0.0)
 
          table
             .enu('status', ['Ativo', 'Inativo'], {

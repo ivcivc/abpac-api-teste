@@ -27,7 +27,7 @@ class OcorrenciaOsConfig {
          descricao: `required|string|min:3|max:45|unique:os_configs,descricao,id,${ID}`,
          status: 'required|string|in:Ativo,Inativo',
          modelo: 'required|string',
-         gerarConta: 'required|string|in:Pagar,Receber,Não',
+         gerarConta: 'required|string|in:Despesa,Receita,Não',
          rateio: 'required|string|in:Sim - Crédito,Sim,Não',
       }
     }

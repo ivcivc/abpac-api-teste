@@ -36,3 +36,20 @@ http://formvalidate.com/how-to-install-and-configure-redis-into-centos-8
 # configurações apache
 https://www.it-swarm.dev/pt/node.js/websockets-e-proxy-do-apache-como-configurar-o-mod-proxy-wstunnel/1050133925/
 
+
+
+Kue
+arquivo pm2.json
+{
+  "apps" : [{
+    "name"        : "server",
+    "script"      : "./server.js",
+  },{
+    "name"       : "kue",
+    "script"     : "adonis kue:listen",
+  }]
+}
+
+comando: pm2 startOrRestart pm2.json
+
+log: pm2 logs

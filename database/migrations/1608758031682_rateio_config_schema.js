@@ -3,13 +3,26 @@
 /** @type {import('@adonisjs/lucid/src/Schema')} */
 const Schema = use('Schema')
 
-class LancamentoConfigSchema extends Schema {
+class RateioConfigSchema extends Schema {
    up() {
-      this.create('lancamento_configs', table => {
+      this.create('rateio_configs', table => {
          table.increments()
 
          table
-            .integer('pagar_plano_id_acresc')
+            .integer('conta_id')
+            .unsigned()
+            .notNullable()
+            .references('id')
+            .inTable('contas')
+            .onUpdate('CASCADE')
+            .onDelete('RESTRICT')
+            .defaultTo(0)
+
+         table.vachar('boleto_nota1', 80).default('')
+         table.vachar('boleto_nota2', 80).default('')
+
+         table
+            .integer('beneficios_plano_id')
             .unsigned()
             .references('id')
             .inTable('plano_de_contas')
@@ -17,30 +30,7 @@ class LancamentoConfigSchema extends Schema {
             .onDelete('RESTRICT')
 
          table
-            .integer('pagar_plano_id_desc')
-            .unsigned()
-            .references('id')
-            .inTable('plano_de_contas')
-            .onUpdate('CASCADE')
-            .onDelete('RESTRICT')
-
-         table
-            .integer('receber_plano_id_acresc')
-            .unsigned()
-            .references('id')
-            .inTable('plano_de_contas')
-            .onUpdate('CASCADE')
-            .onDelete('RESTRICT')
-         table
-            .integer('receber_plano_id_desc')
-            .unsigned()
-            .references('id')
-            .inTable('plano_de_contas')
-            .onUpdate('CASCADE')
-            .onDelete('RESTRICT')
-
-         table
-            .integer('receber_plano_id_prej')
+            .integer('rateio_plano_id')
             .unsigned()
             .references('id')
             .inTable('plano_de_contas')
@@ -64,7 +54,7 @@ class LancamentoConfigSchema extends Schema {
             .onDelete('RESTRICT')
 
          table
-            .integer('receber_plano_id_acordo')
+            .integer('txAdm_plano_id')
             .unsigned()
             .references('id')
             .inTable('plano_de_contas')
@@ -76,8 +66,8 @@ class LancamentoConfigSchema extends Schema {
    }
 
    down() {
-      this.drop('lancamento_configs')
+      this.drop('rateio_configs')
    }
 }
 
-module.exports = LancamentoConfigSchema
+module.exports = RateioConfigSchema

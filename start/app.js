@@ -22,11 +22,16 @@ const providers = [
    'adonis-acl/providers/AclProvider',
    'adonis-acl/providers/AclProvider',
    '@adonisjs/validator/providers/ValidatorProvider',
-   path.join(__dirname, '..', 'app/providers', 'ValidateCompoundUnique/Provider'),
+   path.join(
+      __dirname,
+      '..',
+      'app/providers',
+      'ValidateCompoundUnique/Provider'
+   ),
    path.join(__dirname, '..', 'app/providers', 'ValidateCpfCnpj/Provider'),
    '@adonisjs/drive/providers/DriveProvider',
    '@adonisjs/redis/providers/RedisProvider',
-   'adonis-kue/providers/KueProvider'
+   'adonis-kue/providers/KueProvider',
 ]
 
 /*
@@ -42,7 +47,7 @@ const aceProviders = [
    '@adonisjs/lucid/providers/MigrationsProvider',
    'adonis-acl/providers/CommandsProvider',
    'adonis-acl/providers/CommandsProvider',
-   'adonis-kue/providers/CommandsProvider'
+   'adonis-kue/providers/CommandsProvider',
 ]
 
 /*
@@ -59,7 +64,7 @@ const aceProviders = [
 */
 const aliases = {
    Role: 'Adonis/Acl/Role',
-   Permission: 'Adonis/Acl/Permission'
+   Permission: 'Adonis/Acl/Permission',
 }
 
 /*
@@ -73,7 +78,7 @@ const aliases = {
 const commands = []
 
 /* Meus jobs para Redis */
-const jobs = ['App/Jobs/SincronizarDropbox']
+const jobs = ['App/Jobs/SincronizarDropbox', 'App/Jobs/ACBr']
 //****** */
 
 module.exports = { providers, aceProviders, aliases, commands, jobs }

@@ -11,7 +11,7 @@ class LancamentoSchema extends Schema {
          table.integer('parent_id').defaultTo(0)
 
          table
-            .enu('tipo', ['Pagar', 'Receber'], {
+            .enu('tipo', ['Despesa', 'Receita'], {
                useNative: true,
                existingType: true,
                enumName: 'lanca_tipo',
@@ -27,6 +27,10 @@ class LancamentoSchema extends Schema {
          table.integer('parcelaF')
 
          table.integer('rateio_id').index()
+         table.integer('grupo_id', 15).index()
+         table.integer('subGrupo_id', 15).index()
+
+         table.integer('isEmail', 1).defaultTo(0)
 
          table
             .integer('equipamento_id')
@@ -73,6 +77,9 @@ class LancamentoSchema extends Schema {
          table.float('valorCompensado', 10, 2).defaultTo(0.0)
          table.float('valorCompensadoAcresc', 10, 2).defaultTo(0.0)
          table.float('valorCompensadoDesc', 10, 2).defaultTo(0.0)
+         table.float('valorCompensadoPrej', 10, 2).defaultTo(0.0)
+
+         table.varchar('forma', 20).defaultTo(null)
 
          table.varchar('historico', 40)
          table.varchar('documento', 15)
