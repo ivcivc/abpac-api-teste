@@ -1,6 +1,6 @@
 'use strict'
 
-// teste
+// teste2
 
 const lodash = require('lodash')
 const Helpers = use('Helpers')
