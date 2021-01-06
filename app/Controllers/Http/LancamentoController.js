@@ -1,5 +1,6 @@
 'use strict'
 
+const Database = use('Database')
 const LancamentoService = use('App/Services/Lancamento')
 
 const kue = use('Kue')
