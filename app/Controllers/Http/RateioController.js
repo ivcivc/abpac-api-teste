@@ -9,6 +9,76 @@ const kue = use('Kue')
 const Job = use('App/Jobs/ACBr')
 
 class RateioController {
+   async callback({ request, response }) {
+      console.log('callback acionado......')
+      let x = request
+      console.log(request.all())
+      return request.all()
+   }
+
+   async auth({ request, response }) {
+      var ClientOAuth2 = require('client-oauth2')
+
+      let url = 'http://127.0.0.1:3333/api/rateio/callback'
+
+      var githubAuth = new ClientOAuth2({
+         clientId: 'm1ZnOFQ8qqljn0_e4DL3_sl5mfwa',
+         clientSecret: 'vDoz7y2U2kwxkIi3wt2rdcgooE8a',
+         accessTokenUri: '',
+         authorizationUri:
+            'https://sandbox.sicoob.com.br/oauth2/authorize?response_type=code&redirect_uri=null&client_id=m1ZnOFQ8qqljn0_e4DL3_sl5mfwa',
+         redirectUri: url,
+         scopes: ['notifications', 'default'],
+      })
+
+      // https://sandbox.sicoob.com.br/conta-corrente/extrato/12/2020?numeroContaCorrente=700033690
+
+      //+ request.originalUrl()
+      /*githubAuth.code.getToken(url).then(function (user) {
+         console.log(user) //=> { accessToken: '...', tokenType: 'bearer', ... }
+
+         // Refresh the current users access token.
+         user.refresh().then(function (updatedUser) {
+            console.log(updatedUser !== user) //=> true
+            console.log(updatedUser.accessToken)
+         })
+
+         // Sign API requests on behalf of the current user.
+         user.sign({
+            method: 'get',
+            url: 'http://example.com',
+         })
+
+         // We should store the token into a database.
+         return res.send(user.accessToken)
+      })*/
+
+      githubAuth.credentials
+         .getToken()
+         .then(function (user) {
+            console.log('credencial')
+            console.log(user) //=> { accessToken: '...', tokenType: 'bearer', ... }
+         })
+         .catch(e => {
+            console.log('falha credentials')
+         })
+
+      githubAuth.jwt
+         .getToken(
+            'bTFabk9GUThxcWxqbjBfZTRETDNfc2w1bWZ3YTp2RG96N3kyVTJrd3hrSWkzd3QycmRjZ29vRThh'
+         )
+         .then(t => {
+            console.log('JWT - ', t)
+         })
+         .catch(e => {
+            let err = e
+            console.log('falhou')
+         })
+
+      let x = githubAuth
+      return
+   }
+
    async equipamentosAtivos({ request, response }) {
       //const payload = request.all()
 

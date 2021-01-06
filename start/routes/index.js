@@ -166,6 +166,11 @@ Route.group(() => {
       'auth'
      ])
 
+     Route.get('/rateio/auth', 'RateioController.auth')
+
+    Route.get('/rateio/callback', 'RateioController.callback')
+
+
    Route.post('/rateio/dispararEmailMassa', 'RateioController.dispararEmailMassa').middleware([
       'auth'
      ])
