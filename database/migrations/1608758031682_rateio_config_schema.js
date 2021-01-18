@@ -18,8 +18,8 @@ class RateioConfigSchema extends Schema {
             .onDelete('RESTRICT')
             .defaultTo(0)
 
-         table.vachar('boleto_nota1', 80).default('')
-         table.vachar('boleto_nota2', 80).default('')
+         table.varchar('boleto_nota1', 80).default('')
+         table.varchar('boleto_nota2', 80).default('')
 
          table
             .integer('beneficios_plano_id')

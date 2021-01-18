@@ -11,6 +11,7 @@ class PlanoDeContaSchema extends Schema {
          table.varchar('descricao', 60)
 
          table.integer('idParent').defaultTo(0)
+         table.integer('level').defaultTo(1)
 
          table
             .enu('status', ['Ativo', 'Inativo'], {

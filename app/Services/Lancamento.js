@@ -42,9 +42,9 @@ class Lancamento {
       try {
          if (!trx) {
             trx = await Database.beginTransaction()
-         }
+         } 
 
-         if (data.forma === 'boleto' && model.tipo === 'Receita') {
+         if (data.forma === 'boleto' && data.tipo === 'Receita') {
             const livre = await Redis.get('_gerarFinanceiro')
             if (livre !== 'livre') {
                nrErro = -100
