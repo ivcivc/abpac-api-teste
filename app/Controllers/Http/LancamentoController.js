@@ -5,6 +5,7 @@ const LancamentoService = use('App/Services/Lancamento')
 
 const kue = use('Kue')
 const Job = use('App/Jobs/ACBr')
+const PessoaModel = use('App/Models/Pessoa')
 
 class LancamentoController {
    async index({ params, request, response }) {}
@@ -19,10 +20,10 @@ class LancamentoController {
 
          const model = await new LancamentoService().add(payload, trx, auth)
 
-         await trx.commit()
+         //await trx.commit()
 
          if (model.pessoa_id) {
-            await model.load('pessoa')
+            //await model.load('pessoa')
          }
 
          await model.load('items')
@@ -123,6 +124,22 @@ class LancamentoController {
       }
    }
 
+   async cancelar_compensacao({ request, response, auth }) {
+      const payload = request.all()
+
+      try {
+         const query = await new LancamentoService().cancelar_compensacao(
+            payload,
+            null,
+            auth
+         )
+
+         response.status(200).send(query)
+      } catch (error) {
+         console.log(error)
+         response.status(400).send(error)
+      }
+   }
    async inadimplente({ request, response, auth }) {
       /* Gerar conta indadimplemnte */
       const payload = request.all()

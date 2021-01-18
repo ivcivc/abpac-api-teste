@@ -56,6 +56,7 @@ class OsConfigSchema extends Schema {
                   'Indenização (O.S.)',
                   'Adesão',
                   'Assistencia 24h',
+                  'Localizador/Bloqueador',
                   'Entrada Estoque',
                   'Livre',
                ],

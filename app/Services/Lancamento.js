@@ -12,6 +12,10 @@ const lodash = require('lodash')
 
 const Database = use('Database')
 
+const Redis = use('Redis')
+const kue = use('Kue')
+const Job = use('App/Jobs/ACBr')
+
 //const Mo = use('App/Models/OcorrenciaTerceiro')
 
 class Lancamento {
@@ -38,6 +42,18 @@ class Lancamento {
       try {
          if (!trx) {
             trx = await Database.beginTransaction()
+         }
+
+         if (data.forma === 'boleto' && model.tipo === 'Receita') {
+            const livre = await Redis.get('_gerarFinanceiro')
+            if (livre !== 'livre') {
+               nrErro = -100
+               throw {
+                  success: false,
+                  message:
+                     'Transação abortada. O servidor de emissão de boletos está ocupado. Tente mais tarde!',
+               }
+            }
          }
 
          data.historico = !lodash.isEmpty(data.historico) ? data.historico : ''
@@ -106,6 +122,47 @@ class Lancamento {
             status.motivo = 'Aberto/Compensado'
          }
          await ModelStatus.create(status, trx ? trx : null)
+
+         await trx.commit()
+
+         if (model.pessoa_id) {
+            await model.load('pessoa')
+         }
+
+         // Gerar remessa - Kue
+         if (
+            data.situacao !== 'Compensado' &&
+            model.tipo === 'Receita' &&
+            model.forma === 'boleto'
+         ) {
+            let dados = model.toJSON()
+            let arrLancamentos = []
+            arrLancamentos.push(dados)
+            let aut = auth.user.toJSON()
+            let oAuth = { user: aut }
+            const data = {
+               lancamentos: arrLancamentos,
+               auth: oAuth,
+               metodo: 'gerarCobranca',
+            } // Data to be passed to job handle
+            const priority = 'normal' // Priority of job, can be low, normal, medium, high or critical
+            const attempts = 1 // Number of times to attempt job if it fails
+            const remove = true // Should jobs be automatically removed on completion
+            const jobFn = job => {
+               // Function to be run on the job before it is saved
+               job.backoff()
+            }
+            const job = kue.dispatch(Job.key, data, {
+               priority,
+               attempts,
+               remove,
+               jobFn,
+            })
+
+            // If you want to wait on the result, you can do this
+            const result = await job.result
+            let x = 1
+         }
 
          return model
       } catch (e) {
@@ -223,6 +280,7 @@ class Lancamento {
          let dVencInicio = null
          let dVencFim = null
          let modulo = payload.modulo
+         let pessoa_id = payload.field_value_pessoa_id
 
          if (payload.field_value_periodo) {
             dVencInicio = payload.field_value_periodo.start
@@ -232,7 +290,18 @@ class Lancamento {
          let query = null //.fetch()
 
          if (modulo === 'todos') {
-            if (dVencInicio) {
+            if (dVencInicio && pessoa_id) {
+               query = await Model.query()
+                  .with('pessoa')
+                  .whereBetween('dVencimento', [
+                     dVencInicio.substr(0, 10),
+                     dVencFim.substr(0, 10),
+                  ])
+                  .whereNot({ situacao: 'Bloqueado' })
+                  .where('pessoa_id', pessoa_id)
+                  .fetch()
+            }
+            if (dVencInicio && !pessoa_id) {
                query = await Model.query()
                   .with('pessoa')
                   .whereBetween('dVencimento', [
@@ -241,6 +310,17 @@ class Lancamento {
                   ])
                   .whereNot({ situacao: 'Bloqueado' })
                   .fetch()
+            }
+            if (!dVencInicio && pessoa_id) {
+               query = await Model.query()
+                  .with('pessoa')
+
+                  .whereNot({ situacao: 'Bloqueado' })
+                  .where('pessoa_id', pessoa_id)
+                  .fetch()
+            }
+            if (!dVencInicio && !pessoa_id) {
+               query = []
             }
          }
 
@@ -315,6 +395,27 @@ class Lancamento {
             }
          }
 
+         if (
+            model.inadimplente === 'Debito' ||
+            model.inadimplente === 'Credito'
+         ) {
+            nrErro = -100
+            throw {
+               success: false,
+               message:
+                  'Cancelamento não autorizado. Esta conta foi rateada com inadimplente.',
+            }
+         }
+
+         if (model.situacao === 'Compensado') {
+            nrErro = -100
+            throw {
+               success: false,
+               message:
+                  'Cancelamento não autorizado. Esta conta foi liquidada.',
+            }
+         }
+
          const status = {
             lancamento_id: model.id,
             user_id: auth.user.id,
@@ -333,6 +434,85 @@ class Lancamento {
             throw { success: false, message: 'Cancelamento não autorizado.' }
          }
          model.situacao = 'Cancelado'
+
+         await model.save(trx ? trx : null)
+
+         await trx.commit()
+
+         await model.load('items')
+         if (model.pessoa_id) {
+            await model.load('pessoa')
+         }
+
+         return model
+      } catch (e) {
+         await trx.rollback()
+         if (nrErro) {
+            if (nrErro === -100) {
+               throw e
+            }
+         }
+         throw {
+            message: e.message,
+            sqlMessage: e.sqlMessage,
+            sqlState: e.sqlState,
+            errno: e.errno,
+            code: e.code,
+         }
+      }
+   }
+
+   async cancelar_compensacao(payload, trx, auth) {
+      let nrErro = null
+      try {
+         if (!trx) {
+            trx = await Database.beginTransaction()
+         }
+         let model = await Model.findOrFail(payload.id)
+
+         const update_at_db = moment(model.updated_at).format()
+         const update_at = moment(payload.updated_at).format()
+
+         if (update_at_db !== update_at) {
+            nrErro = -100
+            throw {
+               success: false,
+               message:
+                  'Cancelamento não autorizado. Este registro foi alterado por outro usuário.',
+            }
+         }
+
+         if (model.situacao !== 'Compensado') {
+            nrErro = -100
+            throw {
+               success: false,
+               message:
+                  'Cancelamento não autorizado. Esta conta ainda não foi liquidada.',
+            }
+         }
+
+         const status = {
+            lancamento_id: model.id,
+            user_id: auth.user.id,
+            motivo: `De: ${model.status}/${model.situacao} - Para: ${model.status}/Aberto`,
+            status: 'Aberto',
+         }
+         await ModelStatus.create(status, trx ? trx : null)
+
+         model.merge({
+            situacao: 'Aberto',
+            valorCompensado: 0.0,
+            valorCompensadoAcresc: 0.0,
+            valorCompensadoDesc: 0.0,
+            valorCompensadoPrej: 0.0,
+            dRecebimento: null,
+         })
+
+         await ModelItem.query()
+            .where('lancamento_id', model.id)
+            .whereIn('tag', ['QA', 'QD', 'QP'])
+            .transacting(trx ? trx : null)
+            .delete()
 
          await model.save(trx ? trx : null)
 
@@ -443,21 +623,7 @@ class Lancamento {
             trx = await Database.beginTransaction()
          }
 
-         let planoContaID = await new ServiceConfig().getPlanoConta(
-            'receber-debito-inadimplente'
-         )
-
-         if (!planoContaID) {
-            nrErro = -100
-            throw {
-               success: false,
-               message:
-                  'Transação abortada! Arquivo de configuração não localizado.',
-            }
-         }
-
          let model = await Model.findOrFail(payload.id)
-         let modelClone = model.toJSON()
 
          const update_at_db = moment(model.updated_at).format()
          const update_at = moment(payload.updated_at).format()
@@ -475,7 +641,7 @@ class Lancamento {
             nrErro = -100
             throw {
                success: false,
-               message: 'Não é possível reverter essa conta',
+               message: 'Não é possível transformar em conta inadimplente',
             }
          }
 
@@ -488,52 +654,17 @@ class Lancamento {
             }
          }
 
+         const novoStatus = 'Inadimplente'
          const status = {
             lancamento_id: model.id,
             user_id: auth.user.id,
             //motivo: `Inadimplente`,
-            motivo: `De: ${model.status}/${model.situacao} - Para: Inadimplente/Compensado`,
-            status: model.situacao,
+            motivo: `De: ${model.status}/${model.situacao} - Para: ${model.situacao}/Inadimplente`,
+            status: novoStatus,
          }
          await ModelStatus.create(status, trx ? trx : null)
 
-         model.status = 'Inadimplente'
-         model.situacao = 'Compensado'
-         model.dRecebimento = moment(new Date()).format('YYYY-MM-DD')
-         model.valorCompensado = model.valorTotal
-
-         /* Criar novo registo de inadimplentes */
-         delete modelClone['id']
-         modelClone.status = 'Inadimplente'
-         modelClone.situacao = 'Aberto'
-         modelClone.isConciliado = false
-         modelClone.inadimplente = 'Sim'
-         modelClone.parent_id = model.id
-         modelClone.historico = 'Inadimplente'
-         modelClone.dRecebimento = null
-         modelClone.valorCompensado = 0.0
-
-         const modelAdd = await Model.create(modelClone, trx ? trx : null)
-
-         const statusClone = {
-            lancamento_id: modelAdd.id,
-            user_id: auth.user.id,
-            motivo: `Inadimplente`,
-            status: 'Inadimplente',
-         }
-         await ModelStatus.create(statusClone, trx ? trx : null)
-
-         await ModelItem.create(
-            {
-               DC: 'C',
-               tag: 'IC',
-               lancamento_id: modelAdd.id,
-               descricao: 'Inadimplente',
-               planoDeConta_id: planoContaID,
-               valor: modelClone.valorTotal,
-            },
-            trx ? trx : null
-         )
+         model.merge({ inadimplente: 'Sim', status: 'Inadimplente' })
 
          await model.save(trx ? trx : null)
 
@@ -541,14 +672,12 @@ class Lancamento {
          //await trx.rollback()
 
          await model.load('items')
-         await modelAdd.load('items')
 
          if (model.pessoa_id) {
             await model.load('pessoa')
-            await modelAdd.load('pessoa')
          }
 
-         return { success: true, atual: model, novo: modelAdd }
+         return { success: true, atual: model, novo: model }
       } catch (e) {
          await trx.rollback()
          if (nrErro) {
@@ -587,7 +716,7 @@ class Lancamento {
             }
          }
 
-         if (model.status !== 'Inadimplente' || model.situacao !== 'Aberto') {
+         if (model.status !== 'Inadimplente') {
             nrErro = -100
             throw {
                success: false,
@@ -607,52 +736,29 @@ class Lancamento {
          const status = {
             lancamento_id: model.id,
             user_id: auth.user.id,
-            motivo: `Reversão`,
-            status: 'Cancelado',
+            motivo: `Reversão Inadimplente`,
+            status: model.situacao,
          }
          await ModelStatus.create(status, trx ? trx : null)
 
-         model.historico = 'Inadimplente (revertido)'
-         model.situacao = 'Cancelado'
-
-         const parent_id = model.parent_id
-
-         /* Recuperar o ristro pai */
-         let modelPai = await Model.findOrFail(parent_id)
-
-         modelPai.status = 'Aberto'
-         modelPai.situacao = 'Aberto'
-         modelPai.dRecebimento = null
-         modelPai.valorCompensado = 0
-         modelPai.isConciliado = false
-         modelPai.parent_id = null
-         modelPai.documento = null
-         modelPai.documentoNr = ''
-
-         if (payload.situacao !== model.situacao) {
-            const status = {
-               lancamento_id: modelPai.id,
-               user_id: auth.user.id,
-               motivo: `Reversão de inadimplente`,
-               status: 'Aberto',
-            }
-            await ModelStatus.create(status, trx ? trx : null)
+         let cStatus = model.status
+         if (model.status === 'Inadimplente') {
+            cStatus = 'Aberto'
          }
 
+         model.merge({ inadimplente: 'Não', status: cStatus })
+
          await model.save(trx ? trx : null)
-         await modelPai.save(trx ? trx : null)
 
          await trx.commit()
 
          await model.load('items')
-         await modelPai.load('items')
 
          if (model.pessoa_id) {
             await model.load('pessoa')
-            await modelPai.load('pessoa')
          }
 
-         return { success: true, atual: model, revertido: modelPai }
+         return { success: true, atual: model, revertido: model }
       } catch (e) {
          await trx.rollback()
          if (nrErro) {

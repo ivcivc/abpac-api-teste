@@ -43,11 +43,16 @@ Route.group(() => {
       'auth'
    ])
 
+   Route.post('/categoria/ordenar', 'CategoriaController.ordenar').middleware([
+      'auth'
+     ])
+
+
    Route.resource('/categoria', 'CategoriaController').middleware([
       'auth'
      ])
 
-     Route.resource('/os_config', 'ordem_servico/OsConfigController').middleware([
+   Route.resource('/os_config', 'ordem_servico/OsConfigController').middleware([
       'auth'
      ]).validator( new Map([ [['/os_config.store'], ['ordem_servico/os_config']],
       [['/os_config.update'], ['ordem_servico/os_config']]]))
@@ -144,6 +149,10 @@ Route.group(() => {
    Route.post('/lancamento/reverter_inadimplente', 'LancamentoController.reverter_inadimplente').middleware([
       'auth'
      ])
+   Route.post('/lancamento/cancelar_compensacao', 'LancamentoController.cancelar_compensacao').middleware([
+      'auth'
+     ])
+
    Route.post('/lancamento/acordo', 'LancamentoController.acordo').middleware([
       'auth'
      ])
@@ -230,9 +239,21 @@ Route.group(() => {
    Route.resource('/planoConta', 'PlanoDeContaController')
 
 
-  /* Route.get('/cnab/job/:id', 'CnabController.job').middleware([
+  Route.get('/cnab/listarArquivosRemessa', 'CnabController.listarArquivosRemessa').middleware([
       'auth'
-      ])*/
+      ])
+
+   Route.post('/cnab/downloadRemessa', 'CnabController.downloadRemessa').middleware([
+         'auth'
+         ])
+
+   /*Route.post('/cnab/arquivarArquivoRemessa', 'CnabController.arquivarArquivoRemessa').middleware([
+         'auth'
+         ])*/
+
+   Route.post('/cnab/localizarRemessaArquivado', 'CnabController.localizarArquivoRemessaArquivado').middleware([
+      'auth'
+      ])
 
    Route.get('/lancamento/pdf/:boleto_id', 'LancamentoController.pdf')
    Route.get('/lancamento/pdfDownload/:arquivo', 'LancamentoController.pdfDownload')

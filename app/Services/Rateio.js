@@ -547,7 +547,7 @@ class Rateio {
 
             //.whereNull('rateio_id')
             .where('inadimplente', 'Sim')
-            .whereIn('status', ['Acordado', 'Inadimplente'])
+            //.whereIn('status', ['Acordado', 'Inadimplente'])
             .whereIn('situacao', ['Aberto', 'Compensado'])
             .fetch()
 
@@ -557,6 +557,7 @@ class Rateio {
             .select(
                'id',
                'valorCompensado',
+               'valorDebitoInad',
                'status',
                'pessoa_id',
                'dVencimento',
@@ -579,7 +580,11 @@ class Rateio {
          let queryJsonCredito = queryCredito.toJSON()
 
          queryJsonCredito.forEach(e => {
-            e.valorTotal = e.valorCompensado * -1
+            if (e.valorCompensado > e.valorDebitoInad) {
+               e.valorTotal = e.valorDebitoInad * -1
+            } else {
+               e.valorTotal = e.valorCompensado * -1
+            }
          })
 
          return { debitos: queryJsonDebito, creditos: queryJsonCredito }
@@ -675,7 +680,11 @@ class Rateio {
                   .where('id', e.lancamento_id)
                   .where('updated_at', e.updated_at)
                   .transacting(trx ? trx : null)
-                  .update({ rateio_id, updated_at, inadimplente: 'Credito' })
+                  .update({
+                     updated_at,
+                     inadimplente: 'Credito',
+                     valorCreditoInad: e.valorTotal,
+                  })
 
                if (affectedRows != 1) {
                   nrErro = -100
@@ -734,7 +743,11 @@ class Rateio {
                   .where('id', e.lancamento_id)
                   .where('updated_at', e.updated_at)
                   .transacting(trx ? trx : null)
-                  .update({ rateio_id, updated_at, inadimplente: 'Debito' })
+                  .update({
+                     updated_at,
+                     inadimplente: 'Debito',
+                     valorDebitoInad: e.valorTotal,
+                  })
 
                if (affectedRows != 1) {
                   nrErro = -100
