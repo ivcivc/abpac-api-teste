@@ -11,8 +11,11 @@ const ini = require('multi-ini')
 
 const moment = require('moment')
 
+const Database = use('Database')
+
 const ModelBoleto = use('App/Models/Boleto')
 const ModelPessoa = use('App/Models/Pessoa')
+const ModelRemessa = use('App/Models/Remessa')
 
 const Drive = use('Drive')
 
@@ -650,6 +653,182 @@ class Cnab {
             reject({ success: false, message: msg })
          }
       })
+   }
+
+   async listarArquivosRemessa() {
+      // Listar de arquivos remessa (.rem) da pasta temporaria
+      return new Promise(async (resolve, reject) => {
+         try {
+            let arr = []
+            fs.readdir(this.pastaRemessa, async (err, files) => {
+               if (err) throw err
+               else {
+                  files.forEach(async file => {
+                     let stats = fs.statSync(this.pastaRemessa + file)
+
+                     if (file.includes('.rem')) {
+                        arr.push({
+                           file: file,
+                           isMove: false,
+                           isUpload: false,
+                           stats,
+                           dFile: stats.birthtime,
+                           isFile: stats.isFile(),
+                           isDirectory: stats.isDirectory(),
+                           size: stats.size,
+                        })
+                     }
+
+                     //let exists = await Drive.exists(this.pastaRemessa + file)
+                     //console.log(exists)
+                  })
+
+                  resolve(arr)
+               }
+            })
+         } catch (e) {
+            let msg =
+               'Ocorreu uma falha na tentativa de recuperar arquivo de remessa.'
+            if (lodash.has(e, 'message')) {
+               msg = e.message
+            }
+            reject({ success: false, message: msg })
+         }
+      })
+   }
+
+   async downloadRemessa(response, payload) {
+      // download arquivo de remessa .rem
+      let arquivo = null
+      let isArquivado = false
+
+      return new Promise(async (resolve, reject) => {
+         try {
+            arquivo = payload.file
+            isArquivado = payload.isArquivado
+
+            let pasta = this.pastaRemessa
+            if (isArquivado) pasta = Helpers.tmpPath('ACBr/arquivado/')
+
+            if (await Drive.exists(pasta + arquivo)) {
+               this.arquivarArquivoRemessa({ file: arquivo })
+
+               if (!isArquivado) {
+                  // Arquivar
+                  this.arquivarArquivoRemessa([
+                     {
+                        file: payload.file,
+                        dFile: payload.dFile,
+                        size: payload.size,
+                        isArquived: true,
+                     },
+                  ])
+               }
+
+               if (response) {
+                  return resolve(response.attachment(pasta + arquivo))
+               }
+               resolve(pasta + arquivo)
+            } else {
+               throw 'Arquivo de remessa não encontrado.'
+            }
+         } catch (e) {
+            let msg =
+               'Ocorreu uma falha na tentativa de download arquivo de remessa.'
+            if (lodash.has(e, 'message')) {
+               msg = e.message
+            }
+            reject({ success: false, message: msg })
+         }
+      })
+   }
+
+   async adicionarArquivoRemessa(lista) {
+      // adicionar na tabela Remessa, os arquivos de remessa baixados pelo usuario
+      let trx = null
+
+      try {
+         trx = await Database.beginTransaction()
+
+         for (const key in lista) {
+            if (Object.hasOwnProperty.call(lista, key)) {
+               const element = lista[key]
+               element.isArquived = true
+               await ModelRemessa.create(element, trx ? trx : null)
+            }
+         }
+
+         trx.commit()
+
+         return true
+      } catch (e) {
+         await trx.rollback()
+         throw e
+      }
+   }
+
+   async arquivarArquivoRemessa(lista) {
+      return new Promise(async (resolve, reject) => {
+         try {
+            for (const key in lista) {
+               if (Object.hasOwnProperty.call(lista, key)) {
+                  const element = lista[key]
+                  const pasta = this.pastaRemessa
+                  const pastaArquivado = Helpers.tmpPath('ACBr/arquivado/')
+
+                  if (await Drive.exists(pasta + element.file)) {
+                     this.adicionarArquivoRemessa([
+                        {
+                           file: element.file,
+                           isArquived: true,
+                           dFile: moment(
+                              element.dFile,
+                              'YYYY-MM-DD HH:mm:ss Z'
+                           ).format('YYYY-MM-DD HH:mm:ss'),
+                        },
+                     ])
+                     await Drive.copy(
+                        pasta + element.file,
+                        pastaArquivado + element.file
+                     )
+                     await Drive.delete(pasta + element.file)
+                  }
+                  /*,*/
+               }
+            }
+
+            resolve(true)
+         } catch (e) {
+            let msg =
+               'Ocorreu uma falha na tentativa de mover arquivo de remessa.'
+            if (lodash.has(e, 'message')) {
+               msg = e.message
+            }
+            reject({ success: false, message: msg })
+         }
+      })
+   }
+
+   async localizarArquivoRemessaArquivado(payload) {
+      try {
+         let dStart = null
+         let dEnd = null
+
+         if (payload.field_value_periodo) {
+            dStart = payload.field_value_periodo.start
+            dEnd = payload.field_value_periodo.end
+         }
+
+         let query = null //.fetch()
+
+         query = await ModelRemessa.query()
+            .whereBetween('dFile', [dStart.substr(0, 10), dEnd.substr(0, 10)])
+            .fetch()
+
+         return query
+      } catch (e) {
+         throw e
+      }
    }
 }
 

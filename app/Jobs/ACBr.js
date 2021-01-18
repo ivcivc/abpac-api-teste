@@ -7,6 +7,7 @@ const Database = use('Database')
 
 const Redis = use('Redis')
 
+const ModelBoletoConfig = use('App/Models/BoletoConfig')
 const ModelLancamento = use('App/Models/Lancamento')
 const ModelEmailLog = use('App/Models/EmailLog')
 const Mail = use('Mail')
@@ -15,6 +16,11 @@ const Env = use('Env')
 const Helpers = use('Helpers')
 const moment = use('moment')
 const lodash = use('lodash')
+
+const ModelBoleto = use('App/Models/Boleto')
+const ModelConta = use('App/Models/Conta')
+
+const Boleto = use('App/Services/Cnab')
 
 // Fila para gerar financeiro (rateio), para gerar e fazer download PDF
 
@@ -79,7 +85,115 @@ class ACBrJob {
             })
          }
 
-         // Módulo gerarFinanceiro
+         // Módulo gerarCobrança individual ou de uma lista (Não utilizar para rateio)
+         if (data.metodo === 'gerarCobranca') {
+            let trx = null
+
+            try {
+               trx = await Database.beginTransaction()
+
+               let arrBoletos = []
+
+               let conta = null
+               let boletoConfig = null
+
+               // Contas (plano de contas)
+               for (const key in data.lancamentos) {
+                  if (Object.hasOwnProperty.call(data.lancamentos, key)) {
+                     let e = data.lancamentos[key]
+
+                     conta = await ModelConta.findOrFail(e.conta_id)
+
+                     boletoConfig = await ModelBoletoConfig.findByOrFail(
+                        'modelo',
+                        conta.modeloBoleto
+                     )
+
+                     boletoConfig.nossoNumero = boletoConfig.nossoNumero + 1
+
+                     await boletoConfig.save()
+
+                     const objAddBoleto = {
+                        conta_id: e.conta_id,
+                        boleto_nota1: '',
+                        boleto_nota2: '',
+                        dVencimento: e.dVencimento,
+                        dCompensacao: null,
+
+                        nossoNumero: boletoConfig.nossoNumero,
+                        lancamento_id: e.id,
+                        pessoa_id: e.pessoa_id,
+
+                        valorTotal: e.valorTotal,
+                        status: 'Aberto',
+                        lancamento: e,
+                     }
+
+                     arrBoletos.push(objAddBoleto)
+                  }
+               }
+
+               for (const key in arrBoletos) {
+                  if (Object.hasOwnProperty.call(arrBoletos, key)) {
+                     let e = arrBoletos[key]
+                     let o = lodash.cloneDeep(e)
+                     delete o['lancamento']
+                     ModelBoleto.create(o, trx ? trx : null)
+                  }
+               }
+
+               let arrRemessa = []
+
+               // preparar para geração da remessa.
+               for (const key in arrBoletos) {
+                  if (Object.hasOwnProperty.call(arrBoletos, key)) {
+                     let e = arrBoletos[key]
+                     e.modeloBoleto = boletoConfig.modelo
+
+                     e.banco = conta.banco
+                     e.agencia = conta.agencia
+                     e.agenciaDV = conta.agenciaDV
+                     e.contaCorrente = conta.contaCorrente
+                     e.contaCorrenteDV = conta.contaCorrenteDV
+                     e.convenio = conta.convenio
+
+                     e.dVencimento2 = moment(
+                        e.dVencimento,
+                        'YYYY-MM-dd'
+                     ).format('YYYY-MM-dd')
+                     e.dVencimento = moment(e.dVencimento, 'YYYY-MM-dd').format(
+                        'dd/MM/YYYY'
+                     )
+
+                     e.pessoa_nome = e.lancamento.pessoa.nome
+                     e.cpfCnpj = e.lancamento.pessoa.cpfCnpj
+                     e.endRua = e.lancamento.pessoa.endRua
+                     e.endBairro = e.lancamento.pessoa.endBairro
+                     e.endComplemento = e.lancamento.pessoa.endComplemento
+                     e.endCidade = e.lancamento.pessoa.endCidade
+                     e.endEstado = e.lancamento.pessoa.endEstado
+                     e.endCep = e.lancamento.pessoa.endCep
+                  }
+               }
+
+               const boleto = await new Boleto().gerarBoleto(arrBoletos)
+
+               if (!boleto.success) {
+                  throw boleto
+               }
+
+               await Redis.set('_gerarFinanceiro', 'livre')
+
+               await trx.commit()
+               return resolve(true)
+            } catch (error) {
+               await Redis.set('_gerarFinanceiro', 'livre')
+               await trx.rollback()
+               return reject(error)
+            }
+         }
+
+         // Módulo gerarFinanceiro para rateio
          if (data.metodo === 'gerarFinanceiro') {
             console.log('JOB - Gerando financeiro')
             let trx = null

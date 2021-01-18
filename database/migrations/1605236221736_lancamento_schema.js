@@ -79,6 +79,9 @@ class LancamentoSchema extends Schema {
          table.float('valorCompensadoDesc', 10, 2).defaultTo(0.0)
          table.float('valorCompensadoPrej', 10, 2).defaultTo(0.0)
 
+         table.float('valorDebitoInad', 10, 2).defaultTo(0.0)
+         table.float('valorCreditoInad', 10, 2).defaultTo(0.0)
+
          table.varchar('forma', 20).defaultTo(null)
 
          table.varchar('historico', 40)
