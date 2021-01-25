@@ -159,10 +159,10 @@ class ACBrJob {
 
                      e.dVencimento2 = moment(
                         e.dVencimento,
-                        'YYYY-MM-dd'
-                     ).format('YYYY-MM-dd')
-                     e.dVencimento = moment(e.dVencimento, 'YYYY-MM-dd').format(
-                        'dd/MM/YYYY'
+                        'YYYY-MM-DD'
+                     ).format('YYYY-MM-DD')
+                     e.dVencimento = moment(e.dVencimento, 'YYYY-MM-DD').format(
+                        'DD/MM/YYYY'
                      )
 
                      e.pessoa_nome = e.lancamento.pessoa.nome
