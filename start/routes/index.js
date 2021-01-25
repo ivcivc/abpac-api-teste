@@ -255,6 +255,30 @@ Route.group(() => {
       'auth'
       ])
 
+   Route.post('/cnab/lerArquivoRetorno', 'CnabController.lerArquivoRetorno').middleware([
+      'auth'
+      ]) // 13-07-2020lerArquivoRetorno
+   Route.post('/cnab/baixarArquivoRetorno', 'CnabController.baixarArquivoRetorno').middleware([
+      'auth'
+      ])
+   Route.post('/cnab/localizarRetornoArquivado', 'CnabController.localizarRetornoArquivado').middleware([
+         'auth'
+         ])
+
+   Route.get('/gerador', async (request, response) =>  {
+      const PDFKit = use('pdfkit');
+      const fs = use('fs');
+
+      const pdf = new PDFKit();
+
+      pdf.text('Hello Rocketseat PDF');
+
+      pdf.pipe(fs.createWriteStream('output.pdf'));
+      pdf.end();
+
+      response.attachment(pdf);
+   })
+
    Route.get('/lancamento/pdf/:boleto_id', 'LancamentoController.pdf')
    Route.get('/lancamento/pdfDownload/:arquivo', 'LancamentoController.pdfDownload')
 

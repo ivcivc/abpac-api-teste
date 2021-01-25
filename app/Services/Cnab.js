@@ -16,8 +16,13 @@ const Database = use('Database')
 const ModelBoleto = use('App/Models/Boleto')
 const ModelPessoa = use('App/Models/Pessoa')
 const ModelRemessa = use('App/Models/Remessa')
+const ModelRetorno = use('App/Models/Retorno')
+const ModelLancamento = use('App/Models/Lancamento')
+const ModelLancamentoStatus = use('App/Models/LancamentoStatus')
+const ModelLancamentoConfig = use('App/Models/LancamentoConfig')
 
 const Drive = use('Drive')
+const Redis = use('Redis')
 
 class Cnab {
    constructor() {
@@ -496,7 +501,7 @@ class Cnab {
                      await this.excluirArquivoResposta()
                   }
 
-                  return resolve({ success: true, message: data })
+                  return resolve({ success: false, message: data })
                }
             })
          } catch (e) {
@@ -829,6 +834,296 @@ class Cnab {
       } catch (e) {
          throw e
       }
+   }
+
+   async lerArquivoRetorno(request) {
+      try {
+         if ((await Redis.get('_gerarFinanceiro')) !== 'livre') {
+            throw {
+               success: false,
+               message: 'O servidor está ocupado no momento. Tente mais tarde!',
+            }
+         }
+
+         await Redis.set('_gerarFinanceiro', 'retorno')
+
+         const arquivo = request.file('upload', {
+            types: ['text'],
+            size: '5mb',
+         })
+
+         await arquivo.move(this.pastaRetorno, {
+            name: 'retorno_recebido.txt',
+            overwrite: true,
+         })
+
+         if (!arquivo.moved()) {
+            throw {
+               success: false,
+               message: 'O servidor retornou falha na leitura do arquivo.',
+            }
+         }
+
+         let pastaRetorno = this.pastaRetorno
+
+         let result = await this.emit(
+            `BOLETO.LerRetorno("${pastaRetorno}","retorno_recebido.txt")`
+         )
+
+         let lResult = result.success
+         if (!lResult) {
+            throw {
+               success: false,
+               message:
+                  'O servidor retornou falha no processamento do arquivo de retorno.',
+            }
+         }
+         console.log('result ', result)
+
+         let content = ini.read(this.pastaRetorno + 'Retorno.ini', {
+            encoding: 'latin1',
+            keep_quotes: true,
+         })
+
+         let nTamanho = Object.keys(content).length
+         let arrRetorno = []
+         let grupo_id = new Date().getTime()
+         for (let i = 1; i <= nTamanho - 3; i++) {
+            let o = lodash.cloneDeep(content[`Titulo${i}`])
+            o.cedente = content.CEDENTE
+            o.banco = content.BANCO
+            o.conta = content.CONTA
+            o.grupo_id = grupo_id
+            arrRetorno.push(o)
+         }
+
+         await Drive.delete(this.pastaRetorno + 'Retorno.ini')
+         await Drive.delete(this.pastaRetorno + 'retorno_recebido.txt')
+
+         await Redis.set('_gerarFinanceiro', 'livre')
+
+         return { success: true, status: 'server', data: arrRetorno }
+      } catch (e) {
+         await Redis.set('_gerarFinanceiro', 'livre')
+         throw e
+      }
+   }
+
+   async baixarArquivoRetorno(registro, auth) {
+      return new Promise(async (resolve, reject) => {
+         let nrErro = null
+         let trx = null
+         let client_id = registro.client_id ? registro.client_id : null
+
+         try {
+            trx = await Database.beginTransaction()
+
+            let lancamento_id = null
+            if (registro.SeuNumero) {
+               lancamento_id = registro.SeuNumero ? registro.SeuNumero : null
+            }
+            let oRetorno = {
+               lancamento_id,
+               sacado: registro.Sacado.Nome,
+               cpfCnpj: registro.Sacado.CNPJCPF,
+               dVencimento: moment(registro.Vencimento, 'DD/MM/YYYY').format(
+                  'YYYY-MM-DD'
+               ),
+               dOcorrencia: moment(
+                  registro.DataOcorrencia,
+                  'DD/MM/YYYY'
+               ).format('YYYY-MM-DD'),
+               dCredito: moment(registro.DataCredito, 'DD/MM/YYYY').format(
+                  'YYYY-MM-DD'
+               ),
+               dProcessamento: moment(
+                  registro.DataProcessamento,
+                  'DD/MM/YYYY'
+               ).format('YYYY-MM-DD'),
+               dMoraJuros: moment(registro.DataMoraJuros, 'DD/MM/YYYY').format(
+                  'YYYY-MM-DD'
+               ),
+               nossoNumero: registro.NossoNumero,
+               valorAbatimento: parseFloat(
+                  registro.ValorAbatimento.replace('.', '')
+                     .replace('.', '')
+                     .replace(',', '.')
+               ),
+               valorDesconto: parseFloat(
+                  registro.ValorDesconto.replace('.', '')
+                     .replace('.', '')
+                     .replace(',', '.')
+               ),
+               valorMoraJuros: parseFloat(
+                  registro.ValorMoraJuros.replace('.', '')
+                     .replace('.', '')
+                     .replace(',', '.')
+               ),
+               valorIOF: parseFloat(
+                  registro.ValorIOF.replace('.', '')
+                     .replace('.', '')
+                     .replace(',', '.')
+               ),
+               valorOutrasDespesas: parseFloat(
+                  registro.ValorOutrasDespesas.replace('.', '')
+                     .replace('.', '')
+                     .replace(',', '.')
+               ),
+               valorOutrosCreditos: parseFloat(
+                  registro.ValorOutrosCreditos.replace('.', '')
+                     .replace('.', '')
+                     .replace(',', '.')
+               ),
+               valorRecebido: parseFloat(
+                  registro.ValorRecebido.replace('.', '')
+                     .replace('.', '')
+                     .replace(',', '.')
+               ),
+               codTipoOcorrencia: registro.CodTipoOcorrencia,
+               descricaoTipoOcorrencia: registro.DescricaoTipoOcorrencia,
+               motivoRejeicao1: registro.MotivoRejeicao1,
+               banco: registro.banco.Numero,
+               conta: registro.conta.Conta,
+               contaDigito: registro.conta.DigitoConta,
+               agencia: registro.conta.Agencia,
+               agenciaDigito: registro.conta.DigitoAgencia,
+               cedente: registro.CodigoCedente,
+               grupo_id: registro.grupo_id,
+               situacao: lancamento_id ? 'Liquidado' : 'Não localizado',
+            }
+
+            let modelRetorno = null
+            let retorno_id = null
+
+            const modelLancamentoConfig = await ModelLancamentoConfig.pick(1)
+            let arrConfig = modelLancamentoConfig.toJSON()
+            let oConfig = null
+            if (arrConfig.length > 0) {
+               oConfig = arrConfig[0]
+            }
+            console.log(oConfig)
+
+            const gravarRetorno = async oRetorno => {
+               modelRetorno = await ModelRetorno.create(oRetorno)
+               retorno_id = modelRetorno.id
+            }
+
+            let oLancamento = {
+               dRecebimento: oRetorno.dCredito,
+               valorCompensadoAcresc: 0.0,
+               valorCompensadoDesc: 0.0,
+               valorCompensadoPrej: 0.0,
+               valorCompensado: 0.0,
+               forma: 'boleto',
+               situacao: 'Compensado',
+               documentoNr: 'Arquivo retorno',
+               documento: 'Boleto',
+            }
+
+            if (!lancamento_id) {
+               nrErro = -100
+               await gravarRetorno(oRetorno)
+               let retorno = modelRetorno.toJSON()
+               retorno.client_id = client_id
+               throw {
+                  success: false,
+                  message: 'Não localizado',
+                  data: retorno,
+               }
+            }
+
+            let modelLancamento = await ModelLancamento.find(lancamento_id)
+            if (!modelLancamento) {
+               nrErro = -100
+               await gravarRetorno(oRetorno)
+               let retorno = modelRetorno.toJSON()
+               retorno.client_id = client_id
+               throw {
+                  success: false,
+                  message: 'Não localizado',
+                  data: retorno,
+               }
+            }
+            if (modelLancamento.situacao === 'Compensado') {
+               nrErro = -100
+               oRetorno.situacao = 'Não liquidado (duplicidade)'
+               await gravarRetorno(oRetorno)
+               let retorno = modelRetorno.toJSON()
+               retorno.client_id = client_id
+               throw {
+                  success: false,
+                  message: `Não liquidado. A conta nr.${lancamento_id} já foi liquidada`,
+                  data: retorno,
+               }
+            }
+
+            let arrItems = []
+            if (oRetorno.valorRecebido === modelLancamento.valorTotal) {
+               oLancamento.valorCompensado = modelLancamento.valorTotal
+            } else {
+               if (oRetorno.valorRecebido > modelLancamento.valorTotal) {
+                  oLancamento.valorCompensado = oRetorno.valorRecebido
+                  let valor =
+                     oRetorno.valorRecebido - modelLancamento.valorTotal
+                  oLancamento.valorCompensadoAcresc = valor
+                  arrItems.push({
+                     DC: 'C',
+                     tag: 'QA',
+                     descricao: 'Acréscimo na compensação boleto',
+                     planoDeConta_id: oConfig.receber_plano_id_acresc,
+                     valor: valor,
+                  })
+               }
+               if (oRetorno.valorRecebido < modelLancamento.valorTotal) {
+                  let valor =
+                     modelLancamento.valorTotal - oRetorno.valorRecebido
+                  oLancamento.valorCompensadoDesc = valor
+                  oLancamento.valorCompensado =
+                     modelLancamento.valorTotal - valor
+                  arrItems.push({
+                     DC: 'D',
+                     tag: 'QD',
+                     descricao: 'Desconto na compensação boleto',
+                     planoDeConta_id: oConfig.receber_plano_id_desc,
+                     valor: valor,
+                  })
+               }
+            }
+            modelLancamento.merge(oLancamento)
+
+            if (arrItems.length > 0) {
+               await modelLancamento
+                  .items()
+                  .createMany(arrItems, trx ? trx : null)
+            }
+
+            const status = {
+               lancamento_id: modelLancamento.id,
+               user_id: auth.user.id,
+               motivo: 'Alteração de status',
+               status: oLancamento.situacao,
+            }
+            await ModelLancamentoStatus.create(status, trx ? trx : null)
+
+            await modelLancamento.save(trx ? trx : null)
+
+            await trx.commit()
+
+            await gravarRetorno(oRetorno)
+
+            let retorno = modelRetorno.toJSON()
+            retorno.client_id = client_id
+
+            return resolve({
+               success: true,
+               message: 'Processado com sucesso.',
+               data: retorno,
+            })
+         } catch (e) {
+            await trx.rollback()
+            reject(e)
+         }
+      })
    }
 }
 
