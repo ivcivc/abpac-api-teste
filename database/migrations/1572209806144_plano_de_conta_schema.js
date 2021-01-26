@@ -46,7 +46,7 @@ class PlanoDeContaSchema extends Schema {
          table.boolean('isDR').defaultTo(true)
          table.boolean('isFluxoCaixa').defaultTo(true)
 
-         table.unique(['descricao', 'tipo'])
+         table.unique(['descricao', 'idParent'])
 
          table.timestamps()
       })
