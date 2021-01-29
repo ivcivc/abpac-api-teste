@@ -21,7 +21,7 @@ class EquipamentoSchema extends Schema {
          table.varchar('tipoEndosso', 40)
 
          table.date('dAdesao').notNullable()
-         table.date('dEndosso').notNullable()
+         table.date('dEndosso').defaultTo(null)
 
          table
             .enu('status', ['Ativo', 'Endossado', 'Inativo'], {

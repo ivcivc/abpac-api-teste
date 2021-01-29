@@ -8,6 +8,8 @@ class OcorrenciaSchema extends Schema {
       this.create('ocorrencias', table => {
          table.increments()
 
+         table.integer('marcado').defaultTo(null)
+
          table.integer('pessoa_id').notNullable()
          table
             .enu(
@@ -93,6 +95,8 @@ class OcorrenciaSchema extends Schema {
 
          table.text('descricao')
          table.text('nota', 25)
+
+         table.integer('rateio_id')
 
          table.timestamps()
       })
