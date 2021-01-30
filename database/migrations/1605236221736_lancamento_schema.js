@@ -39,7 +39,7 @@ class LancamentoSchema extends Schema {
             .inTable('equipamentos')
             .onUpdate('CASCADE')
             .onDelete('RESTRICT')
-            .defaultTo(0)
+            .defaultTo(null)
 
          table
             .integer('ordem_servico_id')
@@ -48,7 +48,7 @@ class LancamentoSchema extends Schema {
             .inTable('ordem_servicos')
             .onUpdate('CASCADE')
             .onDelete('RESTRICT')
-            .defaultTo(0)
+            .defaultTo(null)
 
          table
             .integer('pessoa_id')
@@ -57,7 +57,7 @@ class LancamentoSchema extends Schema {
             .inTable('pessoas')
             .onUpdate('CASCADE')
             .onDelete('RESTRICT')
-            .defaultTo(0)
+            .defaultTo(null)
 
          table
             .integer('conta_id')
@@ -67,7 +67,7 @@ class LancamentoSchema extends Schema {
             .inTable('contas')
             .onUpdate('CASCADE')
             .onDelete('RESTRICT')
-            .defaultTo(0)
+            .defaultTo(null)
 
          table.float('valorBase', 10, 2).defaultTo(0.0)
          table.float('valorDesc', 10, 2).defaultTo(0.0)

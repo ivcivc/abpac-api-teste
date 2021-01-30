@@ -276,7 +276,7 @@ class ACBrJob {
 
                   let json = lancamento.toJSON()
                   json.boleto_id = data.boleto_id
-                  json.dVencimento = moment(json.dVenciment).format(
+                  json.dVencimento = moment(json.dVencimento).format(
                      'DD/MM/YYYY'
                   )
 

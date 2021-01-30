@@ -37,7 +37,7 @@ class Lancamento {
       }
    }
 
-   async add(data, trx, auth) {
+   async add(data, trx, auth, isJobs = true) {
       let nrErro = null
       try {
          if (!trx) {
@@ -46,7 +46,7 @@ class Lancamento {
 
          if (data.forma === 'boleto' && data.tipo === 'Receita') {
             const livre = await Redis.get('_gerarFinanceiro')
-            if (livre !== 'livre') {
+            if (livre !== 'livre' && livre !== 'financeiro') {
                nrErro = -100
                throw {
                   success: false,
@@ -130,38 +130,139 @@ class Lancamento {
          }
 
          // Gerar remessa - Kue
-         if (
-            data.situacao !== 'Compensado' &&
-            model.tipo === 'Receita' &&
-            model.forma === 'boleto'
-         ) {
-            let dados = model.toJSON()
-            let arrLancamentos = []
-            arrLancamentos.push(dados)
-            let aut = auth.user.toJSON()
-            let oAuth = { user: aut }
-            const data = {
-               lancamentos: arrLancamentos,
-               auth: oAuth,
-               metodo: 'gerarCobranca',
-            } // Data to be passed to job handle
-            const priority = 'normal' // Priority of job, can be low, normal, medium, high or critical
-            const attempts = 1 // Number of times to attempt job if it fails
-            const remove = true // Should jobs be automatically removed on completion
-            const jobFn = job => {
-               // Function to be run on the job before it is saved
-               job.backoff()
-            }
-            const job = kue.dispatch(Job.key, data, {
-               priority,
-               attempts,
-               remove,
-               jobFn,
-            })
+         if (isJobs) {
+            if (
+               data.situacao !== 'Compensado' &&
+               model.tipo === 'Receita' &&
+               model.forma === 'boleto'
+            ) {
+               let dados = model.toJSON()
+               let arrLancamentos = []
+               arrLancamentos.push(dados)
+               let aut = auth.user //.toJSON()
+               let oAuth = { user: aut }
+               const data = {
+                  lancamentos: arrLancamentos,
+                  auth: oAuth,
+                  metodo: 'gerarCobranca',
+               } // Data to be passed to job handle
+               const priority = 'normal' // Priority of job, can be low, normal, medium, high or critical
+               const attempts = 1 // Number of times to attempt job if it fails
+               const remove = true // Should jobs be automatically removed on completion
+               const jobFn = job => {
+                  // Function to be run on the job before it is saved
+                  job.backoff()
+               }
+               const job = kue.dispatch(Job.key, data, {
+                  priority,
+                  attempts,
+                  remove,
+                  jobFn,
+               })
 
-            // If you want to wait on the result, you can do this
-            const result = await job.result
-            let x = 1
+               // If you want to wait on the result, you can do this
+               const result = await job.result
+               let x = 1
+            }
+         }
+
+         return model
+      } catch (e) {
+         await trx.rollback()
+         if (nrErro) {
+            if (nrErro === -100) {
+               e.code = 'PERSONALIZADO'
+               throw e
+            }
+         }
+         throw {
+            message: e.message,
+            sqlMessage: e.sqlMessage,
+            sqlState: e.sqlState,
+            errno: e.errno,
+            code: e.code,
+         }
+      }
+   }
+
+   async addMassa(data, trx, auth, isJobs = true) {
+      // Geração de lançamentos em massa (rateio - gerarFinanceiro)
+
+      let nrErro = null
+      try {
+         if (!trx) {
+            trx = await Database.beginTransaction()
+         }
+
+         data.historico = !lodash.isEmpty(data.historico) ? data.historico : ''
+         let items = data.items
+         let isFixo = false
+         let sair = false
+         items.forEach(e => {
+            delete e['planoDeConta']
+            if (e.id < 0) {
+               delete e['id']
+            }
+            if (e.tag === 'LF') {
+               if (lodash.isEmpty(data.historico)) {
+                  data.historico = e.descricao
+               }
+
+               isFixo = true
+               sair = true
+               return
+            }
+            if (!sair) {
+               data.historico = data.historico = e.descricao
+               sair = true
+            }
+         })
+         delete data['items']
+         delete data['pessoa']
+
+         let quitacoes = []
+         if (lodash.has(data, 'quitacoes')) {
+            if (data.quitacoes) {
+               data.quitacoes.forEach(e => {
+                  items.push(e)
+               })
+            }
+         }
+         delete data['quitacoes']
+
+         if (!lodash.isEmpty(data.dRecebimento)) {
+            if (
+               data.valorTotal !==
+               data.valorCompensado -
+                  data.valorCompensadoAcresc +
+                  data.valorCompensadoDesc
+            ) {
+               nrErro = -100
+               throw {
+                  success: false,
+                  message:
+                     'Transação abortada. O valor de recebimento não confere com o valor da conta.',
+               }
+            }
+         }
+
+         const model = await Model.create(data, trx ? trx : null)
+         await model.items().createMany(items, trx ? trx : null)
+
+         /* Status */
+         let status = {
+            lancamento_id: model.id,
+            user_id: auth.user.id,
+            motivo: `Aberto`,
+            status: data.situacao,
+         }
+         if (data.situacao === 'Compensado') {
+            status.motivo = 'Aberto/Compensado'
+         }
+         await ModelStatus.create(status, trx ? trx : null)
+
+         if (model.pessoa_id) {
+            await model.load('pessoa')
          }
 
          return model

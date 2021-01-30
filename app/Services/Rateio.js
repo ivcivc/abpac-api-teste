@@ -870,7 +870,7 @@ class Rateio {
       try {
          let model = await Model.findOrFail(rateio_id)
 
-         if (model.status !== 'Financeiro') {
+         if (model.status !== 'Aberto') {
             throw { message: 'Não é permitido a geração de financeiro.' }
          }
 
@@ -924,7 +924,8 @@ class Rateio {
       try {
          let model = await Model.findOrFail(payload.rateio_id)
 
-         if (model.status !== 'Financeiro') {
+         let status = model.status
+         if (status !== 'Aberto') {
             throw { message: 'Não é permitido a geração de financeiro.' }
          }
 
@@ -998,14 +999,20 @@ class Rateio {
          //await model.save(trx ? trx : null)
 
          let nossoNumero = boletoConfig.nossoNumero
-         let mom = moment(payload.dVencimento)
+         let mom = moment(payload.dVencimento, 'YYYY-MM-DD')
          let ano = `${mom.year()}`
          ano.padEnd(2, '0')
          let nMes = mom.month() + 1 // janeiro === 0
          let mes = `${nMes}`
-         mes.padEnd(2, '0')
+         mes = mes.padStart(2, '0')
          let mesAno = `${mes}/${ano}`
          let anoMes = `${ano}-${mes}-`
+
+         let strDVenc = moment(payload.dVencimento, 'YYYY-MM-DD').format(
+            'YYYY-MM-DD'
+         )
+         let dia = strDVenc.substr(8, 2)
+         dia = dia.padStart(2, '0')
 
          for (const key in query) {
             if (Object.hasOwnProperty.call(query, key)) {
@@ -1024,6 +1031,12 @@ class Rateio {
                e.boleto_nota1 = payload.boleto_nota1
                e.boleto_nota2 = payload.boleto_nota2
 
+               let cParcela = e.parcela
+               if (cParcela === 'N') {
+                  e.parcela = dia
+               }
+
+               e.parcela = e.parcela.padStart(2, '0')
                e.dVencimento2 = anoMes + e.parcela
                e.dVencimento = e.parcela + '/' + mesAno
 
@@ -1137,7 +1150,9 @@ class Rateio {
 
          lanca.items = items
 
-         return resolve(await new LancamentoService().add(lanca, trx, auth))
+         return resolve(
+            await new LancamentoService().addMassa(lanca, trx, auth, false)
+         )
       })
    }
 

@@ -9,6 +9,7 @@ class OrdemServicoSchema extends Schema {
          table.increments()
 
          table.integer('rateio_id').index()
+         table.boolean('marcado').defaultTo(0)
 
          table
             .integer('pessoa_id')
