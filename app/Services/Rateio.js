@@ -1,5 +1,5 @@
 'use strict'
-
+const Helpers = use('Helpers')
 const lodash = require('lodash')
 const ModelEquipamento = use('App/Models/Equipamento')
 const ModelOrdemServico = use('App/Models/ordem_servico/OrdemServico')
@@ -13,12 +13,18 @@ const ModelBoletoConfig = use('App/Models/BoletoConfig')
 const ModelRateioConfig = use('App/Models/RateioConfig')
 const ModelBoleto = use('App/Models/Boleto')
 const ModelEmailLog = use('App/Models/EmailLog')
+const ModelRateioEquipamento = use('App/Models/RateioEquipamento')
+const ModelRateioEquipamentoBeneficio = use(
+   'App/Models/RateioEquipamentoBeneficio'
+)
 
+const Drive = use('Drive')
 const Boleto = use('App/Services/Cnab')
 
 const LancamentoService = use('App/Services/Lancamento')
 
 const moment = require('moment')
+moment.locale('pt-br')
 
 const Database = use('Database')
 
@@ -26,6 +32,10 @@ const Redis = use('Redis')
 
 const kue = use('Kue')
 const Job = use('App/Jobs/ACBr')
+
+const fs = require('fs')
+
+const Antl = use('Antl')
 
 class Rateio {
    async get(ID) {
@@ -154,7 +164,7 @@ class Rateio {
 
             .with('equipamentoBeneficios', builder => {
                builder.with('beneficio', b => {
-                  b.select('id', 'descricao', 'rateio', 'valor')
+                  b.select('id', 'descricao', 'rateio', 'modelo', 'valor')
                })
                builder.where('status', 'Ativo')
                //builder.where('beneficio.rateio', 'Sim')
@@ -631,6 +641,7 @@ class Rateio {
             let registroEquipa = {
                categoria_id: e.categoria_id,
                categoria_abreviado: e.categoria.abreviado,
+               categoria_nome: e.categoria.nome,
                chassi: e.chassi1,
                dAdesao: moment(e.dAdesao).format('YYYY-MM-DD'),
                especie: e.especie1,
@@ -652,9 +663,32 @@ class Rateio {
                valorTotal: e.valorTotal,
             }
             arrRateioEquipa.push(registroEquipa)
+
+            let equipa = await rateio
+               .equipamentos()
+               .create(registroEquipa, trx ? trx : null)
+
+            // Tabela rateio_equipamento_beneficios
+            if (e.equipamentoBeneficios) {
+               for (const i in e.equipamentoBeneficios) {
+                  if (Object.hasOwnProperty.call(e.equipamentoBeneficios, i)) {
+                     const el = e.equipamentoBeneficios[i]
+                     let oBene = {
+                        rateio_equipamento_id: equipa.id,
+                        beneficio: el.beneficio.descricao,
+                        modelo: el.beneficio.modelo,
+                        valor: el.beneficio.valor,
+                     }
+                     await ModelRateioEquipamentoBeneficio.create(
+                        oBene,
+                        trx ? trx : null
+                     )
+                  }
+               }
+            }
          }
       }
-      await rateio.equipamentos().createMany(arrRateioEquipa, trx ? trx : null)
+      //await rateio.equipamentos().createMany(arrRateioEquipa, trx ? trx : null)
 
       // Inadimplente
       if (lodash.has(payload.inadimplente, 'creditos')) {
@@ -1231,6 +1265,7 @@ class Rateio {
                const e = lista[key]
                const data = {
                   rateio_id,
+                  pessoa_id: e.pessoa_id,
                   boleto_id: e.boleto_id,
                   lancamento_id: e.lancamento_id,
                   metodo: 'disparar-email-massa',
@@ -1278,6 +1313,265 @@ class Rateio {
       } catch (e) {
          throw e
       }
+   }
+
+   async PDF_TodosEquipamentosRateioPorPessoa(
+      pessoa_id,
+      rateio_id,
+      retornarPDF = true
+   ) {
+      return new Promise(async (resolve, reject) => {
+         try {
+            const pasta = Helpers.tmpPath('rateio/equipamentos/')
+            const arquivo = `equip_${rateio_id}_${pessoa_id}.pdf`
+
+            if (await Drive.exists(pasta + arquivo)) {
+               return resolve({ arquivo, pdfDoc: null, pasta }) // await Drive.get(pasta + arquivo)
+            }
+
+            const modelRateio = await Model.findOrFail(rateio_id)
+
+            const model = await ModelRateioEquipamento.query()
+               .where('rateio_id', rateio_id)
+               .where('pessoa_id', pessoa_id)
+               .with('beneficios')
+               .fetch()
+
+            if (model.rows.length === 0) {
+               throw { message: 'Equipamento não encontrado no rateio' }
+            }
+
+            const fonts = {
+               Roboto: {
+                  normal:
+                     Helpers.publicPath('pdf/fonts/Roboto/') +
+                     'Roboto-Regular.ttf',
+                  bold:
+                     Helpers.publicPath('pdf/fonts/Roboto/') +
+                     'Roboto-Medium.ttf',
+                  italics:
+                     Helpers.publicPath('pdf/fonts/Roboto/') +
+                     'Roboto-Italic.ttf',
+                  bolditalics:
+                     Helpers.publicPath('pdf/fonts/Roboto/') +
+                     'Roboto-MediumItalic.ttf',
+               },
+            }
+
+            const PdfPrinter = require('pdfmake/src/printer')
+            const printer = new PdfPrinter(fonts)
+
+            let tabela = [
+               [
+                  { text: 'VEÍCULO', bold: true },
+                  { text: 'PLACA', bold: true },
+                  { text: 'CATEGORIA', bold: true },
+                  { text: 'RATEIO', bold: true, alignment: 'right' },
+                  { text: 'TERCEIRO', bold: true, alignment: 'right' },
+                  { text: 'ASSIST.24h', bold: true, alignment: 'right' },
+                  { text: 'OUTROS', bold: true, alignment: 'right' },
+                  { text: 'TOTAL', bold: true, alignment: 'right' },
+               ],
+            ]
+
+            let tassist24h = 0.0
+            let tterceiro = 0.0
+            let toutros = 0.0
+            let trateio = 0.0
+            let associado = ''
+
+            const equipaJson = model.toJSON()
+
+            for (const key in equipaJson) {
+               if (Object.hasOwnProperty.call(equipaJson, key)) {
+                  const e = equipaJson[key]
+                  let assist24h = 0.0
+                  let terceiro = 0.0
+                  let outros = 0.0
+
+                  let xx = e.beneficios
+                  let id = e.id
+
+                  let descontoEspecial = e.pessoa_descontoEspecial
+
+                  for (const b in e.beneficios) {
+                     const o = e.beneficios[b]
+                     if (o.modelo === 'Assistencia 24h') {
+                        let nValor =
+                           descontoEspecial > 0
+                              ? o.valor - (o.valor * descontoEspecial) / 100
+                              : o.valor
+                        assist24h += nValor
+                        tassist24h += nValor
+                     }
+                     if (o.modelo === 'Terceiro') {
+                        let nValor =
+                           descontoEspecial > 0
+                              ? o.valor - (o.valor * descontoEspecial) / 100
+                              : o.valor
+                        terceiro += nValor
+                        tterceiro += nValor
+                     }
+                     if (o.modelo === 'Outros') {
+                        let nValor =
+                           descontoEspecial > 0
+                              ? o.valor - (o.valor * descontoEspecial) / 100
+                              : o.valor
+                        outros += nValor
+                        toutros += nValor
+                     }
+                  }
+
+                  const nRateioTxAdm = e.valorRateio + e.valorTaxaAdm
+                  trateio += nRateioTxAdm
+
+                  associado = e.pessoa_nome
+
+                  const obj = [
+                     //{ text: e.pessoa_nome, bold: false },
+                     { text: e.marca + ' ' + e.modelo, bold: false },
+                     { text: e.placa, bold: false },
+                     { text: e.categoria_nome, bold: false },
+                     {
+                        text: Antl.formatNumber(nRateioTxAdm),
+                        bold: false,
+                        alignment: 'right',
+                     },
+                     {
+                        text: Antl.formatNumber(terceiro),
+                        bold: false,
+                        alignment: 'right',
+                     },
+                     {
+                        text: Antl.formatNumber(assist24h),
+                        bold: false,
+                        alignment: 'right',
+                     },
+                     {
+                        text: Antl.formatNumber(outros),
+                        bold: false,
+                        alignment: 'right',
+                     },
+                     {
+                        text: Antl.formatNumber(
+                           nRateioTxAdm + terceiro + assist24h + outros
+                        ),
+                        bold: false,
+                        alignment: 'right',
+                     },
+                  ]
+                  tabela.push(obj)
+               }
+            }
+
+            const tgeral = tassist24h + tterceiro + toutros + trateio
+
+            const objTotal = [
+               { text: 'TOTAL GERAL', bold: true },
+               { text: '', bold: false },
+               { text: '', bold: false },
+               {
+                  text: Antl.formatNumber(trateio),
+                  bold: true,
+                  alignment: 'right',
+               },
+               {
+                  text: Antl.formatNumber(tterceiro),
+                  bold: true,
+                  alignment: 'right',
+               },
+               {
+                  text: Antl.formatNumber(tassist24h),
+                  bold: true,
+                  alignment: 'right',
+               },
+               {
+                  text: Antl.formatNumber(toutros),
+                  bold: true,
+                  alignment: 'right',
+               },
+               {
+                  text: Antl.formatNumber(tgeral),
+                  bold: true,
+                  alignment: 'right',
+               },
+            ]
+
+            tabela.push(objTotal)
+
+            const periodo = moment(modelRateio.dFim, 'YYYY-MM-DD').format(
+               'MMMM/YYYY'
+            )
+
+            const docDefinition = {
+               pageSize: 'A4',
+               pageOrientation: 'landscape',
+
+               defaultStyle: {
+                  fontSize: 8,
+                  bold: true,
+               },
+
+               content: [
+                  {
+                     columns: [
+                        {
+                           image: Helpers.publicPath('/images/logo-abpac.png'),
+                           width: 30,
+                           height: 60,
+                        },
+                        {
+                           layout: 'noBorders',
+                           table: {
+                              headerRows: 1,
+                              widths: ['*'],
+                              body: [
+                                 [
+                                    {
+                                       text:
+                                          'RELATÓRIO ASSOCIADO - DESCRIÇÃO POR PLACA - ' +
+                                          periodo.toUpperCase(),
+                                       bold: true,
+                                       fontSize: 13,
+                                       alignment: 'center',
+                                       margin: [0, 10, 0, 0],
+                                    },
+                                 ],
+                                 [
+                                    {
+                                       text: associado.toUpperCase(),
+                                       fontSize: 11,
+                                       alignment: 'center',
+                                       margin: [0, 5, 0, 0],
+                                    },
+                                 ],
+                              ],
+                           },
+                        },
+                     ],
+                  },
+                  {
+                     layout: 'lightHorizontalLines',
+                     margin: [0, 15, 0, 0],
+                     table: {
+                        headerRows: 1,
+                        widths: [150, 43, 230, 46, 46, 46, 46, 46],
+
+                        body: tabela,
+                     },
+                  },
+               ],
+            }
+
+            const pdfDoc = printer.createPdfKitDocument(docDefinition)
+            pdfDoc.pipe(fs.createWriteStream(pasta + arquivo))
+            pdfDoc.end()
+
+            return resolve({ arquivo, pdfDoc, pasta })
+         } catch (e) {
+            return reject(e)
+         }
+      })
    }
 }
 

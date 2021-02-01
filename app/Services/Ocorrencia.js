@@ -352,12 +352,14 @@ class Ocorrencia {
          }
          let objeto = await query.first()
 
-         objeto.placa = objeto[`${'placa' + objeto.qualPlaca}`]
-         objeto.marca = objeto[`${'marca' + objeto.qualPlaca}`]
-         objeto.modelo = objeto[`${'modelo' + objeto.qualPlaca}`]
-         objeto.anoF = objeto[`${'anoF' + objeto.qualPlaca}`]
-         objeto.ModeloF = objeto[`${'ModeloF' + objeto.qualPlaca}`]
-         objeto.chassi = objeto[`${'chassi' + objeto.qualPlaca}`]
+         if (objeto) {
+            objeto.placa = objeto[`${'placa' + objeto.qualPlaca}`]
+            objeto.marca = objeto[`${'marca' + objeto.qualPlaca}`]
+            objeto.modelo = objeto[`${'modelo' + objeto.qualPlaca}`]
+            objeto.anoF = objeto[`${'anoF' + objeto.qualPlaca}`]
+            objeto.ModeloF = objeto[`${'ModeloF' + objeto.qualPlaca}`]
+            objeto.chassi = objeto[`${'chassi' + objeto.qualPlaca}`]
+         }
 
          return objeto
       } catch (e) {

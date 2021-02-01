@@ -10,6 +10,9 @@ class Rateio extends Model {
    equipamentos() {
       return this.hasMany('App/Models/RateioEquipamento')
    }
+   equipamentosBeneficios() {
+      return this.hasMany('App/Models/RateioEquipamentoBeneficio')
+   }
    categorias() {
       return this.hasMany('App/Models/RateioCategoria')
    }

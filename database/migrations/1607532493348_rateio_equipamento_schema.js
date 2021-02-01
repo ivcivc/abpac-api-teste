@@ -15,7 +15,7 @@ class RateioEquipamentoSchema extends Schema {
             .inTable('rateios')
             .onUpdate('CASCADE')
             .onDelete('RESTRICT')
-            .defaultTo(0)
+            .defaultTo(null)
 
          table
             .integer('equipamento_id')
@@ -24,7 +24,7 @@ class RateioEquipamentoSchema extends Schema {
             .inTable('equipamentos')
             .onUpdate('CASCADE')
             .onDelete('RESTRICT')
-            .defaultTo(0)
+            .defaultTo(null)
 
          table
             .integer('pessoa_id')
@@ -45,6 +45,9 @@ class RateioEquipamentoSchema extends Schema {
             .inTable('categorias')
 
          table.varchar('categoria_abreviado', 5)
+         table.varchar('categoria_nome', 150)
+
+         //table.float('percentualEspecial', 6, 2).defaultTo(0.0)
 
          table.enu('especie', ['Rebocador', 'Semi-Reboque', 'Caminhão'], {
             useNative: true,

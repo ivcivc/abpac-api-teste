@@ -2,11 +2,14 @@
 const Database = use('Database')
 
 const Redis = use('Redis')
+const Drive = use('Drive')
 
 const RateioServices = use('App/Services/Rateio')
 
 const kue = use('Kue')
 const Job = use('App/Jobs/ACBr')
+
+const Helpers = use('Helpers')
 
 class RateioController {
    async callback({ request, response }) {
@@ -286,6 +289,7 @@ class RateioController {
 
       try {
          const _gerarFinanceiro = await Redis.get('_gerarFinanceiro')
+
          if (!_gerarFinanceiro) {
             await Redis.set('_gerarFinanceiro', 'email-massa') // gerar financeiro
          } else {
@@ -331,6 +335,33 @@ class RateioController {
          response.status(200).send({ type: true, data: model })
       } catch (error) {
          response.status(400).send(error)
+      }
+   }
+
+   async PDF_TodosEquipamentosRateioPorPessoa({ request, response }) {
+      const payload = request.all()
+      const pessoa_id = payload.pessoa_id
+      const rateio_id = payload.rateio_id
+      const retornarPDF = payload.retornarPDF
+
+      try {
+         const service = await new RateioServices().PDF_TodosEquipamentosRateioPorPessoa(
+            pessoa_id,
+            rateio_id,
+            retornarPDF
+         )
+         if (retornarPDF) {
+            if (service.pdfDoc) {
+               let existe = await Drive.exists(service.pasta + service.arquivo)
+               return response.attachment(service.pasta + service.arquivo)
+            }
+            const pathArquivo = service.pasta + service.arquivo //await Drive.get(service.arquivo)
+            return response.attachment(pathArquivo)
+         }
+
+         return response.status(200).send(service.pasta + service.arquivo)
+      } catch (error) {
+         response.status(400).send({ success: false, message: error.message })
       }
    }
 }

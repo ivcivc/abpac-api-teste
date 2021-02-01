@@ -32,6 +32,7 @@ const providers = [
    '@adonisjs/drive/providers/DriveProvider',
    '@adonisjs/redis/providers/RedisProvider',
    'adonis-kue/providers/KueProvider',
+   '@adonisjs/antl/providers/AntlProvider',
 ]
 
 /*

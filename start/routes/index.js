@@ -208,9 +208,14 @@ Route.group(() => {
    'auth'
    ])
 
-   Route.get('/rateio/:id', 'RateioController.show').middleware([
+   Route.post('/rateio/simulador', 'RateioController.simulador').middleware([
+   'auth'
+   ])
+
+   Route.post('/rateio/lista_equipamentos', 'RateioController.PDF_TodosEquipamentosRateioPorPessoa').middleware([
       'auth'
       ])
+
 
    Route.get('/rateio', 'RateioController.index').middleware([
          'auth'

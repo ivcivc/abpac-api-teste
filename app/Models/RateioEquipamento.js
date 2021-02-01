@@ -11,6 +11,10 @@ class RateioEquipamento extends Model {
    categoria() {
       return this.hasOne('App/Models/Categoria', 'categoria_id', 'id')
    }
+
+   beneficios() {
+      return this.hasMany('App/Models/RateioEquipamentoBeneficio')
+   }
 }
 
 module.exports = RateioEquipamento

@@ -274,6 +274,9 @@ class ACBrJob {
                   )
                   await lancamento.load('pessoa')
 
+                  const pessoa_id = data.pessoa_id
+                  const rateio_id = data.rateio_id
+
                   let json = lancamento.toJSON()
                   json.boleto_id = data.boleto_id
                   json.dVencimento = moment(json.dVencimento).format(
@@ -281,6 +284,17 @@ class ACBrJob {
                   )
 
                   let arqPDF = 'ACBr/pdf/boleto_' + data.lancamento_id + '.pdf'
+
+                  // Tabela de equipamentosAtivos
+                  const respTabelaEquipa = await new RateioServices().PDF_TodosEquipamentosRateioPorPessoa(
+                     pessoa_id,
+                     rateio_id,
+                     false
+                  )
+                  console.log(respTabelaEquipa)
+
+                  const arqPDFequipa =
+                     respTabelaEquipa.pasta + respTabelaEquipa.arquivo
 
                   let send = await Mail.send(
                      'emails.rateio_boleto',
@@ -290,7 +304,12 @@ class ACBrJob {
                            .to(json.pessoa.email)
                            .from('investimentos@abpac.com.br')
                            .subject('Cobrança ABPAC')
-                           .attach(Helpers.tmpPath(arqPDF))
+                           .attach(arqPDFequipa, {
+                              filename: 'lista_veiculos.pdf',
+                           })
+                           .attach(Helpers.tmpPath(arqPDF), {
+                              filename: 'boleto.pdf',
+                           })
                         /*.embed(
                               Helpers.publicPath('images/logo-abpac.png'),
                               'logo'
