@@ -310,12 +310,17 @@ class RateioController {
                'Disparo de email realizado com sucesso. Aguarde o processamento do servidor.',
          })
 
-         setTimeout(async () => {
+         const model = await new RateioServices().dispararEmailMassa(
+            payload,
+            auth
+         )
+
+         /*setTimeout(async () => {
             const model = await new RateioServices().dispararEmailMassa(
                payload,
                auth
             )
-         }, 30)
+         }, 30)*/
 
          return
 
@@ -343,6 +348,7 @@ class RateioController {
       const pessoa_id = payload.pessoa_id
       const rateio_id = payload.rateio_id
       const retornarPDF = payload.retornarPDF
+      const preview = payload.preview
 
       try {
          const service = await new RateioServices().PDF_TodosEquipamentosRateioPorPessoa(
@@ -350,6 +356,9 @@ class RateioController {
             rateio_id,
             retornarPDF
          )
+         if (preview) {
+            return response.status(200).send(service.pasta + service.arquivo)
+         }
          if (retornarPDF) {
             if (service.pdfDoc) {
                let existe = await Drive.exists(service.pasta + service.arquivo)
@@ -363,6 +372,86 @@ class RateioController {
       } catch (error) {
          response.status(400).send({ success: false, message: error.message })
       }
+   }
+
+   async PDF_RateioRelatorioOcorrencias({ request, response }) {
+      const payload = request.all()
+      const rateio_id = payload.rateio_id
+      const retornarPDF = payload.retornarPDF
+      const preview = payload.preview
+
+      try {
+         const service = await new RateioServices().PDF_RateioRelatorioOcorrencias(
+            rateio_id,
+            retornarPDF
+         )
+
+         if (preview) {
+            return response.status(200).send(service.pasta + service.arquivo)
+         }
+         //response.status(200).send(service.pasta + service.arquivo)
+         if (retornarPDF) {
+            if (service.pdfDoc) {
+               let existe = await Drive.exists(service.pasta + service.arquivo)
+
+               return response
+                  .header('Content-type', 'application/pdf')
+                  .download(service.pasta + service.arquivo)
+            }
+            const pathArquivo = service.pasta + service.arquivo //await Drive.get(service.arquivo)
+            return response
+               .header('Content-type', 'application/pdf')
+               .download(pathArquivo)
+         }
+
+         return response.status(200).send(service.pasta + service.arquivo)
+      } catch (error) {
+         response.status(400).send({ success: false, message: error.message })
+      }
+   }
+
+   async ocorrenciaPreviewPDF({ request, response, params }) {
+      // Rateio - Relatorio de ocorrencias - envia cliente o pdf
+      return new Promise(async (resolve, reject) => {
+         try {
+            const rateio_id = params.id
+            const pasta = Helpers.tmpPath('rateio/ocorrencias/')
+            const arquivo = `rateio_ocorrencias_${rateio_id}.pdf`
+
+            const isExist = await Drive.exists(pasta + arquivo)
+
+            if (isExist) {
+               return response
+                  .header('Content-type', 'application/pdf')
+                  .download(pasta + arquivo)
+            }
+            throw { message: 'Arquivo não encontrado' }
+         } catch (e) {
+            reject(e)
+         }
+      })
+   }
+
+   async equipamentoPreviewPDF({ request, response, params }) {
+      // Rateio - relatorio de equipamentos - envia para o cliente o pdf
+      return new Promise(async (resolve, reject) => {
+         try {
+            const rateio_id = params.id
+            const pasta = Helpers.tmpPath('rateio/equipamentos/')
+            const arquivo = `equip_${rateio_id}.pdf`
+
+            const isExist = await Drive.exists(pasta + arquivo)
+
+            if (isExist) {
+               return response
+                  .header('Content-type', 'application/pdf')
+                  .download(pasta + arquivo)
+            }
+            throw { message: 'Arquivo não encontrado' }
+         } catch (e) {
+            reject(e)
+         }
+      })
    }
 }
 

@@ -227,25 +227,30 @@ class LancamentoController {
    }
 
    async pdf({ response, params }) {
-      const data = { boleto_id: params.boleto_id, metodo: 'gerar-pdf' } // Data to be passed to job handle
-      const priority = 'normal' // Priority of job, can be low, normal, medium, high or critical
-      const attempts = 1 // Number of times to attempt job if it fails
-      const remove = true // Should jobs be automatically removed on completion
-      const jobFn = job => {
-         // Function to be run on the job before it is saved
-         job.backoff()
+      try {
+         const data = { boleto_id: params.boleto_id, metodo: 'gerar-pdf' } // Data to be passed to job handle
+         const priority = 'normal' // Priority of job, can be low, normal, medium, high or critical
+         const attempts = 1 // Number of times to attempt job if it fails
+         const remove = true // Should jobs be automatically removed on completion
+         const jobFn = job => {
+            // Function to be run on the job before it is saved
+            job.backoff()
+         }
+         const job = kue.dispatch(Job.key, data, {
+            priority,
+            attempts,
+            remove,
+            jobFn,
+         })
+
+         // If you want to wait on the result, you can do this
+         const result = await job.result
+
+         return result
+      } catch (error) {
+         console.log(error)
+         response.status(400).send(error)
       }
-      const job = kue.dispatch(Job.key, data, {
-         priority,
-         attempts,
-         remove,
-         jobFn,
-      })
-
-      // If you want to wait on the result, you can do this
-      const result = await job.result
-
-      return result
    }
 
    async pdfDownload({ response, params }) {

@@ -171,6 +171,7 @@ Route.group(() => {
       'auth'
      ])*/
 
+
    Route.get('/rateio/statusEmailMassa/:boleto_id', 'RateioController.statusEmailMassa').middleware([
       'auth'
      ])
@@ -215,7 +216,14 @@ Route.group(() => {
    Route.post('/rateio/lista_equipamentos', 'RateioController.PDF_TodosEquipamentosRateioPorPessoa').middleware([
       'auth'
       ])
+   Route.get('/rateio/equipamentoPreviewPDF/:id', 'RateioController.equipamentoPreviewPDF')
 
+
+   Route.get('/rateio/ocorrenciaPreviewPDF/:id', 'RateioController.ocorrenciaPreviewPDF')
+
+   Route.post('/rateio/lista_ocorrencias', 'RateioController.PDF_RateioRelatorioOcorrencias').middleware([
+      'auth'
+      ])
 
    Route.get('/rateio', 'RateioController.index').middleware([
          'auth'

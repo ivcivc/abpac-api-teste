@@ -17,6 +17,7 @@ const ModelRateioEquipamento = use('App/Models/RateioEquipamento')
 const ModelRateioEquipamentoBeneficio = use(
    'App/Models/RateioEquipamentoBeneficio'
 )
+const ModelRateioInadimplente = use('App/Models/RateioInadimplente')
 
 const Drive = use('Drive')
 const Boleto = use('App/Services/Cnab')
@@ -172,6 +173,7 @@ class Rateio {
 
             //.where('id', '>', 1700)
             .where('status', 'Ativo')
+            .where('dAdesao', '<=', '2021-01-31')
             .fetch()
 
          let queryJson = query.toJSON()
@@ -1433,27 +1435,27 @@ class Rateio {
                      { text: e.placa, bold: false },
                      { text: e.categoria_nome, bold: false },
                      {
-                        text: Antl.formatNumber(nRateioTxAdm),
+                        text: this.moeda(nRateioTxAdm),
                         bold: false,
                         alignment: 'right',
                      },
                      {
-                        text: Antl.formatNumber(terceiro),
+                        text: this.moeda(terceiro),
                         bold: false,
                         alignment: 'right',
                      },
                      {
-                        text: Antl.formatNumber(assist24h),
+                        text: this.moeda(assist24h),
                         bold: false,
                         alignment: 'right',
                      },
                      {
-                        text: Antl.formatNumber(outros),
+                        text: this.moeda(outros),
                         bold: false,
                         alignment: 'right',
                      },
                      {
-                        text: Antl.formatNumber(
+                        text: this.moeda(
                            nRateioTxAdm + terceiro + assist24h + outros
                         ),
                         bold: false,
@@ -1471,27 +1473,27 @@ class Rateio {
                { text: '', bold: false },
                { text: '', bold: false },
                {
-                  text: Antl.formatNumber(trateio),
+                  text: this.moeda(trateio),
                   bold: true,
                   alignment: 'right',
                },
                {
-                  text: Antl.formatNumber(tterceiro),
+                  text: this.moeda(tterceiro),
                   bold: true,
                   alignment: 'right',
                },
                {
-                  text: Antl.formatNumber(tassist24h),
+                  text: this.moeda(tassist24h),
                   bold: true,
                   alignment: 'right',
                },
                {
-                  text: Antl.formatNumber(toutros),
+                  text: this.moeda(toutros),
                   bold: true,
                   alignment: 'right',
                },
                {
-                  text: Antl.formatNumber(tgeral),
+                  text: this.moeda(tgeral),
                   bold: true,
                   alignment: 'right',
                },
@@ -1572,6 +1574,560 @@ class Rateio {
             return reject(e)
          }
       })
+   }
+
+   PDF_RateioRelatorioOcorrencias(rateio_id, retornarPDF = true) {
+      return new Promise(async (resolve, reject) => {
+         try {
+            const pasta = Helpers.tmpPath('rateio/ocorrencias/')
+            const arquivo = `rateio_ocorrencias_${rateio_id}.pdf`
+
+            if (await Drive.exists(pasta + arquivo)) {
+               return resolve({ arquivo, pdfDoc: null, pasta }) // await Drive.get(pasta + arquivo)
+            }
+
+            const modelRateio = await Model.findOrFail(rateio_id)
+
+            const modelRateioInadimplente = await ModelRateioInadimplente.query()
+               .where('rateio_id', rateio_id)
+               .fetch()
+            const inadJson = modelRateioInadimplente.toJSON()
+            let inadDebito = 0.0
+            let inadCredito = 0.0
+            inadJson.forEach(e => {
+               if (e.tipo === 'debito') {
+                  inadDebito += e.valorTotal
+               }
+               if (e.tipo === 'credito') {
+                  inadCredito += e.valorTotal
+               }
+            })
+
+            const modelOrdemServico = await ModelOrdemServico.query()
+               .select(
+                  'id',
+                  'pessoa_id',
+                  'equipamento_id',
+                  'config_id',
+                  'rateio_id',
+                  'ocorrencia_id',
+                  'isPagar',
+                  'isReceber',
+                  'isRatear',
+                  'isCredito',
+                  'valorTotal'
+               )
+               .where('rateio_id', rateio_id)
+               .orderBy('ocorrencia_id', 'asc')
+               //.with('ocorrencia.equipamento')
+               .with('ocorrencia', builder => {
+                  builder.with('equipamento', b => {
+                     b.select(
+                        'id',
+                        'categoria_id',
+                        'especie1',
+                        'marca1',
+                        'modelo1',
+                        'chassi1',
+                        'placa1',
+                        'anoF1',
+                        'modeloF1',
+                        'especie2',
+                        'marca2',
+                        'modelo2',
+                        'chassi2',
+                        'placa2',
+                        'anoF2',
+                        'modeloF2',
+                        'especie3',
+                        'marca3',
+                        'modelo3',
+                        'chassi3',
+                        'placa3',
+                        'anoF3',
+                        'modeloF3'
+                     )
+                     b.with('categoria')
+                  })
+                  builder.with('pessoa', b => {
+                     b.select('id', 'nome')
+                  })
+               })
+
+               .with('pessoa')
+               .with('config')
+               .fetch()
+
+            const osJson = modelOrdemServico.toJSON()
+
+            const objOcorrencia = {}
+            const arrOutros = []
+
+            osJson.forEach(e => {
+               if (e.ocorrencia) {
+                  if (!objOcorrencia[e.ocorrencia.id]) {
+                     objOcorrencia[e.ocorrencia.id] = []
+                  }
+                  objOcorrencia[e.ocorrencia.id].push(e)
+               } else {
+                  // Outras O.S. que não são ocorrencias
+                  if (e.isCredito) {
+                     e.nCreditos = e.valorTotal
+                     e.nSubTotal = 0.0
+                     e.nDespesas = 0.0
+                  } else {
+                     e.nCreditos = 0.0
+                     e.nSubTotal = e.valorTotal
+                     e.nDespesas = e.valorTotal
+                  }
+                  arrOutros.push(e)
+               }
+            })
+
+            const arrOcorrencias = []
+            let isFindOcorrencia = false
+
+            let oOcorrencia = null
+
+            Object.keys(objOcorrencia).forEach(indice => {
+               let x = indice
+               const arr = objOcorrencia[indice]
+               let nDespesas = 0.0
+               let nParticipacoes = 0.0
+               let nCreditos = 0.0
+               arr.forEach(e => {
+                  if (lodash(e, 'ocorrencia') && !isFindOcorrencia) {
+                     isFindOcorrencia = true
+                     oOcorrencia = e.ocorrencia
+                  }
+                  if (e.config.modelo === 'Participação (O.S.)') {
+                     if (e.isCredito) {
+                        nCreditos += e.valorTotal
+                     } else {
+                        nParticipacoes += e.valorTotal
+                     }
+                  } else {
+                     if (e.isCredito) {
+                        nCreditos += e.valorTotal
+                     } else {
+                        nDespesas += e.valorTotal
+                     }
+                  }
+               })
+
+               isFindOcorrencia = false
+
+               let oAgrupado = {
+                  ocorrencia: oOcorrencia,
+                  nDespesas,
+                  nParticipacoes,
+                  nCreditos,
+               }
+
+               arrOcorrencias.push(oAgrupado)
+            })
+
+            const fonts = {
+               Roboto: {
+                  normal:
+                     Helpers.publicPath('pdf/fonts/Roboto/') +
+                     'Roboto-Regular.ttf',
+                  bold:
+                     Helpers.publicPath('pdf/fonts/Roboto/') +
+                     'Roboto-Medium.ttf',
+                  italics:
+                     Helpers.publicPath('pdf/fonts/Roboto/') +
+                     'Roboto-Italic.ttf',
+                  bolditalics:
+                     Helpers.publicPath('pdf/fonts/Roboto/') +
+                     'Roboto-MediumItalic.ttf',
+               },
+            }
+
+            const PdfPrinter = require('pdfmake/src/printer')
+            const printer = new PdfPrinter(fonts)
+
+            const body = []
+
+            //Antl.formatNumber(trateio)
+            let tabelaOcorrencia = {
+               layout: 'noBorders', //lightHorizontalLines',
+               margin: [0, 15, 0, 0],
+               table: {
+                  headerRows: 1,
+                  widths: ['*'],
+
+                  body: [],
+               },
+            }
+
+            arrOcorrencias.forEach(e => {
+               let id = `${e.ocorrencia.id}`
+               id = id.padStart(8, '0')
+
+               const complemento =
+                  e.ocorrencia.status === 'Complemento'
+                     ? '      COMPLEMENTO'
+                     : ''
+               tabelaOcorrencia.table.body.push([
+                  {
+                     text: 'Nº: ' + id + complemento,
+                     bold: true,
+                     fontSize: 9,
+                  },
+               ])
+               let dEvento = ''
+               if (e.ocorrencia.dEvento) {
+                  dEvento = moment(e.ocorrencia.dEvento, 'YYYY-MM-DD').format(
+                     'DD/MM/YYYY'
+                  )
+               }
+               let local = e.ocorrencia.local
+                  ? e.ocorrencia.local.toUpperCase()
+                  : ''
+               let cidade = e.ocorrencia.cidade
+                  ? e.ocorrencia.cidade.toUpperCase()
+                  : ''
+               let uf = e.ocorrencia.uf ? e.ocorrencia.uf : ''
+               let bo = e.ocorrencia.bo ? 'BO ' + e.ocorrencia.bo : ''
+
+               tabelaOcorrencia.table.body.push([
+                  {
+                     columns: [
+                        { text: '', width: 15 },
+                        {
+                           text:
+                              dEvento +
+                              '     ' +
+                              ' ' +
+                              local +
+                              '  ' +
+                              cidade +
+                              ' ' +
+                              uf +
+                              '   ' +
+                              bo,
+                           bold: false,
+                           width: '*',
+                           fontSize: 8,
+                        },
+                     ],
+                  },
+               ])
+
+               let nSubTotal = this.moeda(e.nDespesas - e.nParticipacoes)
+
+               // Linha 3
+               let pessoa = e.ocorrencia.pessoa.nome
+               pessoa = pessoa.toUpperCase()
+               let qualPlaca = e.ocorrencia.qualPlaca
+               let categoria = e.ocorrencia.equipamento.categoria.tipo
+               categoria = categoria.toUpperCase()
+               let marca = e.ocorrencia.equipamento[`marca${qualPlaca}`]
+               marca = marca.toUpperCase()
+               let modelo = e.ocorrencia.equipamento[`modelo${qualPlaca}`]
+               modelo = modelo.toUpperCase()
+               let placa = e.ocorrencia.equipamento[`placa${qualPlaca}`]
+               let equipamento =
+                  'EQUIPAMENTO: ' +
+                  categoria +
+                  ' ' +
+                  marca +
+                  ' ' +
+                  modelo +
+                  '   ' +
+                  placa
+
+               tabelaOcorrencia.table.body.push([
+                  {
+                     columns: [
+                        { text: '', width: 15 },
+                        {
+                           text: pessoa + '       ' + equipamento,
+                           bold: false,
+                           fontSize: 8,
+                        },
+                     ],
+                  },
+               ])
+
+               let nParticipacao =
+                  e.nParticipacoes > 0
+                     ? '(' + this.moeda(e.nParticipacoes) + ')'
+                     : '0,00'
+
+               tabelaOcorrencia.table.body.push([
+                  {
+                     columns: [
+                        { text: '', width: 15 },
+                        {
+                           text: 'INDENIZAÇÃO/CONSERTO',
+                           bold: true,
+                           width: 100,
+                           fontSize: 8,
+                        },
+                        {
+                           text: this.moeda(e.nDespesas),
+                           bold: true,
+                           width: 70,
+                           fontSize: 8,
+                        },
+                        {
+                           text: 'PARTICIPAÇÃO',
+                           bold: true,
+                           width: 59,
+                           fontSize: 8,
+                        },
+                        {
+                           text: nParticipacao,
+                           bold: true,
+                           width: 60,
+                           fontSize: 8,
+                        },
+                        {
+                           text: 'SUBTOTAL',
+                           bold: true,
+                           width: 46,
+                           fontSize: 8,
+                        },
+                        {
+                           text: this.moeda(e.nDespesas - e.nParticipacoes),
+                           bold: true,
+                           width: 70,
+                           fontSize: 8,
+                        },
+                        {
+                           text: 'CREDITO',
+                           bold: true,
+                           width: 40,
+                           fontSize: 8,
+                           margin: [0, 0, 0, 15],
+                        },
+                        {
+                           text: this.moeda(e.nCreditos),
+                           bold: true,
+                           width: 60,
+                           fontSize: 8,
+                        },
+                     ],
+                  },
+               ])
+            })
+            body.push([tabelaOcorrencia])
+
+            // Outras ocorrencias
+            let oOutros = lodash.groupBy(arrOutros, function (value) {
+               return value.config_id + value.isCredito
+            })
+
+            let aOutros = []
+            Object.keys(oOutros).map(i => {
+               const o = oOutros[i]
+               let n = lodash.sumBy(o, 'valorTotal')
+               let nDespesas = o[0].isCredito ? 0.0 : n
+               let nCreditos = o[0].isCredito ? n : 0.0
+               aOutros.push({
+                  descricao: o[0].config.descricao.toUpperCase(),
+                  nDespesas,
+                  nCreditos,
+               })
+            })
+
+            aOutros.forEach(e => {
+               let o = [
+                  {
+                     text: e.descricao,
+                     bold: true,
+                     fontSize: 9,
+                  },
+               ]
+               body.push(o)
+               body.push([
+                  {
+                     columns: [
+                        { text: '', width: 15 },
+                        {
+                           text: 'VALOR LANÇAMENTO',
+                           bold: true,
+                           width: 100,
+                           fontSize: 8,
+                        },
+                        {
+                           text: this.moeda(e.nDespesas),
+                           bold: true,
+                           width: 70,
+                           fontSize: 8,
+                        },
+                        {
+                           text: 'PARTICIPAÇÃO',
+                           bold: true,
+                           width: 59,
+                           fontSize: 8,
+                        },
+                        {
+                           text: '0,00',
+                           bold: true,
+                           width: 60,
+                           fontSize: 8,
+                        },
+                        {
+                           text: 'SUBTOTAL',
+                           bold: true,
+                           width: 46,
+                           fontSize: 8,
+                        },
+                        {
+                           text: this.moeda(e.nDespesas),
+                           bold: true,
+                           width: 70,
+                           fontSize: 8,
+                        },
+                        {
+                           text: 'CREDITOS',
+                           bold: true,
+                           width: 40,
+                           fontSize: 8,
+                           margin: [0, 0, 0, 15],
+                        },
+                        {
+                           text: this.moeda(e.nCreditos),
+                           bold: true,
+                           width: 60,
+                           fontSize: 8,
+                        },
+                     ],
+                  },
+               ])
+            })
+
+            // inadimplentes
+            if (inadCredito > 0 || inadDebito > 0) {
+               let o = [
+                  {
+                     text: 'INADIMPLENTES',
+                     bold: true,
+                     fontSize: 9,
+                  },
+               ]
+               let nCred = this.moeda(inadCredito)
+               nCred = inadCredito > 0 ? '(' + nCred + ')' : '0,00'
+
+               body.push(o)
+               body.push([
+                  {
+                     columns: [
+                        { text: '', width: 15 },
+                        {
+                           text: 'DEBITOS',
+                           bold: true,
+                           width: 60,
+                           fontSize: 8,
+                        },
+                        {
+                           text: this.moeda(inadDebito),
+                           bold: true,
+                           width: 150,
+                           fontSize: 8,
+                        },
+
+                        {
+                           text: 'CREDITO',
+                           bold: true,
+                           width: 60,
+                           fontSize: 8,
+                        },
+                        {
+                           text: nCred,
+                           bold: true,
+                           width: 70,
+                           fontSize: 8,
+                        },
+                     ],
+                  },
+               ])
+            }
+
+            const periodo = moment(modelRateio.dFim, 'YYYY-MM-DD').format(
+               'MMMM/YYYY'
+            )
+
+            const docDefinition = {
+               pageSize: 'A4',
+               pageOrientation: 'portrait',
+
+               defaultStyle: {
+                  fontSize: 13,
+                  bold: true,
+               },
+
+               content: [
+                  {
+                     columns: [
+                        {
+                           image: Helpers.publicPath('/images/logo-abpac.png'),
+                           width: 30,
+                           height: 60,
+                        },
+                        {
+                           layout: 'noBorders',
+                           table: {
+                              headerRows: 1,
+                              widths: ['*'],
+                              body: [
+                                 [
+                                    {
+                                       text: 'RELATÓRIO DE OCORRÊNCIAS',
+                                       bold: true,
+                                       fontSize: 13,
+                                       alignment: 'center',
+                                       margin: [0, 10, 0, 0],
+                                    },
+                                 ],
+                                 [
+                                    {
+                                       text: periodo.toUpperCase(),
+                                       fontSize: 11,
+                                       alignment: 'center',
+                                       margin: [0, 5, 0, 0],
+                                    },
+                                 ],
+                              ],
+                           },
+                        },
+                     ],
+                  },
+                  {
+                     layout: 'noBorders', //lightHorizontalLines',
+                     margin: [0, 15, 0, 0],
+                     table: {
+                        headerRows: 1,
+                        widths: ['*'],
+
+                        body: body,
+                     },
+                  },
+               ],
+            }
+
+            const pdfDoc = printer.createPdfKitDocument(docDefinition)
+            pdfDoc.pipe(fs.createWriteStream(pasta + arquivo))
+            pdfDoc.end()
+
+            return resolve({ arquivo, pdfDoc, pasta })
+         } catch (e) {
+            return reject(e)
+         }
+      })
+   }
+
+   moeda(n) {
+      if (lodash.isNull(n)) n = 0.0
+      if (lodash.isUndefined(n)) n = 0.0
+      if (lodash.isNaN(n)) n = 0.0
+      n = Antl.formatNumber(n, {
+         minimumFractionDigits: 2,
+      })
+      return n ? n : '0,00'
    }
 }
 

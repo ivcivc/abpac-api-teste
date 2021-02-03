@@ -35,7 +35,7 @@ class ContaSchema extends Schema {
          table.varchar('contaCorrenteDV', 1)
 
          table.date('dInicio').defaultTo(null)
-         table.float('saldo').defaultTo(0.0)
+         table.float('saldo', 14, 2).defaultTo(0.0)
 
          table.varchar('modeloBoleto', 20).defaultTo('-1')
          table.varchar('convenio', 10).defaultTo('')

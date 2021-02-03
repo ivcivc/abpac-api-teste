@@ -245,8 +245,10 @@ class ACBrJob {
                console.log('JOB - SAINDO rodando metodo gerar-pdf')
                return resolve(server)
             } catch (error) {
-               await trx.rollback()
+               /////await trx.rollback()
                reject(error)
+               throw error
+               return
             }
          }
 
@@ -258,8 +260,10 @@ class ACBrJob {
                console.log('JOB - SAINDO rodando metodo pdf-download')
                return resolve(cnab)
             } catch (error) {
-               await trx.rollback()
+               /////await trx.rollback()
                reject(error)
+               throw error
+               return
             }
          }
 
@@ -291,7 +295,12 @@ class ACBrJob {
                      rateio_id,
                      false
                   )
-                  console.log(respTabelaEquipa)
+
+                  // Tabela de ocorrencias
+                  const respTabelaOcorrencias = await new RateioServices().PDF_RateioRelatorioOcorrencias(
+                     rateio_id,
+                     false
+                  )
 
                   const arqPDFequipa =
                      respTabelaEquipa.pasta + respTabelaEquipa.arquivo
@@ -307,6 +316,13 @@ class ACBrJob {
                            .attach(arqPDFequipa, {
                               filename: 'lista_veiculos.pdf',
                            })
+                           /*.attach(
+                              respTabelaOcorrencias.pasta +
+                                 respTabelaOcorrencias.arquivo,
+                              {
+                                 filename: 'lista_ocorrencias.pdf',
+                              }
+                           )*/
                            .attach(Helpers.tmpPath(arqPDF), {
                               filename: 'boleto.pdf',
                            })
