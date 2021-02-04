@@ -2100,7 +2100,9 @@ class Rateio {
                      layout: 'noBorders', //lightHorizontalLines',
                      margin: [0, 15, 0, 0],
                      table: {
-                        headerRows: 1,
+                        //dontBreakRows: true,
+                        //keepWithHeaderRows: true,
+                        //headerRows: 1,
                         widths: ['*'],
 
                         body: body,

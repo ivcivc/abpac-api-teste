@@ -316,13 +316,13 @@ class ACBrJob {
                            .attach(arqPDFequipa, {
                               filename: 'lista_veiculos.pdf',
                            })
-                           /*.attach(
+                           .attach(
                               respTabelaOcorrencias.pasta +
                                  respTabelaOcorrencias.arquivo,
                               {
                                  filename: 'lista_ocorrencias.pdf',
                               }
-                           )*/
+                           )
                            .attach(Helpers.tmpPath(arqPDF), {
                               filename: 'boleto.pdf',
                            })
