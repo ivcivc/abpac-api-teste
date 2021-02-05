@@ -17,6 +17,8 @@ class RateioResumoSchema extends Schema {
             .onDelete('RESTRICT')
             .defaultTo(0)
 
+         table.integer('qtd').defaultTo(0)
+
          table.string('grupo', 45).notNullable()
          table.string('subGrupo', 45).notNullable()
 

@@ -225,10 +225,6 @@ Route.group(() => {
       'auth'
       ])
 
-      Route.get('/rateio/:id', 'RateioController.show').middleware([
-         'auth'
-         ])
-
    Route.get('/rateio', 'RateioController.index').middleware([
          'auth'
          ])

@@ -3,7 +3,6 @@
 const lodash = require('lodash')
 const PessoaServices = use('App/Services/Pessoa')
 const Database = use('Database')
-const moment = use('moment')
 
 class LocalizarController {
    async proxy({ response, request }) {
@@ -28,7 +27,7 @@ class LocalizarController {
          limit= payload.limit
       }*/
 
-      /*if (!lodash.has(payload, 'whereStatus')) {
+      if (!lodash.has(payload, 'whereStatus')) {
          payload.whereStatus = ['equipamentos.status', 'like', '%%']
       } else {
          payload.whereStatus = [
@@ -36,7 +35,7 @@ class LocalizarController {
             'like',
             payload.whereStatus,
          ]
-      }*/
+      }
 
       if (start) {
          page = parseInt(page)
@@ -110,25 +109,8 @@ class LocalizarController {
          return this.localizarAssociado(response, o)
       }
 
-      if (payload.field_name === 'Adesao') {
-         o.filtrarPor = 'Adesao'
-         const dInicio = moment(
-            payload.field_value_periodo.start,
-            'YYYY-MM-DD'
-         ).format('YYYY-MM-DD')
-         const dFim = moment(
-            payload.field_value_periodo.end,
-            'YYYY-MM-DD'
-         ).format('YYYY-MM-DD')
-
-         o.periodo = [dInicio, dFim]
-
-         return this.localizarEquipamento(response, o)
-      }
-
       if (payload.field_name === 'Placa') {
          payload.field_value = payload.field_value.replace('-', '')
-         o.filtrarPor = 'Placa'
 
          if (!lodash.isEmpty(payload.field_value)) {
             /*o.where= ['equipamentos.placa1','like', '%'+payload.field_value+"%"]
@@ -179,52 +161,26 @@ class LocalizarController {
 
    async localizarEquipamento(response, payload) {
       try {
-         let o = null
-
-         if (payload.filtrarPor === 'Placa') {
-            o = Database.from('equipamentos')
-               .select(
-                  'equipamentos.id',
-                  'pessoas.nome',
-                  'equipamentos.placas',
-                  'equipamentos.status',
-                  'pessoas.id as pessoa_id'
-               )
-               .innerJoin('pessoas', 'equipamentos.pessoa_id', 'pessoas.id')
-               .orderBy('pessoas.nome', 'asc')
-               .where(payload.where[0], payload.where[1], payload.where[2])
-               /*.where(
+         const o = Database.from('equipamentos')
+            .select(
+               'equipamentos.id',
+               'pessoas.nome',
+               'equipamentos.placas',
+               'equipamentos.status',
+               'pessoas.id as pessoa_id'
+            )
+            .innerJoin('pessoas', 'equipamentos.pessoa_id', 'pessoas.id')
+            .orderBy('pessoas.nome', 'asc')
+            .where(payload.where[0], payload.where[1], payload.where[2])
+            /*.where(
                payload.whereStatus[0],
                payload.whereStatus[1],
                payload.whereStatus[2]
             )*/
-               .paginate(
-                  lodash.isUndefined(payload.page) ? 1 : payload.page,
-                  payload.limit
-               )
-         }
-
-         if (payload.filtrarPor === 'Adesao') {
-            o = Database.from('equipamentos')
-               .select(
-                  'equipamentos.id as id',
-                  'equipamentos.id as equipamento_id',
-                  'pessoas.nome',
-                  'equipamentos.placas',
-                  'equipamentos.status',
-                  'pessoas.id as pessoa_id',
-                  'equipamentos.dAdesao'
-               )
-               .innerJoin('pessoas', 'equipamentos.pessoa_id', 'pessoas.id')
-               .orderBy('pessoas.nome', 'asc')
-               .whereBetween('equipamentos.dAdesao', payload.periodo)
-               .where('equipamentos.status', 'Ativo')
-
-               .paginate(
-                  lodash.isUndefined(payload.page) ? 1 : payload.page,
-                  payload.limit
-               )
-         }
+            .paginate(
+               lodash.isUndefined(payload.page) ? 1 : payload.page,
+               payload.limit
+            )
 
          let res = await o
 

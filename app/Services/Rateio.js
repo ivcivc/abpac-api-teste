@@ -1702,7 +1702,8 @@ class Rateio {
                   }
                   if (e.config.modelo === 'Participação (O.S.)') {
                      if (e.isCredito) {
-                        nCreditos += e.valorTotal
+                        //nCreditos += e.valorTotal
+                        nParticipacoes += e.valorTotal
                      } else {
                         nParticipacoes += e.valorTotal
                      }
@@ -1754,7 +1755,7 @@ class Rateio {
                layout: 'noBorders', //lightHorizontalLines',
                margin: [0, 15, 0, 0],
                table: {
-                  headerRows: 1,
+                  //headerRows: 1,
                   widths: ['*'],
 
                   body: [],
@@ -2107,6 +2108,14 @@ class Rateio {
 
                         body: body,
                      },
+                  },
+                  {
+                     image: Helpers.publicPath(
+                        '/images/assinaturas/cris_marcus.png'
+                     ),
+                     width: 300,
+                     height: 100,
+                     alignment: 'center',
                   },
                ],
             }
