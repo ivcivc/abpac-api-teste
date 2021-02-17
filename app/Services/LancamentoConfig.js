@@ -100,12 +100,50 @@ class LancamentoConfig {
             ID_PlanoConta = json.receber_plano_id_cInad
          }
 
+         if (field === 'receber-baixa') {
+            ID_PlanoConta = json.receber_plano_id_baixa
+         }
+
          const plano = await new ServicePlanoContas().get(ID_PlanoConta)
          if (!plano) {
             return null
          }
          const planoJson = plano.toJSON()
          return planoJson.id
+      } catch (e) {
+         return null
+      }
+   }
+
+   async getPlanoContaObject(field) {
+      /* Retorna o objeto (registro) do plano de contas de um field da configuração de lancamentos */
+      try {
+         const registro = await this.index()
+         if (!registro) {
+            return null
+         }
+         const arrJson = registro.toJSON()
+         const json = arrJson[0]
+         let ID_PlanoConta = null
+
+         if (field === 'receber-debito-inadimplente') {
+            ID_PlanoConta = json.receber_plano_id_dInad
+         }
+
+         if (field === 'receber-credito-inadimplente') {
+            ID_PlanoConta = json.receber_plano_id_cInad
+         }
+
+         if (field === 'receber-baixa') {
+            ID_PlanoConta = json.receber_plano_id_baixa
+         }
+
+         const plano = await new ServicePlanoContas().get(ID_PlanoConta)
+         if (!plano) {
+            return null
+         }
+         const planoJson = plano.toJSON()
+         return planoJson
       } catch (e) {
          return null
       }

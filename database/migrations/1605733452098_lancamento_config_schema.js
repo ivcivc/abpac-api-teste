@@ -79,6 +79,14 @@ class LancamentoConfigSchema extends Schema {
             .onUpdate('CASCADE')
             .onDelete('RESTRICT')
 
+         table
+            .integer('receber_plano_id_baixa')
+            .unsigned()
+            .references('id')
+            .inTable('plano_de_contas')
+            .onUpdate('CASCADE')
+            .onDelete('RESTRICT')
+
          table.timestamps()
       })
    }

@@ -37,7 +37,7 @@ class Lancamento {
       }
    }
 
-   async add(data, trx, auth, isJobs = true) {
+   async add(data, trx, auth, isJobs = true, isCommit = true) {
       let nrErro = null
       try {
          if (!trx) {
@@ -123,7 +123,9 @@ class Lancamento {
          }
          await ModelStatus.create(status, trx ? trx : null)
 
-         await trx.commit()
+         if (isCommit) {
+            await trx.commit()
+         }
 
          if (model.pessoa_id) {
             await model.load('pessoa')
@@ -168,7 +170,10 @@ class Lancamento {
 
          return model
       } catch (e) {
-         await trx.rollback()
+         if (isCommit) {
+            await trx.rollback()
+         }
+
          if (nrErro) {
             if (nrErro === -100) {
                e.code = 'PERSONALIZADO'

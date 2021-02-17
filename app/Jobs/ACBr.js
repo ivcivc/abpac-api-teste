@@ -189,7 +189,8 @@ class ACBrJob {
             } catch (error) {
                await Redis.set('_gerarFinanceiro', 'livre')
                await trx.rollback()
-               return reject(error)
+               reject(error)
+               throw error
             }
          }
 
@@ -311,7 +312,7 @@ class ACBrJob {
                      message => {
                         message
                            .to(json.pessoa.email)
-                           .from('investimentos@abpac.com.br')
+                           .from(Env.get('MAIL_EMPRESA'))
                            .subject('Cobrança ABPAC')
                            .attach(arqPDFequipa, {
                               filename: 'lista_veiculos.pdf',
@@ -348,7 +349,7 @@ class ACBrJob {
                   console.log('ocorreu uma falha no envio do email')
                   resolve(error)
                }
-            }, 50)
+            }, 80)
          }
       })
    }

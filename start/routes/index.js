@@ -57,10 +57,14 @@ Route.group(() => {
      ]).validator( new Map([ [['/os_config.store'], ['ordem_servico/os_config']],
       [['/os_config.update'], ['ordem_servico/os_config']]]))
 
-
    Route.resource('/equipamentos', 'EquipamentoController').middleware([
       'auth'
    ])
+
+   Route.post('/equipamentos/totalAtivos', 'EquipamentoController.totalAtivos')
+   /*.middleware([
+      'auth'
+   ])*/
 
    Route.post('/equipamentos/localizarPor', 'EquipamentoController.localizarPor').middleware([
       'auth'
@@ -225,6 +229,10 @@ Route.group(() => {
       'auth'
       ])
 
+      Route.get('/rateio/:id', 'RateioController.show').middleware([
+         'auth'
+         ])
+
    Route.get('/rateio', 'RateioController.index').middleware([
          'auth'
          ])
@@ -263,6 +271,47 @@ Route.group(() => {
    /*Route.post('/cnab/arquivarArquivoRemessa', 'CnabController.arquivarArquivoRemessa').middleware([
          'auth'
          ])*/
+   Route.get('/tt',async ({response}) => {
+      try {
+         const lancamento = use('App/Models/Lancamento')
+         const lanca= await lancamento.find(1)
+         await lanca.load('conta')
+         await lanca.load('pessoa')
+
+         const factory= use('App/Services/Bank/Factory')
+         let boleto= await factory().Boleto('sicoob')
+         let res= await boleto.localizarBoleto({
+            numeroContrato: 2554645,
+            modalidade: 1,
+            nossoNumero: '123',
+            conta_id: 1
+         })
+
+         /*let res= await boleto.novoBoleto(lanca.toJSON(),{
+            conta_id: 1
+         })*/
+         //let res= await boleto.localizarBoleto()
+
+         return { res }
+      } catch (error) {
+         console.log('retornou erro raiz')
+         console.log(error)
+         return JSON.stringify(error)
+      }
+
+   })
+
+   Route.get('/bank/callback',async ({response, request}) => {
+      try {
+         let Auth= use('App/Services/Bank/Sicoob/Auth')
+         let res= request.all()
+         return new Auth().callback(res)
+      } catch (error) {
+         return error
+      }
+
+
+   })
 
    Route.post('/cnab/localizarRemessaArquivado', 'CnabController.localizarArquivoRemessaArquivado').middleware([
       'auth'

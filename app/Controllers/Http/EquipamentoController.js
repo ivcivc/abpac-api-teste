@@ -23,6 +23,22 @@ class EquipamentoController {
       }
    }
 
+   async totalAtivos({ request, response, auth }) {
+      const payload = request.all()
+
+      try {
+         const service = await new EquipamentoServices().totalAtivos(
+            payload,
+            null,
+            auth
+         )
+         response.status(200).send(service)
+      } catch (error) {
+         console.log(error)
+         response.status(400).send(error)
+      }
+   }
+
    async update({ request, params, response, auth }) {
       const payload = request.all()
       const ID = params.id

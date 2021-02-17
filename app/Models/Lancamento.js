@@ -20,6 +20,10 @@ class Lancamento extends Model {
       return this.hasMany('App/Models/Boleto')
    }
 
+   conta() {
+      return this.hasOne('App/Models/Conta', 'conta_id', 'id')
+   }
+
    /*ordemServico() {
       return this.belongsTo('App/Models/ordem_servico/OrdemServico')
    }*/

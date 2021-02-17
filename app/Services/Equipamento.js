@@ -9,9 +9,10 @@ const EquipamentoProtecaoService = use('App/Services/EquipamentoProtecao')
 const ModelOcorrencia = use('App/Models/Ocorrencia')
 const EquipamentoBeneficioService = use('App/Services/EquipamentoBeneficio')
 const EquipamentoBeneficio = use('App/Models/EquipamentoBeneficio')
-
+const ServiceConfig = use('App/Services/LancamentoConfig')
 const FileConfig = use('App/Models/FileConfig')
 const Galeria = use('App/Models/File')
+const LancamentoService = use('App/Services/Lancamento')
 
 const Database = use('Database')
 
@@ -210,10 +211,46 @@ class Equipamento {
       }
    }
 
+   async totalAtivos(payload, trx, auth) {
+      const { pessoa_id, equipamento_id } = payload
+      try {
+         const count = await Database.from('equipamentos')
+            .count('* as total')
+            .where('pessoa_id', pessoa_id)
+            .where('status', 'Ativo')
+
+         const total = count[0].total
+
+         const rateio_equipa = await Database.from('rateio_equipamentos')
+            //.where('pessoa_id', pessoa_id)
+            .where('equipamento_id', equipamento_id)
+            .orderBy('rateio_id', 'desc')
+
+         let rateio = null
+
+         if (rateio_equipa.length === 0) {
+            rateio = { rateio_id: null }
+         } else {
+            rateio = rateio_equipa[0]
+         }
+
+         return { success: true, total, rateio }
+      } catch (e) {
+         await trx.rollback()
+         throw e
+      }
+   }
+
    async endosso(data, trx, auth) {
       try {
          if (!trx) {
             trx = await Database.beginTransaction()
+         }
+
+         let lancamento = null
+
+         if (lodash.has(data, 'lancamento')) {
+            lancamento = data.lancamento
          }
 
          let equipamentoAdd = null
@@ -474,6 +511,103 @@ class Equipamento {
             //novoEquipamento.valorMercado1= data.valorMercado
             novoEquipamento.tipoEndosso = 'Baixa do Equipamento'
             novoEquipamento.dEndosso = dEndosso
+            novoEquipamento.baixado = 'Sim'
+
+            // Adincionar novo equipamento (endosso)
+            equipamentoAdd = await Model.create(
+               novoEquipamento,
+               trx ? trx : null
+            )
+            oEquipamento.idFilho = equipamentoAdd.id
+
+            equipamento.merge(oEquipamento)
+            equipamento.save(trx ? trx : null)
+
+            // status equipamento
+            let motivo = lodash.isEmpty(data.motivo)
+               ? 'Endosso de Baixa do Equipamento'
+               : data.motivo
+            motivo = motivo + `(${moment(dEndosso).format('DD/MM/YYYY')})`
+            let status = {
+               equipamento_id: equipamento.id,
+               user_id: auth.user.id,
+               motivo: motivo,
+               status: 'Endossado',
+            }
+            await EquipamentoStatus.create(status, trx ? trx : null)
+
+            // status novo equipamento (endosso)
+            status = {
+               equipamento_id: equipamentoAdd.id,
+               user_id: auth.user.id,
+               motivo: motivo,
+               status: 'Inativo',
+            }
+            await EquipamentoStatus.create(status, trx ? trx : null)
+
+            // Lançamento de Financeiro
+            if (lancamento) {
+               let planoContaID = await new ServiceConfig().getPlanoContaObject(
+                  'receber-baixa'
+               )
+               if (!planoContaID) {
+                  nrErro = -100
+                  throw {
+                     success: false,
+                     message:
+                        'Transação abortada! Arquivo de configuração (lançamento de baixa) não localizado.',
+                  }
+               }
+
+               const oReceber = {
+                  tipo: 'Receita',
+                  parcelaI: 1,
+                  parcelaF: 1,
+                  equipamento_id: novoEquipamento.id,
+                  dVencimento: lancamento.dVencimento,
+                  dCompetencia: dEndosso,
+                  valorBase: lancamento.valorReceber,
+                  valorTotal: lancamento.valorReceber,
+                  pessoa_id: equipamento.pessoa_id,
+                  historico: planoContaID.descricao + ' ' + equipamento.placa1,
+                  forma: lancamento.forma,
+                  //baixado: 'Sim',
+                  situacao: 'Aberto',
+                  conta_id: lancamento.conta_id,
+                  items: [
+                     {
+                        DC: 'C',
+                        tag: 'LF',
+                        descricao: planoContaID.descricao,
+                        planoDeConta_id: planoContaID.id,
+                        valor: lancamento.valorReceber,
+                     },
+                  ],
+               }
+
+               await new LancamentoService().add(
+                  oReceber,
+                  trx,
+                  auth,
+                  false, //lancamento.forma === 'boleto', // isJobs
+                  false // isCommit
+               )
+            }
+         }
+         // Baixa (inativação)
+
+         // Cancelamento (inativação)
+         if (tipo_endosso === 'cancelamento') {
+            let novoEquipamento = equipamento.toJSON()
+            delete novoEquipamento['id']
+            novoEquipamento.idPai = equipamento.id
+            novoEquipamento.idFilho = null
+            novoEquipamento.idPrincipal = oEquipamento.idPrincipal
+            novoEquipamento.status = 'Inativo'
+
+            //novoEquipamento.valorMercado1= data.valorMercado
+            novoEquipamento.tipoEndosso = 'Cancelamento do Equipamento'
+            novoEquipamento.dEndosso = dEndosso
 
             // Adincionar novo equipamento (endosso)
             equipamentoAdd = await Model.create(
@@ -507,7 +641,7 @@ class Equipamento {
             }
             await EquipamentoStatus.create(status, trx ? trx : null)
          }
-         // Baixa (inativação)
+         // Cancelamento (inativação)
 
          // Reativar (tornar ativo)
          if (tipo_endosso === 'reativacao') {
@@ -516,6 +650,7 @@ class Equipamento {
             novoEquipamento.idPai = equipamento.id
             novoEquipamento.idFilho = null
             novoEquipamento.idPrincipal = oEquipamento.idPrincipal
+            novoEquipamento.baixado = 'Não'
             novoEquipamento.status = 'Ativo'
 
             //novoEquipamento.valorMercado1= data.valorMercado
@@ -707,6 +842,16 @@ class Equipamento {
                .update({ equipamento_id: equipamentoAdd.id })
          }
 
+         // Tratar galeria - transferir galeria para o registro atual
+         if (tipo_endosso !== 'substituicao-equipamento') {
+            const affectedRows = await Database.table('files')
+               .where('modulo', 'Equipamento')
+               .andWhere('idParent', equipamento.id)
+               .transacting(trx ? trx : null)
+               .update({ idParent: equipamentoAdd.id })
+         }
+
+         //await trx.rollback()
          await trx.commit()
 
          await equipamentoAdd.load('equipamentoProtecoes')
