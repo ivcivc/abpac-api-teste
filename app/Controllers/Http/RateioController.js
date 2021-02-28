@@ -82,11 +82,34 @@ class RateioController {
       return
    }
 
-   async equipamentosAtivos({ request, response }) {
+   async equipamentosAtivos({ params, response }) {
+      //const payload = request.all()
+      const dAdesao = params.dAdesao
+
+      try {
+         const retorno = await new RateioServices().equipamentosAtivos(dAdesao)
+         response.status(200).send({ type: true, data: retorno })
+      } catch (error) {
+         response.status(400).send(error)
+      }
+   }
+
+   async equipamentosDeBaixas({ params, response }) {
       //const payload = request.all()
 
       try {
-         const retorno = await new RateioServices().equipamentosAtivos()
+         const retorno = await new RateioServices().equipamentosDeBaixas()
+         response.status(200).send({ type: true, data: retorno })
+      } catch (error) {
+         response.status(400).send(error)
+      }
+   }
+
+   async creditoBaixados({ params, response }) {
+      //const payload = request.all()
+
+      try {
+         const retorno = await new RateioServices().creditoBaixados()
          response.status(200).send({ type: true, data: retorno })
       } catch (error) {
          response.status(400).send(error)
@@ -161,8 +184,15 @@ class RateioController {
 
    async store({ request, response, auth }) {
       const payload = request.all()
-
+      //return payload
       let trx = null
+
+      if ((await Redis.get('_isGravarRateio')) === 'sim') {
+         response
+            .status(400)
+            .send({ success: false, message: 'Servidor ocupado.' })
+         return
+      }
 
       try {
          trx = await Database.beginTransaction()
@@ -198,6 +228,10 @@ class RateioController {
       const ID = params.id
 
       try {
+         /*if (await Redis.get('_isGravarRateio')) {
+            throw { success: false, message: 'Servidor ocupado.' }
+         }*/
+
          const rateio = await new RateioServices().update(ID, payload)
 
          response.status(200).send({ type: true, data: rateio })

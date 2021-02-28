@@ -80,7 +80,7 @@ class EquipamentoSchema extends Schema {
          table.varchar('renavam3', 12)
 
          table
-            .enu('baixado', ['Não', 'Sim'], {
+            .enu('baixa', ['Não', 'Sim'], {
                useNative: true,
                existingType: true,
                enumName: 'equipa_baixado',

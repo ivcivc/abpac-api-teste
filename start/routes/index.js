@@ -61,6 +61,14 @@ Route.group(() => {
       'auth'
    ])
 
+   /*Route.get('/restricao/getAllRestricao', 'EquipamentoController.getAllRestricao').middleware([
+      'auth'
+   ])*/
+
+   Route.resource('/restricao', 'RestricaoController').middleware([
+      'auth'
+     ])
+
    Route.post('/equipamentos/totalAtivos', 'EquipamentoController.totalAtivos')
    /*.middleware([
       'auth'
@@ -193,7 +201,15 @@ Route.group(() => {
       'auth'
      ])
 
-   Route.get('/rateio/equipamentosAtivos', 'RateioController.equipamentosAtivos').middleware([
+   Route.get('/rateio/equipamentosAtivos/:dAdesao', 'RateioController.equipamentosAtivos').middleware([
+      'auth'
+     ])
+
+     Route.get('/rateio/equipamentosDeBaixas/', 'RateioController.equipamentosDeBaixas').middleware([
+      'auth'
+     ])
+
+     Route.get('/rateio/creditoBaixados/', 'RateioController.creditoBaixados').middleware([
       'auth'
      ])
 

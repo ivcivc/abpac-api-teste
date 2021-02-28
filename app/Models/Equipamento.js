@@ -4,29 +4,32 @@
 const Model = use('Model')
 
 class Equipamento extends Model {
-
-   equipamentoStatuses () {
+   equipamentoStatuses() {
       return this.hasMany('App/Models/EquipamentoStatus')
    }
 
-   ocorrencias () {
+   ocorrencias() {
       return this.hasMany('App/Models/Ocorrencia')
    }
 
    pessoa() {
-      return this.hasOne('App/Models/Pessoa', 'pessoa_id','id')
+      return this.hasOne('App/Models/Pessoa', 'pessoa_id', 'id')
    }
 
    categoria() {
-      return this.hasOne('App/Models/Categoria', 'categoria_id','id')
+      return this.hasOne('App/Models/Categoria', 'categoria_id', 'id')
    }
 
-   equipamentoProtecoes () {
+   equipamentoProtecoes() {
       return this.hasMany('App/Models/EquipamentoProtecao')
    }
 
-   equipamentoBeneficios () {
+   equipamentoBeneficios() {
       return this.hasMany('App/Models/EquipamentoBeneficio')
+   }
+
+   equipamentoRestricaos() {
+      return this.hasMany('App/Models/EquipamentoRestricao')
    }
 }
 

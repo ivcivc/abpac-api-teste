@@ -14,6 +14,10 @@ const ModelRateioConfig = use('App/Models/RateioConfig')
 const ModelBoleto = use('App/Models/Boleto')
 const ModelEmailLog = use('App/Models/EmailLog')
 const ModelRateioEquipamento = use('App/Models/RateioEquipamento')
+const ModelRateioEquipamentoBaixa = use('App/Models/RateioEquipamentoBaixa')
+const ModelRateioEquipamentoBaixaBeneficio = use(
+   'App/Models/RateioEquipamentoBaixaBeneficio'
+)
 const ModelRateioEquipamentoBeneficio = use(
    'App/Models/RateioEquipamentoBeneficio'
 )
@@ -42,9 +46,25 @@ class Rateio {
    async get(ID) {
       try {
          const rateio = await Model.findOrFail(ID)
-         await rateio.load('equipamentos')
+         await rateio.load('equipamentos.beneficios')
          await rateio.load('categorias')
          await rateio.load('resumos')
+         await rateio.load('inadimplentes', builder => {
+            builder.with('lancamento', b => {
+               b.select('id', 'pessoa_id', 'dVencimento', 'dRecebimento')
+               b.with('pessoa', p => {
+                  p.select('id', 'nome')
+               })
+            })
+         })
+         await rateio.load('equipamentoBaixas', builder => {
+            builder.with('beneficios')
+            //builder.with('categorias')
+         })
+         //await rateio.load('equipamentoBaixas.beneficios')
+         //await rateio.load('equipamentoBaixas.categorias')
+         await rateio.load('creditoBaixas')
+         //await rateio.load('equipamentosBeneficios')
          //await rateio.load('os')
 
          const os = await this.lista_os(rateio.id)
@@ -98,7 +118,18 @@ class Rateio {
       }
    }
 
-   async equipamentosAtivos() {
+   async creditoBaixados() {
+      const modelLancamento = await ModelLancamento.query()
+         //.where('isBaixa', true)
+         .where('creditoRateio', 'Sim')
+         .where('situacao', 'Compensado')
+         .with('pessoa')
+         .with('equipamento')
+         .fetch()
+      return modelLancamento
+   }
+
+   async equipamentosDeBaixas() {
       try {
          const query = await ModelEquipamento.query()
             .select(
@@ -129,6 +160,9 @@ class Rateio {
                'chassi3',
                'anoF3',
                'modeloF3',
+               'baixa',
+               'ratear',
+               'dEndosso',
                'updated_at'
             )
 
@@ -171,9 +205,210 @@ class Rateio {
                //builder.where('beneficio.rateio', 'Sim')
             })
 
-            //.where('id', '>', 1700)
+            //.where('id', '>', 1700),
+            .where('ratear', 'Sim')
+            .where('baixa', 'Sim')
+            .whereNull('idFilho')
+            .fetch()
+
+         let queryJson = query.toJSON()
+
+         let categorias = []
+
+         queryJson.forEach(e => {
+            e.valorTaxaAdmBase = e.categoria.valorTaxaAdm
+            e.valorBeneficiosBase = 0.0
+            e.valorRateio = 0.0
+            e.valorBeneficios = 0.0
+            e.valorTaxaAdm = e.categoria.valorTaxaAdm
+            e.valorTotal = 0.0
+
+            let arrBeneficios = []
+            e.equipamentoBeneficios.forEach(b => {
+               if (b.beneficio.rateio === 'Sim') {
+                  e.valorBeneficios += b.beneficio.valor
+                  e.valorBeneficiosBase += b.beneficio.valor
+                  arrBeneficios.push(b)
+               }
+            })
+
+            e.equipamentoBeneficios = arrBeneficios
+
+            /*for (var i in e.equipamentoBeneficios) {
+               let b = e.equipamentoBeneficios[i]
+               if (b.beneficio.rateio === 'Sim') {
+                  console.log('beneficio .... ', b.beneficio.nome)
+                  b.valorBeneficios += b.beneficio.valor
+                  b.valorBeneficiosBase += b.beneficio.valor
+               } else {
+                  console.log('excluindo .... ')
+                  delete e.equipamentoBeneficios[i]
+               }
+            }*/
+
+            e.pessoa_parcela = e.pessoa.parcela
+            e.pessoa_descontoEspecial =
+               e.pessoa.descontoEspecial > 0 ? e.pessoa.descontoEspecial : 0
+
+            if (e.pessoa.descontoEspecial === 0) {
+               let res = lodash.find(categorias, {
+                  categoria_id: e.categoria.id,
+                  isEspecial: false,
+                  grupo: 0,
+               })
+               if (res) {
+                  res.qtd++
+                  e.categoria = res
+               } else {
+                  const oCateg = {
+                     //id: new Date().getTime(),
+                     isEspecial: false,
+                     grupo: 0,
+                     ordem: e.categoria.ordem,
+                     abreviado: e.categoria.abreviado,
+                     categoria_id: e.categoria.id,
+                     nome: e.categoria.nome,
+                     percentualBase: e.categoria.percentualRateio,
+                     percentualEspecial: e.categoria.percentualRateio,
+                     percEditavel: e.categoria.percentualRateio,
+                     qtd: 1,
+                     txAdm: e.categoria.valorTaxaAdm,
+                  }
+                  categorias.push(oCateg)
+                  e.categoria = oCateg
+               }
+            } else {
+               let res = lodash.find(categorias, {
+                  categoria_id: e.categoria.id,
+                  isEspecial: true,
+                  grupo: e.pessoa.descontoEspecial,
+                  percentualEspecial: e.pessoa.descontoEspecial,
+               })
+               if (res) {
+                  res.qtd++
+                  e.categoria = res
+               } else {
+                  let perc = (100 - e.pessoa.descontoEspecial) * 0.01
+                  /*e.categoria.percentualRateio -
+                     e.categoria.percentualRateio *
+                        (e.pessoa.descontoEspecial * 0.01)*/
+                  /*e.categoria.percentualRateio -
+                     (e.categoria.percentualRateio *
+                        e.pessoa.descontoEspecial) /
+                        100*/
+                  const oCateg = {
+                     id: new Date().getTime(),
+                     isEspecial: true,
+                     ordem: e.categoria.ordem,
+                     abreviado: e.categoria.abreviado,
+                     grupo: e.pessoa.descontoEspecial,
+                     categoria_id: e.categoria.id,
+                     nome: e.categoria.nome,
+                     percentualBase: e.categoria.percentualRateio,
+                     percentualEspecial: e.pessoa.descontoEspecial,
+                     percEditavel: perc,
+                     qtd: 1,
+                     txAdm: e.categoria.valorTaxaAdm,
+                  }
+                  categorias.push(oCateg)
+                  e.categoria = oCateg
+               }
+            }
+         })
+
+         const orderCategoria = lodash.orderBy(
+            categorias,
+            ['nome', 'percEditavel'],
+            ['desc', 'desc']
+         )
+
+         //orderCategoria.forEach(e => console.log(e))
+
+         return { categorias: orderCategoria, equipamentos: queryJson }
+      } catch (e) {
+         throw e
+      }
+   }
+
+   async equipamentosAtivos(dAdesao) {
+      try {
+         const query = await ModelEquipamento.query()
+            .select(
+               'id',
+               'placa1',
+               'categoria_id',
+               'pessoa_id',
+               'dAdesao',
+               'status',
+               'especie1',
+               'marca1',
+               'modelo1',
+               'placa1',
+               'chassi1',
+               'anoF1',
+               'modeloF1',
+               'especie2',
+               'marca2',
+               'modelo2',
+               'placa2',
+               'chassi2',
+               'anoF2',
+               'modeloF2',
+               'especie3',
+               'marca3',
+               'modelo3',
+               'placa3',
+               'chassi3',
+               'anoF3',
+               'modeloF3',
+               'baixa',
+               'ratear',
+               'dEndosso',
+               'updated_at'
+            )
+
+            .with('pessoa', builder => {
+               builder.select(
+                  'id',
+                  'status',
+                  'nome',
+                  'tipoPessoa',
+                  'cpfCnpj',
+                  'telSms',
+                  'parcela',
+                  'descontoEspecial',
+                  'endRua',
+                  'endComplemento',
+                  'endBairro',
+                  'endCidade',
+                  'endEstado',
+                  'endCep'
+               )
+            })
+
+            .with('categoria', builder => {
+               builder.select(
+                  'id',
+                  'ordem',
+                  'abreviado',
+                  'nome',
+                  'tipo',
+                  'valorTaxaAdm',
+                  'percentualRateio'
+               )
+            })
+
+            .with('equipamentoBeneficios', builder => {
+               builder.with('beneficio', b => {
+                  b.select('id', 'descricao', 'rateio', 'modelo', 'valor')
+               })
+               builder.where('status', 'Ativo')
+               //builder.where('beneficio.rateio', 'Sim')
+            })
+
+            //.where('id', '>', 1700),
             .where('status', 'Ativo')
-            .where('dAdesao', '<=', '2021-01-31')
+            .where('dAdesao', '<=', dAdesao)
             .fetch()
 
          let queryJson = query.toJSON()
@@ -457,6 +692,10 @@ class Rateio {
             e.ordem_servico_id = e.id
             e.isRoot = false
 
+            if (e.marcado) {
+               e.checked = true
+            }
+
             if (e.isCredito) {
                e.valorTotal = e.valorTotal * -1
             }
@@ -485,6 +724,7 @@ class Rateio {
                if (!pai) {
                   let historico = `Ocorrencia: # ${e.ocorrencia_id} (${e.ocorrencia.tipoAcidente})`
                   let oPai = {
+                     checked: e.marcado,
                      ocorrencia_id: e.ocorrencia_id,
                      value: historico.toUpperCase(),
                      associado: e.ocorrencia.pessoa.nome,
@@ -607,6 +847,7 @@ class Rateio {
 
    async add(payload, trx, auth) {
       let nrErro = null
+      await Redis.set('_isGravarRateio', 'sim')
 
       let oRateio = {
          dInicio: moment(payload.periodo.start).format('YYYY-MM-DD'),
@@ -625,13 +866,60 @@ class Rateio {
       const affectedRows = await Database.table('ordem_servicos')
          .whereIn('id', arrOS)
          .transacting(trx ? trx : null)
-         .update({ rateio_id, updated_at })
+         .update({ rateio_id, marcado: true, updated_at })
 
       if (affectedRows != arrOS.length) {
          nrErro = -100
          throw {
             success: false,
             message: 'Não foi possível atualizar a ordem de serviço.',
+         }
+      }
+
+      // Credito de Baixa (Conta receber de baixa quitada - lançada como credito rateio)
+      let arrCreditoBaixa = []
+      for (const key in payload.creditoBaixa) {
+         if (payload.creditoBaixa.hasOwnProperty(key)) {
+            const e = payload.creditoBaixa[key]
+            const dRecebimento = moment(e.dRecebimento, 'YYYY-MM-DD').format(
+               'YYYY-MM-DD'
+            )
+            const dEndosso = moment(
+               e.equipamento.dEndosso,
+               'YYYY-MM-DD'
+            ).format('YYYY-MM-DD')
+            let oRegistro = {
+               rateio_id: rateio.id,
+               dRecebimento: dRecebimento,
+               dEndosso: dEndosso,
+               lancamento_id: e.id,
+               pessoa_id: e.pessoa_id,
+               pessoa_nome: e.pessoa.nome,
+               placa: e.equipamento.placa1,
+               valorCredito: e.valorCompensado,
+            }
+            arrCreditoBaixa.push(oRegistro)
+            await rateio.creditoBaixas().create(oRegistro, trx ? trx : null)
+
+            // Marcar o lancamento como rateado
+            let affectedRows = await Database.table('lancamentos')
+               .where('id', e.id)
+               .where('updated_at', e.updated_at)
+               .transacting(trx ? trx : null)
+               .update({
+                  rateio_id: rateio.id,
+                  updated_at,
+                  creditoRateio: 'Rateado',
+               })
+
+            if (affectedRows != 1) {
+               nrErro = -100
+               throw {
+                  success: false,
+                  message:
+                     'Não foi possível atualizar conta lançamento (Crédito de baixa).',
+               }
+            }
          }
       }
 
@@ -646,6 +934,10 @@ class Rateio {
                categoria_nome: e.categoria.nome,
                chassi: e.chassi1,
                dAdesao: moment(e.dAdesao).format('YYYY-MM-DD'),
+               dEndosso: e.dEndosso
+                  ? moment(e.dEndosso).format('YYYY-MM-DD')
+                  : null,
+               baixa: e.baixa,
                especie: e.especie1,
                anoF: e.anoF1,
                equipamento_id: e.id,
@@ -679,7 +971,7 @@ class Rateio {
                         rateio_equipamento_id: equipa.id,
                         beneficio: el.beneficio.descricao,
                         modelo: el.beneficio.modelo,
-                        valor: el.beneficio.valor,
+                        valor: el.valor,
                      }
                      await ModelRateioEquipamentoBeneficio.create(
                         oBene,
@@ -691,6 +983,81 @@ class Rateio {
          }
       }
       //await rateio.equipamentos().createMany(arrRateioEquipa, trx ? trx : null)
+
+      // Equipamentos Baixa (Não participam diretamente do rateio - copiam o valor rateado e aplica desconto 50% quando for de direito)
+      let arrRateioEquipaBaixa = []
+      for (const key in payload.equipamentoBaixa) {
+         if (payload.equipamentoBaixa.hasOwnProperty(key)) {
+            const e = payload.equipamentoBaixa[key]
+            let registroEquipa = {
+               categoria_id: e.categoria_id,
+               categoria_abreviado: e.categoria.abreviado,
+               categoria_nome: e.categoria.nome,
+               chassi: e.chassi1,
+               dAdesao: moment(e.dAdesao).format('YYYY-MM-DD'),
+               dEndosso: moment(e.dEndosso).format('YYYY-MM-DD'),
+               baixa: e.baixa,
+               especie: e.especie1,
+               anoF: e.anoF1,
+               equipamento_id: e.id,
+               marca: e.marca1,
+               modelo: e.modelo1,
+               modeloF: e.modeloF1,
+               pessoa_nome: e.pessoa.nome,
+               pessoa_descontoEspecial: e.pessoa_descontoEspecial,
+               pessoa_id: e.pessoa_id,
+               pessoa_parcela: e.pessoa_parcela,
+               placa: e.placa1,
+               valorBeneficios: e.valorBeneficios,
+               valorBeneficiosBase: e.valorBeneficiosBase,
+               valorRateio: e.valorRateio,
+               valorTaxaAdm: e.valorTaxaAdm,
+               valorTaxaAdmBase: e.valorTaxaAdmBase,
+               valorTotal: e.valorTotal,
+            }
+            arrRateioEquipaBaixa.push(registroEquipa)
+
+            let equipa = await rateio
+               .equipamentoBaixas()
+               .create(registroEquipa, trx ? trx : null)
+
+            // Tabela rateio_equipamento_beneficios
+            if (e.equipamentoBeneficios) {
+               for (const i in e.equipamentoBeneficios) {
+                  if (Object.hasOwnProperty.call(e.equipamentoBeneficios, i)) {
+                     const el = e.equipamentoBeneficios[i]
+                     let oBene = {
+                        equipa_baixa_id: equipa.id,
+                        beneficio: el.beneficio.descricao,
+                        modelo: el.beneficio.modelo,
+                        valor: el.valor,
+                     }
+                     await ModelRateioEquipamentoBaixaBeneficio.create(
+                        oBene,
+                        trx ? trx : null
+                     )
+                  }
+               }
+            }
+
+            // Marcar no Equipamento (endosso/Baixa/Inativo) como rateado
+            let affectedRows = await Database.table('equipamentos')
+               .where('id', e.id)
+               .where('updated_at', e.updated_at)
+               .transacting(trx ? trx : null)
+               .update({
+                  updated_at,
+                  ratear: 'Rateado',
+               })
+            if (affectedRows != 1) {
+               nrErro = -100
+               throw {
+                  success: false,
+                  message: 'Não foi possível atualizar equipamento (Baixa).',
+               }
+            }
+         }
+      }
 
       // Inadimplente
       if (lodash.has(payload.inadimplente, 'creditos')) {
@@ -717,6 +1084,7 @@ class Rateio {
                   .where('updated_at', e.updated_at)
                   .transacting(trx ? trx : null)
                   .update({
+                     rateio_id: rateio.id,
                      updated_at,
                      inadimplente: 'Credito',
                      valorCreditoInad: e.valorTotal,
@@ -780,6 +1148,7 @@ class Rateio {
                   .where('updated_at', e.updated_at)
                   .transacting(trx ? trx : null)
                   .update({
+                     rateio_id: rateio.id,
                      updated_at,
                      inadimplente: 'Debito',
                      valorDebitoInad: e.valorTotal,
@@ -841,6 +1210,7 @@ class Rateio {
       }
 
       //await trx.rollback()
+      await Redis.set('_isGravarRateio', false)
       await trx.commit()
    }
 
@@ -874,10 +1244,21 @@ class Rateio {
                }
             }
          }
+
+         //this.redisCategoriaTemp(payload.calculo)
       }
 
       await trx.commit()
    }
+
+   /*async redisCategoriaTemp(categoria) {
+      if (!categoria) {
+         await Redis.del('rateioCategoriaTemp')
+      } else {
+         const json = JSON.stringify(categoria)
+         await Redis.set('rateioCategoriaTemp', json)
+      }
+   }*/
 
    async update(ID, data) {
       try {

@@ -5,6 +5,8 @@ const moment = require('moment')
 const Model = use('App/Models/Equipamento')
 const EquipamentoStatus = use('App/Models/EquipamentoStatus')
 const EquipamentoProtecao = use('App/Models/EquipamentoProtecao')
+const ModelEquipamentoRestricao = use('App/Models/EquipamentoRestricao')
+const ModelRestricao = use('App/Models/Restricao')
 const EquipamentoProtecaoService = use('App/Services/EquipamentoProtecao')
 const ModelOcorrencia = use('App/Models/Ocorrencia')
 const EquipamentoBeneficioService = use('App/Services/EquipamentoBeneficio')
@@ -31,11 +33,18 @@ class Equipamento {
          }
 
          let equipamento = await Model.findOrFail(ID)
+
+         let addRestricoes = []
+
+         if (lodash.has(data, 'equipamentoRestricaos')) {
+            addRestricoes = data.equipamentoRestricaos
+         }
          //let protecoes= data['protecoes']
 
          delete data['status']
          delete data['protecoes']
          delete data['categoria']
+         delete data['equipamentoRestricaos']
 
          if (
             lodash.has(data, 'placa1') &&
@@ -48,6 +57,17 @@ class Equipamento {
          equipamento.merge(data)
 
          await equipamento.save(trx ? trx : null)
+
+         await ModelEquipamentoRestricao.query()
+            .where('equipamento_id', equipamento.id)
+            .transacting(trx ? trx : null)
+            .delete()
+
+         if (addRestricoes) {
+            await equipamento
+               .equipamentoRestricaos()
+               .createMany(addRestricoes, trx ? trx : null)
+         }
 
          // Protecoes (localizador e bloqueador)
          /*if ( protecoes) {
@@ -82,6 +102,9 @@ class Equipamento {
             .with('equipamentoProtecoes')
             .with('equipamentoBeneficios')
             .with('equipamentoBeneficios.beneficio')
+            .with('equipamentoRestricaos', builder => {
+               // builder.with('restricao')
+            })
             /*.with('posts.comments', (builder) => {
             builder.where('approved', true)
          })*/
@@ -112,8 +135,15 @@ class Equipamento {
          let protecoes = data.protecoes
          let beneficios = data.beneficios
 
+         let addRestricoes = null
+
+         if (lodash.has(data, 'equipamentoRestricaos')) {
+            addRestricoes = data.equipamentoRestricaos
+         }
+
          delete data['protecoes']
          delete data['beneficios']
+         delete data['equipamentoRestricaos']
 
          if (!trx) {
             showNewTrx = true
@@ -167,6 +197,19 @@ class Equipamento {
             }
          }
 
+         /*if (addRestricoes) {
+            for (const key in addRestricoes) {
+               if (addRestricoes.hasOwnProperty(key)) {
+                  const element = addRestricoes[key]
+                  element.equipamento_id = equipamento.id
+                  await ModelEquipamentoRestricao.create(
+                     element,
+                     trx ? trx : null
+                  )
+               }
+            }
+         }*/
+
          const fileConfig = await FileConfig.query()
             .where('modulo', 'like', 'Equipamento')
             .fetch()
@@ -182,14 +225,20 @@ class Equipamento {
             const model = await Galeria.create(payload, trx)
          }
 
+         if (addRestricoes) {
+            await equipamento
+               .equipamentoRestricaos()
+               .createMany(addRestricoes, trx ? trx : null)
+         }
+
          if (showNewTrx) {
             await trx.commit()
          }
 
          /*await equipamento.load('equipamentoStatuses')
-      await equipamento.load('pessoa')
-      await equipamento.load('equipamentoProtecoes')
-      await equipamento.load('categoria')*/
+         await equipamento.load('pessoa')
+         await equipamento.load('equipamentoProtecoes')
+         await equipamento.load('categoria')*/
 
          const query = await Model.query()
             .where('id', equipamento.id)
@@ -199,6 +248,9 @@ class Equipamento {
             .with('equipamentoProtecoes')
             .with('equipamentoBeneficios')
             .with('equipamentoBeneficios.beneficio')
+            .with('equipamentoRestricaos', builder => {
+               builder.with('restricao')
+            })
             .fetch()
 
          return query
@@ -511,7 +563,13 @@ class Equipamento {
             //novoEquipamento.valorMercado1= data.valorMercado
             novoEquipamento.tipoEndosso = 'Baixa do Equipamento'
             novoEquipamento.dEndosso = dEndosso
-            novoEquipamento.baixado = 'Sim'
+            novoEquipamento.baixa = 'Sim'
+
+            if (lancamento) {
+               novoEquipamento.ratear = 'Não'
+            } else {
+               novoEquipamento.ratear = 'Sim'
+            }
 
             // Adincionar novo equipamento (endosso)
             equipamentoAdd = await Model.create(
@@ -563,7 +621,7 @@ class Equipamento {
                   tipo: 'Receita',
                   parcelaI: 1,
                   parcelaF: 1,
-                  equipamento_id: novoEquipamento.id,
+                  equipamento_id: equipamentoAdd.id,
                   dVencimento: lancamento.dVencimento,
                   dCompetencia: dEndosso,
                   valorBase: lancamento.valorReceber,
@@ -571,8 +629,11 @@ class Equipamento {
                   pessoa_id: equipamento.pessoa_id,
                   historico: planoContaID.descricao + ' ' + equipamento.placa1,
                   forma: lancamento.forma,
+                  creditoRateio: 'Sim',
+                  isBaixa: true,
                   //baixado: 'Sim',
                   situacao: 'Aberto',
+                  status: 'Aberto',
                   conta_id: lancamento.conta_id,
                   items: [
                      {
@@ -585,13 +646,15 @@ class Equipamento {
                   ],
                }
 
-               await new LancamentoService().add(
+               const modelLancamento = await new LancamentoService().add(
                   oReceber,
                   trx,
                   auth,
                   false, //lancamento.forma === 'boleto', // isJobs
                   false // isCommit
                )
+
+               equipamentoAdd.lancamento_id = modelLancamento.id
             }
          }
          // Baixa (inativação)
@@ -662,6 +725,7 @@ class Equipamento {
                novoEquipamento,
                trx ? trx : null
             )
+
             oEquipamento.idFilho = equipamentoAdd.id
 
             equipamento.merge(oEquipamento)
@@ -769,6 +833,27 @@ class Equipamento {
             await EquipamentoStatus.create(status, trx ? trx : null)
 
             // Beneficios - copiar para o atual
+            const beneficios = data.beneficios
+            if (beneficios) {
+               for (let i in beneficios) {
+                  let r = beneficios[i]
+                  let registro = {
+                     dInicio: new Date(),
+                     equipamento_id: equipamentoAdd.id,
+                     beneficio_id: r.beneficio_id,
+                     status: r.status,
+                     obs: r.obs,
+                  }
+                  //r.equipamento_id= novoEquipamento.equipamento_id
+                  await new EquipamentoBeneficioService().add(
+                     registro,
+                     trx,
+                     auth
+                  )
+               }
+            }
+
+            /*// Beneficios - copiar para o atual
             const queryBeneficios = await EquipamentoBeneficio.query()
                .where('equipamento_id', 'like', equipamento.id)
                .fetch()
@@ -784,7 +869,7 @@ class Equipamento {
                }
                //r.equipamento_id= novoEquipamento.equipamento_id
                await new EquipamentoBeneficioService().add(registro, trx, auth)
-            }
+            }*/
 
             /*if ( lodash.has(data, 'beneficios')) {
                // Transferir beneficios para o equipamento atual (endosso)
@@ -840,6 +925,12 @@ class Equipamento {
                .where('equipamento_id', equipamento.id)
                .transacting(trx ? trx : null)
                .update({ equipamento_id: equipamentoAdd.id })
+
+            // Transferir restriçoes para o equipamento atual (endosso)
+            await ModelEquipamentoRestricao.query()
+               .where('equipamento_id', equipamento.id)
+               .transacting(trx ? trx : null)
+               .update({ equipamento_id: equipamentoAdd.id })
          }
 
          // Tratar galeria - transferir galeria para o registro atual
@@ -860,6 +951,7 @@ class Equipamento {
          await equipamentoAdd.load('categoria')
          await equipamentoAdd.load('equipamentoBeneficios')
          await equipamentoAdd.load('ocorrencias')
+         await equipamentoAdd.load('equipamentoRestricaos')
 
          return equipamentoAdd
       } catch (e) {
@@ -878,6 +970,7 @@ class Equipamento {
          await equipamento.load('equipamentoProtecoes')
          //await equipamento.load('equipamentoBeneficios')
          await equipamento.load('equipamentoBeneficios.beneficio')
+         await equipamento.load('equipamentoRestricaos')
 
          //await equipamento.load('ocorrencias')
 
@@ -897,6 +990,9 @@ class Equipamento {
             .with('equipamentoProtecoes')
             .with('equipamentoBeneficios')
             .with('equipamentoStatuses')
+            .with('equipamentoRestricaos', builder => {
+               builder.with('restricao')
+            })
             .with('equipamentoStatuses.user')
             .fetch()
 
@@ -923,6 +1019,16 @@ class Equipamento {
          throw e
       }
    }
+
+   /*async getAllRestricao() {
+      try {
+         const restricoes = await ModelRestricao.all()
+
+         return restricoes
+      } catch (e) {
+         throw e
+      }
+   }*/
 
    async addStatus(data, trx, auth) {
       try {

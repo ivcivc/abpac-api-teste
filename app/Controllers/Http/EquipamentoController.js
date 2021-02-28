@@ -23,6 +23,17 @@ class EquipamentoController {
       }
    }
 
+   /*async getAllRestricao({ request, response }) {
+      try {
+         const service = await new EquipamentoServices().getAllRestricao()
+
+         response.status(200).send({ type: true, data: service })
+      } catch (error) {
+         console.log(error)
+         response.status(400).send(error)
+      }
+   }*/
+
    async totalAtivos({ request, response, auth }) {
       const payload = request.all()
 
