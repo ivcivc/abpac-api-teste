@@ -179,6 +179,9 @@ Route.group(() => {
       'auth'
      ])
 
+   Route.post('/lancamentoAddBoleto', 'LancamentoController.gerarBoleto').middleware([
+      'auth'
+     ])
    /*Route.resource('/rateio', 'RateioController').middleware([
       'auth'
      ])*/

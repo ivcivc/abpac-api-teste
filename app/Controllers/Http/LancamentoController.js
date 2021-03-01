@@ -6,6 +6,7 @@ const LancamentoService = use('App/Services/Lancamento')
 const kue = use('Kue')
 const Job = use('App/Jobs/ACBr')
 const PessoaModel = use('App/Models/Pessoa')
+const Redis = use('Redis')
 
 class LancamentoController {
    async index({ params, request, response }) {}
@@ -275,6 +276,41 @@ class LancamentoController {
       return response
          .header('Content-type', 'application/pdf')
          .download(result.arquivo)
+   }
+
+   async gerarBoleto({ request, response, auth }) {
+      const payload = request.all()
+
+      try {
+         const _gerarFinanceiro = await Redis.get('_gerarFinanceiro')
+         if (!_gerarFinanceiro) {
+            await Redis.set('_gerarFinanceiro', 'financeiro') // gerar financeiro
+         } else {
+            if (_gerarFinanceiro === 'livre') {
+               await Redis.set('_gerarFinanceiro', 'financeiro') // gerar financeiro
+            } else {
+               await Redis.set('_gerarFinanceiro', 'livre')
+               throw {
+                  success: false,
+                  message:
+                     'Existe um processamento pendente no servidor. Aguarde a finalização.',
+               }
+            }
+         }
+
+         const service = await new LancamentoService().gerarBoleto(
+            payload,
+            auth
+         )
+
+         await Redis.set('_gerarFinanceiro', 'livre')
+         response.status(200).send({ type: true, data: service })
+      } catch (error) {
+         await Redis.set('_gerarFinanceiro', 'livre')
+         //await trx.rollback()
+         console.log(error)
+         response.status(400).send(error)
+      }
    }
 }
 

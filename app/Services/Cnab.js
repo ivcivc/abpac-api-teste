@@ -177,11 +177,14 @@ class Cnab {
                content[indexObj].ValorMoraJuros = '0,0333'
 
                let mJuros = moment(e.dVencimento2, 'YYYY-MM-DD')
-               let dJuros = mJuros.add(5, 'day').format('DD/MM/YYYY')
+               let dJuros =
+                  mJuros.add(6, 'day').format('YYYY-MM-DD') + 'T00:00:00-03:00'
+               let dJurosFormatado = moment(dJuros).format('DD/MM/YYYY')
 
-               content[indexObj].DataMoraJuros = dJuros //
+               content[indexObj].DataMoraJuros = dJurosFormatado //
 
                content[indexObj].PercentualMulta = 2
+               content[indexObj].DataMulta = dJurosFormatado
 
                content[indexObj].DataDocumento = moment().format('DD/MM/YYYY')
                content[indexObj].DataProcessamento = moment().format(

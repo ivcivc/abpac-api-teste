@@ -249,7 +249,7 @@ class Equipamento {
             .with('equipamentoBeneficios')
             .with('equipamentoBeneficios.beneficio')
             .with('equipamentoRestricaos', builder => {
-               builder.with('restricao')
+               //builder.with('restricao')
             })
             .fetch()
 

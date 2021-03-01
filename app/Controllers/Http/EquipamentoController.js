@@ -2,6 +2,7 @@
 
 const EquipamentoServices = use('App/Services/Equipamento')
 const Database = use('Database')
+
 /**
  * Resourceful controller for interacting with equipamentos
  */

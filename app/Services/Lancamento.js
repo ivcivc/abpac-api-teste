@@ -5,6 +5,12 @@ const moment = require('moment')
 const Model = use('App/Models/Lancamento')
 const ModelItem = use('App/Models/LancamentoItem')
 const ModelStatus = use('App/Models/LancamentoStatus')
+const ModelBoleto = use('App/Models/Boleto')
+const ModelConta = use('App/Models/Conta')
+const ModelBoletoConfig = use('App/Models/BoletoConfig')
+const ModelPessoa = use('App/Models/Pessoa')
+
+const Boleto = use('App/Services/Cnab')
 
 const ServiceConfig = use('App/Services/LancamentoConfig')
 
@@ -1248,6 +1254,175 @@ class Lancamento {
          return { success: true, message: 'Excluido com sucesso' }
       } catch (e) {
          await trx.rollback()
+         if (nrErro) {
+            if (nrErro === -100) {
+               throw e
+            }
+         }
+         throw {
+            message: e.message,
+            sqlMessage: e.sqlMessage,
+            sqlState: e.sqlState,
+            errno: e.errno,
+            code: e.code,
+         }
+      }
+   }
+
+   async gerarBoleto(data, auth) {
+      let nrErro = null
+      try {
+         const trx = await Database.beginTransaction()
+
+         delete data['nome']
+         delete data['boletos']
+         delete data['status_situacao']
+         delete data['parcelas']
+
+         let model = await Model.findOrFail(data.id)
+         delete data['pessoa']
+
+         const update_at_db = moment(model.updated_at).format()
+         const update_at = moment(data.updated_at).format()
+
+         if (update_at_db !== update_at) {
+            nrErro = -100
+            throw {
+               success: false,
+               message:
+                  'Transação abortada! Este registro foi alterado por outro usuário.',
+            }
+         }
+
+         if (model.status !== data.status || model.situacao !== data.situacao) {
+            /* lançar novo status */
+         }
+
+         let items = data['items']
+         items.forEach(e => {
+            delete e['id']
+            delete e['planoDeConta']
+            e.lancamento_id = model.id
+         })
+         delete data['items']
+
+         let quitacoes = []
+         if (lodash.has(data, 'quitacoes')) {
+            if (data.quitacoes) {
+               data.quitacoes.forEach(e => {
+                  items.push(e)
+               })
+            }
+         }
+         delete data['quitacoes']
+
+         if (data.situacao !== model.situacao) {
+            const status = {
+               lancamento_id: model.id,
+               user_id: auth.user.id,
+               motivo: 'Alteração de status',
+               status: data.situacao,
+            }
+            await ModelStatus.create(status, trx ? trx : null)
+         }
+
+         //const itemsDB = await model.items() //.fetch()
+         //itemsDB.delete(trx)
+         await model
+            .items()
+            .where('lancamento_id', model.id)
+            .transacting(trx ? trx : null)
+            .delete()
+
+         model.merge(data)
+
+         await model.items().createMany(items, trx ? trx : null)
+
+         // Contas (plano de contas)
+         const conta = await ModelConta.find(model.conta_id)
+         if (!conta) {
+         }
+         let boletoConfig = await ModelBoletoConfig.findByOrFail(
+            'modelo',
+            conta.modeloBoleto
+         )
+
+         // Boleto
+         let nossoNumero = boletoConfig.nossoNumero
+         boletoConfig.nossoNumero = nossoNumero + 1
+         nossoNumero = boletoConfig.nossoNumero
+
+         console.log(nossoNumero)
+
+         await boletoConfig.save()
+
+         const objBoleto = {
+            conta_id: model.conta_id,
+            boleto_nota1: '',
+            boleto_nota2: '',
+            dVencimento: moment(model.dVencimento, 'YYYY-MM-DD').format(
+               'YYYY-MM-DD'
+            ),
+            dCompensacao: null,
+
+            nossoNumero: nossoNumero,
+            lancamento_id: model.id,
+            pessoa_id: model.pessoa_id,
+
+            valorTotal: model.valorTotal,
+            status: 'Aberto',
+         }
+
+         const modelBoleto = ModelBoleto.create(objBoleto, trx ? trx : null)
+
+         await model.save(trx ? trx : null)
+
+         await model.load('pessoa')
+         let jsonLancamento = model.toJSON()
+
+         const dVenc = model.dVencimento
+         objBoleto.pessoa = jsonLancamento.pessoa
+         objBoleto.dVencimento = moment(dVenc, 'YYYY-MM-DD').format(
+            'DD/MM/YYYY'
+         )
+         objBoleto.dVencimento2 = moment(dVenc, 'YYYY-MM-DD').format(
+            'YYYY-MM-DD'
+         )
+         objBoleto.valorTotal = objBoleto.valorTotal //.toString().replace('.', ',')
+         objBoleto.banco = conta.banco
+         objBoleto.agencia = conta.agencia
+         objBoleto.agenciaDV = conta.agenciaDV
+         objBoleto.contaCorrente = conta.contaCorrente
+         objBoleto.contaCorrenteDV = conta.contaCorrenteDV
+         objBoleto.convenio = conta.convenio
+         objBoleto.pessoa_nome = jsonLancamento.pessoa.nome
+         objBoleto.cpfCnpj = jsonLancamento.pessoa.cpfCnpj
+         objBoleto.endRua = jsonLancamento.pessoa.endRua
+         objBoleto.Numero = '.'
+         objBoleto.endBairro = jsonLancamento.pessoa.endBairro
+         objBoleto.endComplemento = jsonLancamento.pessoa.endComplemento
+         objBoleto.endCidade = jsonLancamento.pessoa.endCidade
+         objBoleto.endEstado = jsonLancamento.pessoa.endEstado
+         objBoleto.endCep = jsonLancamento.pessoa.endCep
+
+         const boleto = await new Boleto().gerarBoleto([objBoleto])
+
+         if (!boleto.success) {
+            throw boleto
+         }
+
+         //await trx.rollback()
+         await trx.commit()
+
+         await model.load('items')
+         await model.load('boletos')
+
+         let json = model.toJSON()
+
+         return json
+      } catch (e) {
+         await trx.rollback()
+
          if (nrErro) {
             if (nrErro === -100) {
                throw e
