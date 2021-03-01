@@ -596,8 +596,12 @@ class Cnab {
             json.SeuNumero = json.lancamento_id
 
             json.ValorDocumento = json.valorTotal
-            json.dVencimento = moment(json.dVencimento).format('DD/MM/YYYY')
-            json.dVencimento2 = json.dVencimento
+            json.dVencimento = moment(json.dVencimento, 'YYYY-MM-DD').format(
+               'DD/MM/YYYY'
+            )
+            json.dVencimento2 = moment(json.dVencimento, 'DD/MM/YYYY').format(
+               'YYYY-MM-DD'
+            )
 
             json.DataDocumento = moment(json.created_at).format('DD/MM/YYYY')
             json.DataProcessamento = moment(json.created_at).format(
