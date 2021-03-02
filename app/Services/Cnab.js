@@ -312,6 +312,14 @@ class Cnab {
       })
    }*/
 
+   async aguardar(n) {
+      return new Promise(async (resolve, reject) => {
+         setTimeout(() => {
+            resolve(true)
+         }, n)
+      })
+   }
+
    async gerarPDF(arquivoPDF = null) {
       return new Promise(async (resolve, reject) => {
          try {
@@ -326,6 +334,7 @@ class Cnab {
             let success = { success: true, message: '' }
 
             for (let i = 0; i <= respostaQTD.result; i++) {
+               await this.aguardar(2000)
                const rGb = await this.emit(`BOLETO.GerarPDFBoleto(${i})`)
                if (!rGb.success) {
                   throw rGb

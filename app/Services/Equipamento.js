@@ -713,7 +713,7 @@ class Equipamento {
             novoEquipamento.idPai = equipamento.id
             novoEquipamento.idFilho = null
             novoEquipamento.idPrincipal = oEquipamento.idPrincipal
-            novoEquipamento.baixado = 'Não'
+            novoEquipamento.baixa = 'Não'
             novoEquipamento.status = 'Ativo'
 
             //novoEquipamento.valorMercado1= data.valorMercado

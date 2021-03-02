@@ -15,9 +15,11 @@ const ModelBoleto = use('App/Models/Boleto')
 const ModelEmailLog = use('App/Models/EmailLog')
 const ModelRateioEquipamento = use('App/Models/RateioEquipamento')
 const ModelRateioEquipamentoBaixa = use('App/Models/RateioEquipamentoBaixa')
+const ModelRateioCreditoBaixa = use('App/Models/RateioCreditoBaixa')
 const ModelRateioEquipamentoBaixaBeneficio = use(
    'App/Models/RateioEquipamentoBaixaBeneficio'
 )
+
 const ModelRateioEquipamentoBeneficio = use(
    'App/Models/RateioEquipamentoBeneficio'
 )
@@ -1084,7 +1086,7 @@ class Rateio {
                   .where('updated_at', e.updated_at)
                   .transacting(trx ? trx : null)
                   .update({
-                     rateio_id: rateio.id,
+                     //rateio_id: rateio.id,
                      updated_at,
                      inadimplente: 'Credito',
                      valorCreditoInad: e.valorTotal,
@@ -1148,7 +1150,7 @@ class Rateio {
                   .where('updated_at', e.updated_at)
                   .transacting(trx ? trx : null)
                   .update({
-                     rateio_id: rateio.id,
+                     //rateio_id: rateio.id,
                      updated_at,
                      inadimplente: 'Debito',
                      valorDebitoInad: e.valorTotal,
@@ -1318,6 +1320,48 @@ class Rateio {
             .orderBy(['p.nome'])
             .where('e.rateio_id', rateio_id)
 
+         const queryBaixa = await Database.select([
+            'e.rateio_id',
+            'e.pessoa_id',
+            'pessoa_nome',
+            'p.cpfCnpj',
+            'p.tipoPessoa',
+            'p.parcela',
+            'p.endRua',
+            'p.endBairro',
+            'p.endCidade',
+            'p.endEstado',
+            'p.endComplemento',
+            'p.endCep',
+            'p.telSms',
+            'p.email',
+         ])
+            .from('rateio_equipamento_baixas as e')
+            .leftOuterJoin('pessoas as p', 'e.pessoa_id', 'p.id') //.where('pessoas.modulo', 'Associado')
+            .groupBy('pessoa_id')
+            .sum('e.valorBeneficios as valorBeneficios')
+            .sum('valorTaxaAdm as valorTaxaAdm')
+            .sum('valorRateio as valorRateio')
+            .sum('valorTotal as valorTotal')
+            .orderBy(['p.nome'])
+            .where('e.rateio_id', rateio_id)
+
+         let incluiuArray = false
+         queryBaixa.forEach(e => {
+            delete e['categoria_nome']
+            const r = query.find(o => o.pessoa_id === e.pessoa_id)
+            if (r) {
+               r.valorRateio = r.valorRateio + e.valorRateio
+               r.valorTaxaAdm = r.valorTaxaAdm + e.valorTaxaAdm
+               r.valorTaxaAdmBase = r.valorTaxaAdmBase + e.valorTaxaAdmBase
+               r.valorTotal = r.valorTotal + e.valorTotal
+            }
+         })
+
+         if (incluiuArray) {
+            query = lodash.orderBy(query, ['nome'], ['asc'])
+         }
+
          let conta = await ModelConta.query()
             .where('status', 'Ativo')
             .whereNot('modeloBoleto', '-1')
@@ -1325,7 +1369,13 @@ class Rateio {
 
          let config = await ModelRateioConfig.query().fetch()
 
-         return { rateio: model, lista: query, contas: conta, config }
+         return {
+            rateio: model,
+            lista: query,
+            contas: conta,
+            config,
+            baixas: queryBaixa,
+         }
       } catch (e) {
          throw {
             message: e.message,
@@ -1606,6 +1656,7 @@ class Rateio {
                'isEmail',
             ])
             .where('rateio_id', rateio_id)
+            .where('creditoRateio', 'Não')
             .with('pessoa', builder => {
                builder.select([
                   'id',
@@ -1720,8 +1771,18 @@ class Rateio {
                .with('beneficios')
                .fetch()
 
+            const modelEquipamentoBaixa = await ModelRateioEquipamentoBaixa.query()
+               .where('rateio_id', rateio_id)
+               .where('pessoa_id', pessoa_id)
+               .with('beneficios')
+               .fetch()
+
+            const equipaJsonBaixa = modelEquipamentoBaixa.toJSON()
+
             if (model.rows.length === 0) {
-               throw { message: 'Equipamento não encontrado no rateio' }
+               if (modelEquipamentoBaixa.length === 0) {
+                  throw { message: 'Equipamento não encontrado no rateio' }
+               }
             }
 
             const fonts = {
@@ -1764,6 +1825,10 @@ class Rateio {
             let associado = ''
 
             const equipaJson = model.toJSON()
+
+            equipaJsonBaixa.forEach(e => {
+               equipaJson.push(e)
+            })
 
             for (const key in equipaJson) {
                if (Object.hasOwnProperty.call(equipaJson, key)) {
@@ -1810,36 +1875,50 @@ class Rateio {
 
                   associado = e.pessoa_nome
 
+                  let msgBaixa = ''
+                  if (e.baixa === 'Sim') {
+                     const d = moment(e.dEndosso, 'YYYY-MM-DD').format(
+                        'DD/MM/YYYY'
+                     )
+                     msgBaixa = ` - (BAIXADO EM ${d})`
+                  }
+
                   const obj = [
                      //{ text: e.pessoa_nome, bold: false },
-                     { text: e.marca + ' ' + e.modelo, bold: false },
-                     { text: e.placa, bold: false },
-                     { text: e.categoria_nome, bold: false },
+                     {
+                        text: e.marca + ' ' + e.modelo,
+                        bold: e.baixa === 'Sim',
+                     },
+                     { text: e.placa, bold: e.baixa === 'Sim' },
+                     {
+                        text: e.categoria_nome + msgBaixa,
+                        bold: e.baixa === 'Sim',
+                     },
                      {
                         text: this.moeda(nRateioTxAdm),
-                        bold: false,
+                        bold: e.baixa === 'Sim',
                         alignment: 'right',
                      },
                      {
                         text: this.moeda(terceiro),
-                        bold: false,
+                        bold: e.baixa === 'Sim',
                         alignment: 'right',
                      },
                      {
                         text: this.moeda(assist24h),
-                        bold: false,
+                        bold: e.baixa === 'Sim',
                         alignment: 'right',
                      },
                      {
                         text: this.moeda(outros),
-                        bold: false,
+                        bold: e.baixa === 'Sim',
                         alignment: 'right',
                      },
                      {
                         text: this.moeda(
                            nRateioTxAdm + terceiro + assist24h + outros
                         ),
-                        bold: false,
+                        bold: e.baixa === 'Sim',
                         alignment: 'right',
                      },
                   ]
@@ -1982,6 +2061,15 @@ class Rateio {
                if (e.tipo === 'credito') {
                   inadCredito += e.valorTotal
                }
+            })
+
+            let creditoBaixa = 0.0
+            const modelCreditoBaixa = await ModelRateioCreditoBaixa.query()
+               .where('rateio_id', rateio_id)
+               .fetch()
+
+            modelCreditoBaixa.rows.forEach(e => {
+               creditoBaixa += e.valorCredito
             })
 
             const modelOrdemServico = await ModelOrdemServico.query()
@@ -2413,7 +2501,49 @@ class Rateio {
                         },
 
                         {
-                           text: 'CREDITO',
+                           text: 'CREDITOS',
+                           bold: true,
+                           width: 60,
+                           fontSize: 8,
+                        },
+                        {
+                           text: nCred,
+                           bold: true,
+                           width: 70,
+                           fontSize: 8,
+                        },
+                     ],
+                  },
+               ])
+            }
+
+            // Outros creditos (baixa)
+            body.push([
+               {
+                  text: '',
+                  height: 40,
+               },
+            ])
+
+            if (creditoBaixa > 0) {
+               let o = [
+                  {
+                     text: 'OUTROS CREDITOS',
+                     bold: true,
+                     fontSize: 9,
+                  },
+               ]
+               let nCred = this.moeda(creditoBaixa)
+               nCred = creditoBaixa > 0 ? '(' + nCred + ')' : '0,00'
+
+               body.push(o)
+               body.push([
+                  {
+                     columns: [
+                        { text: '', width: 15 },
+
+                        {
+                           text: 'CREDITOS',
                            bold: true,
                            width: 60,
                            fontSize: 8,
