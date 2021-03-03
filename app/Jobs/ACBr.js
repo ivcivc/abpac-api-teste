@@ -179,6 +179,7 @@ class ACBrJob {
                const boleto = await new Boleto().gerarBoleto(arrBoletos)
 
                if (!boleto.success) {
+                  console.log('ocorreu uma falha (gerarBoleto) em ACBr.js')
                   throw boleto
                }
 
@@ -189,8 +190,9 @@ class ACBrJob {
             } catch (error) {
                await Redis.set('_gerarFinanceiro', 'livre')
                await trx.rollback()
+               console.log(e)
                reject(error)
-               throw error
+               //throw error
             }
          }
 
@@ -214,7 +216,7 @@ class ACBrJob {
 
                resolve(service)
 
-               console.log('inicioando geração de pdfs')
+               console.log('inicionando geração de pdfs')
 
                // gerar os PDFs
                await Redis.set('_gerarFinanceiro', 'pdf')
@@ -229,6 +231,7 @@ class ACBrJob {
                console.log('JOB - SAINDO Gerando financeiro')
                return
             } catch (error) {
+               console.log(e)
                await Redis.set('_gerarFinanceiro', 'livre')
                await trx.rollback()
                return reject(error)
@@ -247,6 +250,7 @@ class ACBrJob {
                return resolve(server)
             } catch (error) {
                /////await trx.rollback()
+               console.log(error)
                reject(error)
                throw error
                return
@@ -303,6 +307,11 @@ class ACBrJob {
                      false
                   )
 
+                  let email = json.pessoa.email
+                  if (Env.get('NODE_ENV') === 'development') {
+                     email = 'ivan.a.oliveira@terra.com.br'
+                  }
+
                   const arqPDFequipa =
                      respTabelaEquipa.pasta + respTabelaEquipa.arquivo
 
@@ -311,7 +320,7 @@ class ACBrJob {
                      json,
                      message => {
                         message
-                           .to(json.pessoa.email)
+                           .to(email)
                            .from(Env.get('MAIL_EMPRESA'))
                            .subject('Cobrança ABPAC')
                            .attach(arqPDFequipa, {

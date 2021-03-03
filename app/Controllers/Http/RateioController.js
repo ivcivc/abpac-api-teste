@@ -265,6 +265,9 @@ class RateioController {
             if (_gerarFinanceiro === 'livre') {
                await Redis.set('_gerarFinanceiro', 'financeiro') // gerar financeiro
             } else {
+               console.log(
+                  'Ocorreu uma falha no metodo gerarFinanceiro em RateioController.'
+               )
                throw {
                   success: false,
                   message:
@@ -486,6 +489,11 @@ class RateioController {
             reject(e)
          }
       })
+   }
+
+   async isPDFBusy({ request, response, params }) {
+      let res = await Redis.get('_gerarFinanceiro')
+      return res === 'pdf'
    }
 }
 

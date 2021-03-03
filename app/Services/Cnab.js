@@ -102,6 +102,7 @@ class Cnab {
             let respostaINI = await this.criarArquivoINI(lista)
             if (!respostaINI.success) {
                return resolve(respostaINI)
+               //throw respostaINI
             }
 
             let respostaRemessa = await this.gerarRemessa()
@@ -141,8 +142,38 @@ class Cnab {
                success: false,
                message: msg,
             })
+            /*throw {
+               success: false,
+               message: msg,
+            }*/
          }
       })
+   }
+
+   tirarCaracteresEspeciais(s, forcarString = false) {
+      if (lodash.isEmpty(s)) {
+         return s
+      }
+
+      let arr = s.match(/[0-9a-zA-ZçÇéÉâÂãÃáÁêÊôÔèÈàÀõÕ-]+/g)
+
+      let retorno = ''
+
+      if (lodash.isArray(arr)) {
+         for (let i = 0; i <= arr.length - 1; i++) {
+            if (i > 0) {
+               retorno += ' '
+            }
+            retorno = retorno + arr[i]
+         }
+      }
+
+      if (forcarString) {
+         if (lodash.isEmpty(retorno)) {
+            retorno = 'NF'
+         }
+      }
+      return retorno
    }
 
    async criarArquivoINI(lista) {
@@ -219,15 +250,37 @@ class Cnab {
                content[indexObj].Sacado.CNPJCPF = e.cpfCnpj
                content[indexObj].Sacado.Pessoa = e.cpfCnpj.length === 11 ? 0 : 1
 
-               content[indexObj].Sacado.Logradouro = e.endRua
+               content[
+                  indexObj
+               ].Sacado.Logradouro = this.tirarCaracteresEspeciais(
+                  e.endRua,
+                  true
+               )
                content[indexObj].Sacado.Numero = '.'
-               content[indexObj].Sacado.Bairro = e.endBairro
-               content[indexObj].Sacado.Complemento = e.endComplemento
-                  ? e.endComplemento
+               content[indexObj].Sacado.Bairro = this.tirarCaracteresEspeciais(
+                  e.endBairro,
+                  true
+               )
+               content[
+                  indexObj
+               ].Sacado.Complemento = this.tirarCaracteresEspeciais(
+                  e.endComplemento,
+                  true
+               )
+                  ? this.tirarCaracteresEspeciais(e.endComplemento, true)
                   : ''
-               content[indexObj].Sacado.Cidade = e.endCidade
-               content[indexObj].Sacado.UF = e.endEstado
-               content[indexObj].Sacado.CEP = e.endCep
+               content[indexObj].Sacado.Cidade = this.tirarCaracteresEspeciais(
+                  e.endCidade,
+                  true
+               )
+               content[indexObj].Sacado.UF = this.tirarCaracteresEspeciais(
+                  e.endEstado,
+                  true
+               )
+               content[indexObj].Sacado.CEP = this.tirarCaracteresEspeciais(
+                  e.endCep,
+                  true
+               )
                content[indexObj].Sacado.Email = '' //e.email
 
                let cMen1 = lodash.isEmpty(e.boleto_nota1) ? '' : e.boleto_nota1
@@ -266,10 +319,12 @@ class Cnab {
             if (lodash.has(e, 'message')) {
                msg = e.message
             }
+            console.log(e)
             resolve({
                success: false,
                message: msg,
             })
+            //throw e
          }
       })
    }
@@ -333,16 +388,17 @@ class Cnab {
 
             let success = { success: true, message: '' }
 
-            for (let i = 0; i <= respostaQTD.result; i++) {
+            for (let i = 0; i <= respostaQTD.result - 1; i++) {
                await this.aguardar(2000)
                const rGb = await this.emit(`BOLETO.GerarPDFBoleto(${i})`)
                if (!rGb.success) {
                   throw rGb
                }
             }
-
+            console.log('gerarPDF (cnab.js). Resolve.')
             resolve(success)
          } catch (e) {
+            console.log('error (catch) gerarPDF - cnab.js')
             let msg = 'Ocorreu uma falha na configuração pasta pdf.'
             if (lodash.has(e, 'message')) {
                msg = e.message
@@ -619,12 +675,30 @@ class Cnab {
 
             json.pessoa_nome = json.pessoa.nome
             json.cpfCnpj = json.pessoa.cpfCnpj
-            json.endRua = json.pessoa.endRua
-            json.endBairro = json.pessoa.endBairro
-            json.endComplemento = json.pessoa.endComplemento
-            json.endCidade = json.pessoa.endCidade
-            json.endEstado = json.pessoa.endEstado
-            json.endCep = json.pessoa.endCep
+            json.endRua = this.tirarCaracteresEspeciais(
+               json.pessoa.endRua,
+               true
+            )
+            json.endBairro = this.tirarCaracteresEspeciais(
+               json.pessoa.endBairro,
+               true
+            )
+            json.endComplemento = this.tirarCaracteresEspeciais(
+               json.pessoa.endComplemento,
+               true
+            )
+            json.endCidade = this.tirarCaracteresEspeciais(
+               json.pessoa.endCidade,
+               true
+            )
+            json.endEstado = this.tirarCaracteresEspeciais(
+               json.pessoa.endEstado,
+               true
+            )
+            json.endCep = this.tirarCaracteresEspeciais(
+               json.pessoa.endCep,
+               true
+            )
             json.email = json.pessoa.email
 
             let lista = []

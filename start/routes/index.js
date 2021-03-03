@@ -272,6 +272,10 @@ Route.group(() => {
                'auth'
                ])
 
+   Route.get('/isPDFBusy', 'RateioController.isPDFBusy').middleware([
+               'auth'
+               ])
+
    Route.post('/rateio/gerarFinanceiro', 'RateioController.gerarFinanceiro').middleware([
       'auth'
       ])
