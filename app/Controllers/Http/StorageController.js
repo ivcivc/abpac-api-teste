@@ -101,7 +101,7 @@ class StorageController {
 
          query.rows.forEach(async e => {
             //const file= `file_${e.file_id}`
-            const id = e.file_id
+            const id = e.id
             await Redis.del(id)
 
             const job = Kue.dispatch(Job.key, parseInt(id), {
