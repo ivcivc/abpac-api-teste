@@ -14,6 +14,8 @@ const Helpers = use('Helpers')
 
 const Kue = use('Kue')
 const Job = use('App/Jobs/SincronizarDropbox')
+const Redis = use('Redis')
+const Drive = use('Drive')
 
 class StorageController {
    async store({ request, response }) {
@@ -87,6 +89,32 @@ class StorageController {
             status: 'error',
             error: { message: 'Erro no cadastro de arquivo' },
          })
+      }
+   }
+
+   async corregir() {
+      try {
+         const query = await FileItem.query()
+            .whereNotNull('file_id')
+            .where('key', 'pendente')
+            .fetch()
+
+         query.rows.forEach(async e => {
+            //const file= `file_${e.file_id}`
+            const id = e.file_id
+            await Redis.del(id)
+
+            const job = Kue.dispatch(Job.key, parseInt(id), {
+               attempts: 3,
+            })
+         })
+         let msg = 'Não há registros a serem atualizados'
+         if (query.rows.length > 0) {
+            msg = `Disparo de ${query.rows.length} registro(s) realizado com sucesso`
+         }
+         return { success: true, message: msg }
+      } catch (error) {
+         return error.message
       }
    }
 

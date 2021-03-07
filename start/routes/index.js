@@ -407,6 +407,8 @@ Route.group(() => {
    Route.put('/files/:id', 'StorageController.update')
    Route.post('/files', 'StorageController.store')
    Route.post('/upload', 'StorageController.upload') // 13-07-2020
+   Route.get('/files/corregir', 'StorageController.corregir')
+
 
   // Route.post('/upload', 'FileController.store')
   // Route.post('/upload_file', 'FileController.upload_file')
