@@ -1,4 +1,4 @@
-"use strict";
+'use strict'
 
 /*
 |--------------------------------------------------------------------------
@@ -13,23 +13,23 @@
 |
 */
 
-const Ws = use("Ws");
+const Ws = use('Ws')
 
 /*Ws.channel('chat', ({ socket }) => {
   console.log('user joined with %s socket id', socket.id)
 })*/
 
 // Financeiro
-Ws.channel("ordem-servico:*", "OrdemServicoController") //.topic("ordem-servico");
-Ws.channel("ordem-servico-config:*", "ordem_servico/OsConfigController")
+Ws.channel('ordem-servico:*', 'OrdemServicoController') //.topic("ordem-servico");
+Ws.channel('ordem-servico-config:*', 'ordem_servico/OsConfigController')
 
-Ws.channel("plano-de-contas:*", "financeiro/planoContasController")
+Ws.channel('plano-de-contas:*', 'financeiro/planoContasController')
 
+Ws.channel('pessoa:*', 'PessoaController')
 
-Ws.channel("associado:*", "AssociadoController");
+Ws.channel('user:*', 'UserController').middleware([])
+Ws.channel('user', 'UserController')
 
-
-Ws.channel("user:*", "UserController").middleware([]);
-Ws.channel("user", "UserController");
+Ws.channel('ping', 'PingController')
 
 

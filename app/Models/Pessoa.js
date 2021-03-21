@@ -5,34 +5,25 @@
 /** @type {typeof import('@adonisjs/lucid/src/Lucid/Model')} */
 const Model = use('Model')
 
-
 class Pessoa extends Model {
-
-
-   static boot () {
+   static boot() {
       super.boot()
 
-      /*this.addHook('beforeUpdate', async () => {
+      this.addHook('afterUpdate', 'PessoaHook.updateWs')
+      this.addHook('afterCreate', 'PessoaHook.updateWs')
+   }
 
-         const topic= Ws.getChannel('ordem-servico:*').topic('ordem-servico:ordem-servico')
-         if (topic ) {
-            topic.broadcast("ORDEM-SERVICO-REFRESH", [{id: 11, nome: "ivan NOÉ"},{id:20 , nome: "Carlos da ROCHA"}])
-         }
-      })*/
+   equipamentos() {
+      return this.hasMany('App/Models/Equipamento')
+   }
 
-    }
-
-    equipamentos() {
-       return this.hasMany('App/Models/Equipamento')
-    }
-
-   pessoaStatuses () {
+   pessoaStatuses() {
       return this.hasMany('App/Models/PessoaStatus')
-    }
+   }
 
-    pendencias() {
+   pendencias() {
       return this.hasMany('App/Models/Pendencia')
-    }
+   }
 }
 
 module.exports = Pessoa
