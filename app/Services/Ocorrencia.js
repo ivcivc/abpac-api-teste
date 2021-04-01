@@ -336,30 +336,34 @@ class Ocorrencia {
          // await Database.select('*').from('ocorrencias').innerJoin('equipamentos','ocorrencias.equipamento_id','equipamentos.id').where('equipamentos.placas','like', '%H%')
 
          if (field_name === 'placa') {
-            await query.where(
-               'equipamentos.placas',
-               'like',
-               '%' + field_value + '%'
-            )
+            query.where('equipamentos.placas', 'like', '%' + field_value + '%')
          }
 
          if (field_name === 'idOcorrencia') {
-            await query.where('ocorrencias.id', field_value)
+            query.where('ocorrencias.id', field_value)
          }
 
          if (field_name === 'associado') {
-            await query.where('pessoas.nome', 'like', '%' + field_value + '%')
+            query.where('pessoas.nome', 'like', '%' + field_value + '%')
          }
-         let objeto = await query.first()
+         let objeto = await query //.first()
 
-         if (objeto) {
+         objeto.forEach(e => {
+            e.placa = e[`${'placa' + e.qualPlaca}`]
+            e.marca = e[`${'marca' + e.qualPlaca}`]
+            e.modelo = e[`${'modelo' + e.qualPlaca}`]
+            e.anoF = e[`${'anoF' + e.qualPlaca}`]
+            e.ModeloF = e[`${'ModeloF' + e.qualPlaca}`]
+            e.chassi = e[`${'chassi' + e.qualPlaca}`]
+         })
+         /*if (objeto) {
             objeto.placa = objeto[`${'placa' + objeto.qualPlaca}`]
             objeto.marca = objeto[`${'marca' + objeto.qualPlaca}`]
             objeto.modelo = objeto[`${'modelo' + objeto.qualPlaca}`]
             objeto.anoF = objeto[`${'anoF' + objeto.qualPlaca}`]
             objeto.ModeloF = objeto[`${'ModeloF' + objeto.qualPlaca}`]
             objeto.chassi = objeto[`${'chassi' + objeto.qualPlaca}`]
-         }
+         }*/
 
          return objeto
       } catch (e) {

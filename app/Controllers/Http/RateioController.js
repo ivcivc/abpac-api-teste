@@ -352,6 +352,9 @@ class RateioController {
             auth
          )
 
+         topic = Ws.getChannel('email_massa').topic('email_massa')
+         let a = topic
+
          /*setTimeout(async () => {
             const model = await new RateioServices().dispararEmailMassa(
                payload,

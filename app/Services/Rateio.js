@@ -44,6 +44,8 @@ const fs = require('fs')
 
 const Antl = use('Antl')
 
+const Ws = use('Ws')
+
 class Rateio {
    async get(ID) {
       try {
@@ -126,7 +128,34 @@ class Rateio {
          .where('creditoRateio', 'Sim')
          .where('situacao', 'Compensado')
          .with('pessoa')
-         .with('equipamento')
+         .with('equipamento', builder => {
+            builder.with('categoria', builder => {
+               builder.select(
+                  'id',
+                  'ordem',
+                  'abreviado',
+                  'nome',
+                  'tipo',
+                  'valorTaxaAdm',
+                  'percentualRateio'
+               )
+            })
+
+            builder.with('equipamentoBeneficios', builder => {
+               builder.with('beneficio', b => {
+                  b.select(
+                     'id',
+                     'descricao',
+                     'rateio',
+                     'modelo',
+                     'valor',
+                     'planoDeConta_id'
+                  )
+               })
+               builder.where('status', 'Ativo')
+               //builder.where('beneficio.rateio', 'Sim')
+            })
+         })
          .fetch()
       return modelLancamento
    }
@@ -201,7 +230,14 @@ class Rateio {
 
             .with('equipamentoBeneficios', builder => {
                builder.with('beneficio', b => {
-                  b.select('id', 'descricao', 'rateio', 'modelo', 'valor')
+                  b.select(
+                     'id',
+                     'descricao',
+                     'rateio',
+                     'modelo',
+                     'valor',
+                     'planoDeConta_id'
+                  )
                })
                builder.where('status', 'Ativo')
                //builder.where('beneficio.rateio', 'Sim')
@@ -402,7 +438,14 @@ class Rateio {
 
             .with('equipamentoBeneficios', builder => {
                builder.with('beneficio', b => {
-                  b.select('id', 'descricao', 'rateio', 'modelo', 'valor')
+                  b.select(
+                     'id',
+                     'descricao',
+                     'rateio',
+                     'modelo',
+                     'valor',
+                     'planoDeConta_id'
+                  )
                })
                builder.where('status', 'Ativo')
                //builder.where('beneficio.rateio', 'Sim')
@@ -974,6 +1017,9 @@ class Rateio {
                         beneficio: el.beneficio.descricao,
                         modelo: el.beneficio.modelo,
                         valor: el.valor,
+                        pessoa_id: e.pessoa_id,
+                        rateio_id: rateio.id,
+                        planoDeConta_id: el.beneficio.planoDeConta_id,
                      }
                      await ModelRateioEquipamentoBeneficio.create(
                         oBene,
@@ -1436,6 +1482,15 @@ class Rateio {
          )
          this.planoDeContas = planoDeContas
 
+         const queryBeneficiosAgrupados = await Database.select([
+            'b.pessoa_id',
+            'b.planoDeConta_id',
+         ])
+            .from('rateio_equipamento_beneficios as b')
+            .groupBy('b.pessoa_id', 'b.planoDeConta_id')
+            .sum('b.valor as somaBeneficios')
+            .where('b.rateio_id', payload.rateio_id)
+
          const query = await Database.select([
             'e.rateio_id',
             'e.pessoa_id',
@@ -1521,7 +1576,8 @@ class Rateio {
                   trx,
                   auth,
                   e,
-                  rateioConfig
+                  rateioConfig,
+                  queryBeneficiosAgrupados
                )
                e.lancamento_id = lancamentoAdd.id
 
@@ -1550,7 +1606,13 @@ class Rateio {
       }
    }
 
-   async addReceber(trx, auth, item, contaRateio) {
+   async addReceber(
+      trx,
+      auth,
+      item,
+      contaRateio,
+      queryBeneficiosAgrupados = null
+   ) {
       return new Promise(async (resolve, reject) => {
          const lanca = {
             tipo: 'Receita',
@@ -1588,19 +1650,25 @@ class Rateio {
          }
 
          if (item.valorBeneficios > 0) {
-            const busca = lodash.find(this.planoDeContas, {
-               id: contaRateio.beneficios_plano_id,
-            })
-            let oItem = {
-               DC: 'C',
-               tag: 'LF',
-               descricao: busca.descricao,
-               planoDeConta_id: contaRateio.beneficios_plano_id,
-               valor: item.valorBeneficios,
-            }
-            items.push(oItem)
-         }
+            let arrBenef = queryBeneficiosAgrupados.filter(
+               f => f.pessoa_id === item.pessoa_id
+            )
+            arrBenef.forEach(benef => {
+               const busca = lodash.find(this.planoDeContas, {
+                  id: benef.planoDeConta_id,
+               })
 
+               let oItem = {
+                  DC: 'C',
+                  tag: 'LF',
+                  descricao: busca.descricao,
+                  planoDeConta_id: benef.planoDeConta_id,
+                  valor: benef.somaBeneficios,
+               }
+               items.push(oItem)
+            })
+         }
+         //agfhjgghjhjg()
          if (item.valorTaxaAdm > 0) {
             const busca = lodash.find(this.planoDeContas, {
                id: contaRateio.txAdm_plano_id,
@@ -1677,6 +1745,15 @@ class Rateio {
             })
             .fetch()
 
+         /*const Ws = use('Ws')
+         let topic = Ws.getChannel('email_massa').topic('email_massa')
+         if (topic) {
+            topic.broadcast('message', {
+               operation: 'enviado',
+               data: { id: 558, isEmail: 2 },
+            })
+         }*/
+
          const rateio = await Model.findOrFail(rateio_id)
 
          return { rateio, lancamentos: query }
@@ -1725,12 +1802,34 @@ class Rateio {
 
          await Redis.set('_gerarFinanceiro', 'livre')
 
+         let topic = Ws.getChannel('email_massa:*').topic(
+            'email_massa:email_massa'
+         )
+
+         if (topic) {
+            topic.broadcast('message', {
+               operation: 'enviado',
+               data: { id: 558 },
+            })
+         }
+
          return {
             success: true,
             message: 'Email(s) entregue(s) na fila de execução.',
          }
       } catch (e) {
          await Redis.set('_gerarFinanceiro', 'livre')
+
+         let topic = Ws.getChannel('email_massa:*').topic(
+            'email_massa:email_massa'
+         )
+
+         if (topic) {
+            topic.broadcast('message', {
+               operation: 'falha_envio',
+               data: { id: 558 },
+            })
+         }
 
          throw e
       }
@@ -2429,13 +2528,13 @@ class Rateio {
                            fontSize: 8,
                         },
                         {
-                           text: 'PARTICIPAÇÃO',
+                           text: '', // verificar
                            bold: true,
                            width: 59,
                            fontSize: 8,
                         },
                         {
-                           text: '0,00',
+                           text: '',
                            bold: true,
                            width: 60,
                            fontSize: 8,

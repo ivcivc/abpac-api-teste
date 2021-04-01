@@ -32,4 +32,6 @@ Ws.channel('user', 'UserController')
 
 Ws.channel('ping', 'PingController')
 
+Ws.channel('email_massa:*', 'EmailMassaController')
+
 

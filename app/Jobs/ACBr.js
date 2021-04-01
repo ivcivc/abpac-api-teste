@@ -22,6 +22,8 @@ const ModelConta = use('App/Models/Conta')
 
 const Boleto = use('App/Services/Cnab')
 
+const Ws = use('Ws')
+
 // Fila para gerar financeiro (rateio), para gerar e fazer download PDF
 
 class ACBrJob {
@@ -231,7 +233,7 @@ class ACBrJob {
                console.log('JOB - SAINDO Gerando financeiro')
                return
             } catch (error) {
-               console.log(e)
+               console.log(error)
                await Redis.set('_gerarFinanceiro', 'livre')
                await trx.rollback()
                return reject(error)
@@ -274,91 +276,118 @@ class ACBrJob {
 
          // Disparar email em massa (rateio)
          if (data.metodo === 'disparar-email-massa') {
-            setTimeout(async () => {
-               let lancamento = null
-               try {
-                  console.log('JOB - disparar-email-massa')
-                  lancamento = await ModelLancamento.findOrFail(
-                     data.lancamento_id
-                  )
-                  await lancamento.load('pessoa')
+            let topic = null
+            //setTimeout(async () => {
+            let lancamento = null
 
-                  const pessoa_id = data.pessoa_id
-                  const rateio_id = data.rateio_id
+            try {
+               console.log('JOB - disparar-email-massa')
+               lancamento = await ModelLancamento.findOrFail(data.lancamento_id)
+               await lancamento.load('pessoa')
 
-                  let json = lancamento.toJSON()
-                  json.boleto_id = data.boleto_id
-                  json.dVencimento = moment(json.dVencimento).format(
-                     'DD/MM/YYYY'
-                  )
+               const pessoa_id = data.pessoa_id
+               const rateio_id = data.rateio_id
 
-                  let arqPDF = 'ACBr/pdf/boleto_' + data.lancamento_id + '.pdf'
+               /*topic = Ws.getChannel('email_massa').topic('email_massa')
+               if (topic) {
+                  topic.broadcast('message', {
+                     operation: 'enviando',
+                     data: { pessoa_id },
+                  })
+               }*/
 
-                  // Tabela de equipamentosAtivos
-                  const respTabelaEquipa = await new RateioServices().PDF_TodosEquipamentosRateioPorPessoa(
-                     pessoa_id,
-                     rateio_id,
-                     false
-                  )
+               let json = lancamento.toJSON()
+               json.boleto_id = data.boleto_id
+               json.dVencimento = moment(json.dVencimento).format('DD/MM/YYYY')
 
-                  // Tabela de ocorrencias
-                  const respTabelaOcorrencias = await new RateioServices().PDF_RateioRelatorioOcorrencias(
-                     rateio_id,
-                     false
-                  )
+               let arqPDF = 'ACBr/pdf/boleto_' + data.lancamento_id + '.pdf'
 
-                  let email = json.pessoa.email
-                  if (Env.get('NODE_ENV') === 'development') {
-                     email = 'ivan.a.oliveira@terra.com.br'
-                  }
+               // Tabela de equipamentosAtivos
+               const respTabelaEquipa = await new RateioServices().PDF_TodosEquipamentosRateioPorPessoa(
+                  pessoa_id,
+                  rateio_id,
+                  false
+               )
 
-                  const arqPDFequipa =
-                     respTabelaEquipa.pasta + respTabelaEquipa.arquivo
+               // Tabela de ocorrencias
+               const respTabelaOcorrencias = await new RateioServices().PDF_RateioRelatorioOcorrencias(
+                  rateio_id,
+                  false
+               )
 
-                  let send = await Mail.send(
-                     'emails.rateio_boleto',
-                     json,
-                     message => {
-                        message
-                           .to(email)
-                           .from(Env.get('MAIL_EMPRESA'))
-                           .subject('Cobrança ABPAC')
-                           .attach(arqPDFequipa, {
-                              filename: 'lista_veiculos.pdf',
-                           })
-                           .attach(
-                              respTabelaOcorrencias.pasta +
-                                 respTabelaOcorrencias.arquivo,
-                              {
-                                 filename: 'lista_ocorrencias.pdf',
-                              }
-                           )
-                           .attach(Helpers.tmpPath(arqPDF), {
-                              filename: 'boleto.pdf',
-                           })
-                        /*.embed(
+               let email = json.pessoa.email
+               if (Env.get('NODE_ENV') === 'development') {
+                  email = 'ivan.a.oliveira@terra.com.br'
+               }
+
+               const arqPDFequipa =
+                  respTabelaEquipa.pasta + respTabelaEquipa.arquivo
+
+               let send = await Mail.send(
+                  'emails.rateio_boleto',
+                  json,
+                  message => {
+                     message
+                        .to(email)
+                        .from(Env.get('MAIL_EMPRESA'))
+                        .subject('Boleto ABPAC')
+                        .attach(arqPDFequipa, {
+                           filename: 'lista_veiculos.pdf',
+                        })
+                        .attach(
+                           respTabelaOcorrencias.pasta +
+                              respTabelaOcorrencias.arquivo,
+                           {
+                              filename: 'lista_ocorrencias.pdf',
+                           }
+                        )
+                        .attach(Helpers.tmpPath(arqPDF), {
+                           filename: 'boleto.pdf',
+                        })
+                     /*.embed(
                               Helpers.publicPath('images/logo-abpac.png'),
                               'logo'
                            )*/
-                     }
-                  )
+                  }
+               )
 
-                  lancamento.isEmail = 1
-                  await lancamento.save()
+               lancamento.isEmail = 1
+               await lancamento.save()
 
-                  emailLog(send)
-
-                  console.log('JOB - SAINDO disparar-email-massa')
-                  return resolve({ success: true })
-               } catch (error) {
-                  lancamento.isEmail = 2
-                  await lancamento.save()
-                  emailLog(error)
-
-                  console.log('ocorreu uma falha no envio do email')
-                  resolve(error)
+               topic = Ws.getChannel('email_massa:*').topic(
+                  'email_massa:email_massa'
+               )
+               if (topic) {
+                  topic.broadcast('message', {
+                     operation: 'enviado',
+                     data: lancamento,
+                  })
                }
-            }, 80)
+
+               emailLog(send)
+
+               console.log('JOB - SAINDO disparar-email-massa')
+               return resolve({ success: true })
+            } catch (error) {
+               lancamento.isEmail = 2
+               await lancamento.save()
+               emailLog(error)
+
+               topic = Ws.getChannel('email_massa:*').topic(
+                  'email_massa:email_massa'
+               )
+
+               if (topic) {
+                  topic.broadcast('message', {
+                     operation: 'falha_envio',
+                     data: lancamento,
+                  })
+               }
+
+               console.log('ocorreu uma falha no envio do email')
+               resolve(error)
+            }
+            //}, 80)
          }
       })
    }

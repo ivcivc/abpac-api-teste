@@ -93,6 +93,7 @@ class StorageController {
    }
 
    async corregir() {
+      // Correção de imagens que não foram para dropbox
       try {
          const query = await FileItem.query()
             .whereNotNull('file_id')
