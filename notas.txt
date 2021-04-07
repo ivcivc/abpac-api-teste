@@ -1,1 +1,17 @@
 1) Alterar a data de adesão
+
+2) Baixa
+            .where('ratear', 'Sim')
+            .where('baixa', 'Sim')
+            .whereNull('idFilho')
+
+
+            .where('status', 'Ativo')
+            .where('dAdesao', '<=', dAdesao)
+            .fetch()
+
+
+equipamentos campo de controle
+a) ratear ( Sim, Não, Rateado)
+b) baixa (Sim, Não)
+

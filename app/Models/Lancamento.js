@@ -32,6 +32,10 @@ class Lancamento extends Model {
       return this.hasOne('App/Models/ordem_servico/OrdemServico', 'ordem_servico_id', 'id')
    } */
 
+   endossos() {
+      return this.hasMany('App/Models/Equipamento', 'endosso_id', 'endosso_id')
+   }
+
    equipamento() {
       return this.hasOne('App/Models/Equipamento', 'equipamento_id', 'id')
    }

@@ -405,10 +405,10 @@ class Lancamento {
             if (dVencInicio && pessoa_id) {
                query = await Model.query()
                   .with('pessoa')
-                  .whereBetween('dVencimento', [
+                  /*.whereBetween('dVencimento', [
                      dVencInicio.substr(0, 10),
                      dVencFim.substr(0, 10),
-                  ])
+                  ])*/
                   .whereNot({ situacao: 'Bloqueado' })
                   .where('pessoa_id', pessoa_id)
                   .fetch()

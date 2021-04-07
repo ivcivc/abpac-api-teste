@@ -156,6 +156,34 @@ class Rateio {
                //builder.where('beneficio.rateio', 'Sim')
             })
          })
+         .with('endossos', builder => {
+            builder.with('categoria', builder => {
+               builder.select(
+                  'id',
+                  'ordem',
+                  'abreviado',
+                  'nome',
+                  'tipo',
+                  'valorTaxaAdm',
+                  'percentualRateio'
+               )
+            })
+
+            builder.with('equipamentoBeneficios', builder => {
+               builder.with('beneficio', b => {
+                  b.select(
+                     'id',
+                     'descricao',
+                     'rateio',
+                     'modelo',
+                     'valor',
+                     'planoDeConta_id'
+                  )
+               })
+               builder.where('status', 'Ativo')
+               //builder.where('beneficio.rateio', 'Sim')
+            })
+         })
          .fetch()
       return modelLancamento
    }
@@ -970,6 +998,7 @@ class Rateio {
 
       // Equipamentos
       let arrRateioEquipa = []
+
       for (const key in payload.equipamento) {
          if (payload.equipamento.hasOwnProperty(key)) {
             const e = payload.equipamento[key]
@@ -1025,6 +1054,25 @@ class Rateio {
                         oBene,
                         trx ? trx : null
                      )
+                  }
+               }
+            }
+
+            if (e.baixa == 'Sim') {
+               // Marcar no Equipamento (endosso/Baixa/Inativo) como rateado
+               let affectedRows = await Database.table('equipamentos')
+                  .where('id', e.id)
+                  .where('updated_at', e.updated_at)
+                  .transacting(trx ? trx : null)
+                  .update({
+                     updated_at,
+                     ratear: 'Rateado',
+                  })
+               if (affectedRows != 1) {
+                  nrErro = -100
+                  throw {
+                     success: false,
+                     message: `Não foi possível atualizar equipamento ID ${e.id} (Baixa).`,
                   }
                }
             }

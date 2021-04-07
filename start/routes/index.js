@@ -65,9 +65,21 @@ Route.group(() => {
       'auth'
    ])*/
 
+   Route.get('/converterRateio', 'RateioController.converterRateio')
+
+
    Route.resource('/restricao', 'RestricaoController').middleware([
       'auth'
      ])
+
+   Route.get('/equipamentos/baixarTodosEquipamentos/:pessoa_id', 'EquipamentoController.locBaixarTodosEquipamentos').middleware([
+      'auth'
+   ])
+
+   Route.post('/equipamentos/baixarTodosEquipamentos', 'EquipamentoController.endossoBaixarTodosEquipamentos').middleware([
+      'auth'
+   ])
+
 
    Route.post('/equipamentos/totalAtivos', 'EquipamentoController.totalAtivos')
    /*.middleware([

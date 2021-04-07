@@ -189,6 +189,45 @@ class EquipamentoController {
          })
       }
    }
+
+   async locBaixarTodosEquipamentos({ params, response }) {
+      const payload = params.pessoa_id
+
+      try {
+         const equipamento = await new EquipamentoServices().locBaixarTodosEquipamentos(
+            payload
+         )
+
+         response.status(200).send({ type: true, data: equipamento })
+      } catch (error) {
+         console.log(error)
+         response.status(400).send({
+            code: error.code,
+            message: error.message,
+            name: error.name,
+         })
+      }
+   }
+
+   async endossoBaixarTodosEquipamentos({ request, response, auth }) {
+      const payload = request.all()
+
+      try {
+         const service = await new EquipamentoServices().endossoBaixarTodosEquipamentos(
+            payload,
+            auth
+         )
+
+         response.status(200).send({ type: true, data: service })
+      } catch (error) {
+         console.log(error)
+         response.status(400).send({
+            code: error.code,
+            message: error.message,
+            name: error.name,
+         })
+      }
+   }
 }
 
 module.exports = EquipamentoController

@@ -43,7 +43,7 @@ class EmailMassaController {
       })
    }
 
-   async espera(tempo = 2000) {
+   async espera(tempo = 1000) {
       return new Promise(async (resolve, reject) => {
          setTimeout(() => {
             resolve(true)
@@ -158,7 +158,7 @@ class EmailMassaController {
                      email = 'ivan.a.oliveira@terra.com.br'
                   }
 
-                  this.espera()
+                  await this.espera(1000)
 
                   let send = await Mail.send(
                      'emails.rateio_boleto',

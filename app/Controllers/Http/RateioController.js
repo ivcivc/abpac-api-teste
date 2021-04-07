@@ -498,6 +498,34 @@ class RateioController {
       let res = await Redis.get('_gerarFinanceiro')
       return res === 'pdf'
    }
+
+   async converterRateio({ request, response, auth }) {
+      const ModelRateioEquipamento = use('App/Models/RateioEquipamento')
+      const ModelEquipamento = use('App/Models/Equipamento')
+
+      let trx = null
+
+      try {
+         trx = await Database.beginTransaction()
+
+         const model = await ModelRateioEquipamento.all()
+
+         for (const key in model.rows) {
+            let r = model.rows[key]
+            const equipa = await ModelEquipamento.find(r.equipamento_id)
+            r.equipamento_id_principal =
+               equipa.idPrincipal === 0 ? equipa.id : equipa.idPrincipal
+            await r.save(trx ? trx : null)
+         }
+
+         response.status(200).send({ type: true, data: model })
+
+         await trx.commit()
+      } catch (error) {
+         await trx.rollback()
+         response.status(400).send(error)
+      }
+   }
 }
 
 module.exports = RateioController
