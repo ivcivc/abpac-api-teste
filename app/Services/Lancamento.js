@@ -449,6 +449,15 @@ class Lancamento {
             }
          }
 
+         if (modulo === 'recente') {
+            query = await Model.query()
+               .with('pessoa')
+               .orderBy('updated_at', 'desc')
+               //.where({ situacao: 'aberto' })
+               .limit(40)
+               .fetch()
+         }
+
          if (modulo === 'acordo') {
             const pessoa_id = payload.field_value_pessoa_id
             const tipo = payload.tipo

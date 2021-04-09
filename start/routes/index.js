@@ -336,6 +336,18 @@ Route.group(() => {
 
    })
 
+   Route.get('/ti',async ({response}) => {
+      try {
+         //return { success: false, message: 'modulo principal ' }
+         const factory= use('App/Services/Bank/Factory')
+         let boleto= await factory().Boleto('sicoob')
+      } catch (e) {
+         console.log('PRINCIPAL ', e)
+         response.status(200).send({ success: false, message: 'modulo principal ' + e.message })
+      }
+
+   })
+
    Route.get('/bank/callback',async ({response, request}) => {
       try {
          let Auth= use('App/Services/Bank/Sicoob/Auth')

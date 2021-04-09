@@ -3,7 +3,7 @@
 /** @type {import('@adonisjs/lucid/src/Schema')} */
 const Schema = use('Schema')
 
-class BankSicoobConfigSchema extends Schema {
+class BankConfigSchema extends Schema {
    up() {
       this.create('bank_configs', table => {
          table.increments()
@@ -17,17 +17,14 @@ class BankSicoobConfigSchema extends Schema {
             .onUpdate('CASCADE')
             .onDelete('CASCADE')
 
-         table.string('cooperativa', 8)
-         table.string('senha', 20)
-         table.string('chaveAcesso', 15)
-         table.string('tokenBasic', 100)
-         table.string('clientID', 400)
-         table.string('clientSecret', 100), table.string('urlAuthorize', 200)
-         table.string('urlCallback', 100)
-         table.string('urlAccessToken', 200)
-         table.string('urlRefreshToken', 200)
+         table.string('recurso', 100).index()
 
-         table.boolean('isFake').default(true)
+         table.string('refreshToken', 60)
+
+         table.string('token', 60)
+
+         table.datetime('Validate')
+         table.datetime('authValidate')
 
          table.timestamps()
       })
@@ -38,4 +35,4 @@ class BankSicoobConfigSchema extends Schema {
    }
 }
 
-module.exports = BankSicoobConfigSchema
+module.exports = BankConfigSchema

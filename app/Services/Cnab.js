@@ -204,7 +204,7 @@ class Cnab {
                   .replace('.', ',')
                content[indexObj].Vencimento = e.dVencimento
 
-               content[indexObj].CodigoMora = 2
+               content[indexObj].CodigoMora = 1
                content[indexObj].ValorMoraJuros = '0,0333'
 
                let mJuros = moment(e.dVencimento2, 'YYYY-MM-DD')
