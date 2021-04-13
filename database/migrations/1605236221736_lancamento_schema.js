@@ -27,8 +27,8 @@ class LancamentoSchema extends Schema {
          table.integer('parcelaF')
 
          table.integer('rateio_id').index()
-         table.integer('grupo_id', 15).index()
-         table.integer('subGrupo_id', 15).index()
+         table.varchar('grupo_id', 20).index()
+         table.varchar('subGrupo_id', 20).index()
 
          table.integer('isEmail', 1).defaultTo(0)
 
