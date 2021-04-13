@@ -315,19 +315,38 @@ Route.group(() => {
 
          const factory= use('App/Services/Bank/Factory')
          let boleto= await factory().Boleto('sicoob')
-         let res= await boleto.localizarBoleto({
+         /*let res= await boleto.localizarBoleto({
             numeroContrato: 2554645,
             modalidade: 1,
             nossoNumero: '123',
             conta_id: 1
-         })
+         })*/
 
+         /*let res= await boleto.segundaVia({
+            numeroContrato: 2554645,
+            modalidade: 1,
+            nossoNumero: '123',
+            conta_id: 1
+         })*/
+
+         /*let res= await boleto.localizarPorPagador({
+            numeroCpfCnpj: '87275090600',
+            numeroContrato: '2554645',
+            conta_id: 1
+         })*/
+
+         let res= await boleto.prorrogarDataVencimento({
+            numeroContrato: '123455',
+            modalidade: 1,
+            dataVencimento: "2018-09-20T00:00:00-03:00",
+            conta_id: 1
+         })
          /*let res= await boleto.novoBoleto(lanca.toJSON(),{
             conta_id: 1
          })*/
          //let res= await boleto.localizarBoleto()
 
-         return { res }
+         return res
       } catch (error) {
          console.log('retornou erro raiz')
          console.log(error)
@@ -341,6 +360,8 @@ Route.group(() => {
          //return { success: false, message: 'modulo principal ' }
          const factory= use('App/Services/Bank/Factory')
          let boleto= await factory().Boleto('sicoob')
+         let res= await boleto.localizarBoleto()
+         return res
       } catch (e) {
          console.log('PRINCIPAL ', e)
          response.status(200).send({ success: false, message: 'modulo principal ' + e.message })

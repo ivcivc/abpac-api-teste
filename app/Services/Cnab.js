@@ -617,6 +617,16 @@ class Cnab {
 
             if (isExist) {
                return resolve({ success: true, arquivo: filePath })
+            } else {
+               console.log(
+                  'Arquivo (pdfDownload(cnab) não localizado ',
+                  arquivo
+               )
+               throw {
+                  success: false,
+                  arquivo: null,
+                  message: 'Arquivo não localizado',
+               }
             }
          } catch (e) {
             reject(e)

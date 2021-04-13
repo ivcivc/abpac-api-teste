@@ -268,6 +268,7 @@ class ACBrJob {
                return resolve(cnab)
             } catch (error) {
                /////await trx.rollback()
+               console.log('ACBr (Modulo download de pdf falhou ')
                reject(error)
                throw error
                return
