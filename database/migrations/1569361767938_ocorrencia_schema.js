@@ -74,7 +74,7 @@ class OcorrenciaSchema extends Schema {
             .onDelete('RESTRICT')
 
          table.varchar('equipaCarregado', 4).defaultTo('Não')
-         table.varchar('equipaCarregadoNota', 30)
+         table.text('equipaCarregadoNota')
          table.enu(
             'quemAcidentou',
             ['Motorista', 'Proprietário', 'Não informado'],

@@ -1022,6 +1022,14 @@ class Cnab {
             if (registro.SeuNumero) {
                lancamento_id = registro.SeuNumero ? registro.SeuNumero : null
             }
+            let cSituacao = 'Não localizado'
+
+            cSituacao = lancamento_id ? 'Liquidado' : 'Não localizado'
+
+            if (registro.CodTipoOcorrencia === 'toRetornoBaixaSimples') {
+               cSituacao = lancamento_id ? 'Baixado' : 'Não localizado'
+            }
+
             let oRetorno = {
                lancamento_id,
                sacado: registro.Sacado.Nome,
@@ -1089,7 +1097,7 @@ class Cnab {
                agenciaDigito: registro.conta.DigitoAgencia,
                cedente: registro.CodigoCedente,
                grupo_id: registro.grupo_id,
-               situacao: lancamento_id ? 'Liquidado' : 'Não localizado',
+               situacao: cSituacao,
             }
 
             let modelRetorno = null
@@ -1155,6 +1163,27 @@ class Cnab {
                   message: `Não liquidado. A conta nr.${lancamento_id} já foi liquidada`,
                   data: retorno,
                }
+            }
+
+            if (registro.CodTipoOcorrencia === 'toRetornoBaixaSimples') {
+               await ModelBoleto.query()
+                  .where('lancamento_id', modelLancamento.id)
+                  .where('status', 'Aberto')
+                  .transacting(trx ? trx : null)
+                  .update({ status: 'Cancelado' })
+
+               await trx.commit()
+
+               await gravarRetorno(oRetorno)
+
+               let retorno = modelRetorno.toJSON()
+               retorno.client_id = client_id
+
+               return resolve({
+                  success: true,
+                  message: 'Processado com sucesso.',
+                  data: retorno,
+               })
             }
 
             let arrItems = []
