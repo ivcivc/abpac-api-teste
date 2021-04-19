@@ -635,6 +635,14 @@ class OrdemServico {
                )
             }
 
+            if (payload.field_name == 'terceiro-associado') {
+               query.where(
+                  'ocorrencia_pessoa.nome',
+                  'like',
+                  '%' + payload.field_value + '%'
+               )
+            }
+
             query.whereNotNull('ordem_servicos.ocorrencia_terceiro_id')
             //query.whereNotNull('ordem_servicos.ocorrencia_id')
 

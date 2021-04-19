@@ -1236,6 +1236,12 @@ class Cnab {
 
             await modelLancamento.save(trx ? trx : null)
 
+            await ModelBoleto.query()
+               .where('lancamento_id', modelLancamento.id)
+               .where('status', 'Ativo')
+               .transacting(trx ? trx : null)
+               .update({ status: 'Compensado' })
+
             await trx.commit()
 
             await gravarRetorno(oRetorno)
