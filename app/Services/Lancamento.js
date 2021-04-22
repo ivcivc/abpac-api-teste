@@ -393,6 +393,9 @@ class Lancamento {
          let dVencFim = null
          let modulo = payload.modulo
          let pessoa_id = payload.field_value_pessoa_id
+         let tipo = payload.field_tipo ? payload.field_tipo : 'ambos'
+         let localizarPor = payload.field_name // localizarPor
+         let status = payload.field_status
 
          if (payload.field_value_periodo) {
             dVencInicio = payload.field_value_periodo.start
@@ -402,18 +405,44 @@ class Lancamento {
          let query = null //.fetch()
 
          if (modulo === 'todos') {
-            if (dVencInicio && pessoa_id) {
-               query = await Model.query()
-                  .with('pessoa')
-                  /*.whereBetween('dVencimento', [
-                     dVencInicio.substr(0, 10),
-                     dVencFim.substr(0, 10),
-                  ])*/
-                  .whereNot({ situacao: 'Bloqueado' })
-                  .where('pessoa_id', pessoa_id)
-                  .fetch()
+            query = Model.query().with('pessoa')
+
+            if (localizarPor === 'nome') {
+               query.where('pessoa_id', pessoa_id)
             }
-            if (dVencInicio && !pessoa_id) {
+
+            if (localizarPor === 'periodo-vencimento') {
+               query.whereBetween('dVencimento', [
+                  dVencInicio.substr(0, 10),
+                  dVencFim.substr(0, 10),
+               ])
+            }
+
+            if (localizarPor === 'periodo-competencia') {
+               query.whereBetween('dCompetencia', [
+                  dVencInicio.substr(0, 10),
+                  dVencFim.substr(0, 10),
+               ])
+            }
+
+            if (localizarPor === 'periodo-liquidacao') {
+               query.whereBetween('dRecebimento', [
+                  dVencInicio.substr(0, 10),
+                  dVencFim.substr(0, 10),
+               ])
+            }
+
+            if (tipo !== 'ambos') {
+               query.where('tipo', tipo)
+            }
+
+            if (status) {
+               query.where('situacao', status)
+            }
+
+            query = await query.fetch()
+
+            /*if (dVencInicio && !pessoa_id) {
                query = await Model.query()
                   .with('pessoa')
                   .whereBetween('dVencimento', [
@@ -433,7 +462,7 @@ class Lancamento {
             }
             if (!dVencInicio && !pessoa_id) {
                query = []
-            }
+            }*/
          }
 
          if (modulo === 'atrasado') {
