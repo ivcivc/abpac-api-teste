@@ -150,6 +150,7 @@ class OrdemServico {
 
          await trx.commit()
 
+         await os.load('config')
          await os.load('pessoa')
          await os.load('items')
          await os.load('user')
@@ -295,7 +296,12 @@ class OrdemServico {
 
          await trx.commit()
 
-         return itemsDB
+         await os.load('config')
+         //await os.load('items')
+         //await os.load('user')
+         //await os.load('lancamentos')
+
+         return os //itemsDB
       } catch (e) {
          await trx.rollback()
 
@@ -509,6 +515,10 @@ class OrdemServico {
                   .orderBy('id', 'desc')
             }
 
+            if (payload.field_name == 'ocorrencia-os-id') {
+               query.where('ordem_servicos.id', '=', payload.field_value)
+            }
+
             //query.whereNotNull('ordem_servicos.ocorrencia_terceiro_id')
             query.whereNotNull('ordem_servicos.ocorrencia_id')
             query.whereNull('ordem_servicos.ocorrencia_terceiro_id')
@@ -641,6 +651,10 @@ class OrdemServico {
                   'like',
                   '%' + payload.field_value + '%'
                )
+            }
+
+            if (payload.field_name == 'terceiro-os-id') {
+               query.where('ordem_servicos.id', '=', payload.field_value)
             }
 
             query.whereNotNull('ordem_servicos.ocorrencia_terceiro_id')
