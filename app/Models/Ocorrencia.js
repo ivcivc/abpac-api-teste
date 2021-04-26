@@ -24,6 +24,10 @@ class Ocorrencia extends Model {
       return this.hasMany('App/Models/OcorrenciaTerceiro')
    }
 
+   ordemServicos() {
+      return this.hasMany('App/Models/ordem_servico/OrdemServico')
+   }
+
    user() {
       return this.hasOne('App/Models/User', 'user_id', 'id')
    }

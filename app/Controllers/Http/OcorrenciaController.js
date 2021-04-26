@@ -137,6 +137,26 @@ class OcorrenciaController {
       }
    }
 
+   async localizarPor({ request, params, response, auth, trx }) {
+      try {
+         const filtro = request.all()
+         const query = await new OcorrenciaServices().localizarPor(
+            filtro,
+            trx,
+            auth
+         )
+
+         response.status(200).send(query)
+      } catch (error) {
+         console.log(error)
+         response.status(400).send({
+            code: error.code,
+            message: error.message,
+            name: error.name,
+         })
+      }
+   }
+
    async destroyTerceiro({ params, response, auth }) {
       try {
          const del = await new OcorrenciaServices().destroyTerceiro(params.id)

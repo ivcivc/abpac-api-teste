@@ -136,6 +136,10 @@ Route.group(() => {
       'auth'
    ])
 
+   Route.post('/ocorrencias/localizarPor', 'OcorrenciaController.localizarPor').middleware([
+      'auth'
+   ])
+
    Route.post('/ocorrencias/addTerceiro', 'OcorrenciaController.addTerceiro').middleware([
       'auth'
    ])

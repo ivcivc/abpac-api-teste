@@ -6,6 +6,8 @@ const Terceiro = use('App/Models/OcorrenciaTerceiro')
 const OcorrenciaStatus = use('App/Models/OcorrenciaStatus')
 //const OcorrenciaTerceiroStatus = use("/App/Models/OcorrenciaTerceiroStatus")
 const ModelTerceiroStatus = use('App/Models/OcorrenciaTerceiroStatus')
+const FileConfig = use('App/Models/FileConfig')
+const Galeria = use('App/Models/File')
 
 const Database = use('Database')
 
@@ -15,6 +17,9 @@ class Ocorrencia {
          if (!trx) {
             trx = await Database.beginTransaction()
          }
+
+         delete data['valorRealizado']
+         delete data['ordemServicos']
 
          let ocorrencia = await Model.findOrFail(ID)
 
@@ -80,6 +85,9 @@ class Ocorrencia {
             trx = await Database.beginTransaction()
          }
 
+         delete data['valorRealizado']
+         delete data['ordemServicos']
+
          data.status = 'Aberto'
 
          let terceiros = []
@@ -103,6 +111,22 @@ class Ocorrencia {
                }
                //await terceiroModel.statuses().create(status, trx ? trx : null)
                await ModelTerceiroStatus.create(status, trx ? trx : null)
+
+               // Adicionar pendencia - Galeria
+               const fileConfig = await FileConfig.query()
+                  .where('modulo', 'like', 'Terceiro')
+                  .fetch()
+
+               for (const i in fileConfig.rows) {
+                  const payload = {
+                     descricao: fileConfig.rows[i].descricao,
+                     modulo: fileConfig.rows[i].modulo,
+                     idParent: terceiroModel[key].id,
+                     pessoa_id: null,
+                     status: 'Pendente',
+                  }
+                  const model = await Galeria.create(payload, trx)
+               }
             }
          }
 
@@ -113,6 +137,21 @@ class Ocorrencia {
             status: 'Aberto',
          }
          await OcorrenciaStatus.create(status, trx ? trx : null)
+
+         const fileConfig = await FileConfig.query()
+            .where('modulo', 'like', 'Ocorrencia')
+            .fetch()
+
+         for (const i in fileConfig.rows) {
+            const payload = {
+               descricao: fileConfig.rows[i].descricao,
+               modulo: fileConfig.rows[i].modulo,
+               idParent: ocorrencia.id,
+               pessoa_id: ocorrencia.pessoa_id,
+               status: 'Pendente',
+            }
+            const model = await Galeria.create(payload, trx)
+         }
 
          /*await ocorrencia.load('pessoa')
       await ocorrencia.load('equipamento')
@@ -164,6 +203,22 @@ class Ocorrencia {
             status: 'Aberto',
          }
          await terceiroModel.statuses().create(statusTerceiro, trx ? trx : null)
+
+         // Adicionar pendencia - Galeria
+         const fileConfig = await FileConfig.query()
+            .where('modulo', 'like', 'Terceiro')
+            .fetch()
+
+         for (const i in fileConfig.rows) {
+            const payload = {
+               descricao: fileConfig.rows[i].descricao,
+               modulo: fileConfig.rows[i].modulo,
+               idParent: terceiroModel.id,
+               pessoa_id: null,
+               status: 'Pendente',
+            }
+            const model = await Galeria.create(payload, trx)
+         }
 
          await trx.commit()
 
@@ -375,6 +430,135 @@ class Ocorrencia {
             code: e.code,
          }
       }
+   }
+
+   async localizarPor(filtro, parametros) {
+      return new Promise(async (resolve, reject) => {
+         try {
+            let field_value = filtro.field_value
+            let field_name = filtro.field_name
+            let field_value_periodo = filtro.field_value_periodo
+            let field_value_status = filtro.field_value_status
+
+            let query = Database.select([
+               'ocorrencias.id',
+               'ocorrencias.pessoa_id',
+               'ocorrencias.qualPlaca',
+               'ocorrencias.equipamento_id',
+               'ocorrencias.dEvento',
+               'ocorrencias.status',
+               'ocorrencias.tipoAcidente',
+               'equipamentos.placa1',
+               'equipamentos.marca1',
+               'equipamentos.modelo1',
+               'equipamentos.placa2',
+               'equipamentos.marca2',
+               'equipamentos.modelo2',
+               'equipamentos.placa3',
+               'equipamentos.marca3',
+               'equipamentos.modelo3',
+               'pessoas.nome as pessoa_nome',
+               'pessoas.cpfCnpj',
+               'pessoas.tipo as pessoa_tipo',
+               'ocorrencia_terceiros.nome as  terceiro',
+               'ocorrencia_terceiros.placa as terceiro_placa',
+               'ocorrencia_terceiros.patrimonio as terceiro_patrimonio',
+            ])
+               .from('ocorrencias')
+               .innerJoin(
+                  'equipamentos',
+                  'ocorrencias.equipamento_id',
+                  'equipamentos.id'
+               )
+               .innerJoin('pessoas', 'ocorrencias.pessoa_id', 'pessoas.id')
+               .leftOuterJoin(
+                  'ocorrencia_terceiros',
+                  'ocorrencias.id',
+                  'ocorrencia_terceiros.ocorrencia_id'
+               )
+
+            // await Database.select('*').from('ocorrencias').innerJoin('equipamentos','ocorrencias.equipamento_id','equipamentos.id').where('equipamentos.placas','like', '%H%')
+
+            if (field_name === 'placa') {
+               query.where(
+                  'equipamentos.placas',
+                  'like',
+                  '%' + field_value + '%'
+               )
+            }
+
+            if (field_name === 'id') {
+               query.where('ocorrencias.id', field_value)
+            }
+
+            if (field_name === 'nome') {
+               query.where('pessoas.nome', 'like', '%' + field_value + '%')
+            }
+
+            if (field_name === 'terceiro-nome') {
+               query.where(
+                  'ocorrencia_terceiros.nome',
+                  'like',
+                  '%' + field_value + '%'
+               )
+            }
+
+            if (field_name === 'terceiro-placa') {
+               query.where(
+                  'ocorrencia_terceiros.placa',
+                  'like',
+                  '%' + field_value + '%'
+               )
+            }
+
+            if (field_name === 'terceiro-patrimonio') {
+               query.where(
+                  'ocorrencia_terceiros.patrimonio',
+                  'like',
+                  '%' + field_value + '%'
+               )
+            }
+
+            if (field_name === 'status') {
+               query.where(
+                  'ocorrencias.status',
+                  'like',
+                  '%' + field_value_status + '%'
+               )
+            }
+
+            if (field_name == 'periodo-evento') {
+               query.whereBetween('ocorrencias.dEvento', [
+                  field_value_periodo.start.substr(0, 10),
+                  field_value_periodo.end.substr(0, 10),
+               ])
+            }
+
+            let objeto = await query
+
+            let arr = []
+            objeto.forEach(e => {
+               e.placa = e[`${'placa' + e.qualPlaca}`]
+               e.marca = e[`${'marca' + e.qualPlaca}`]
+               e.modelo = e[`${'modelo' + e.qualPlaca}`]
+               e.anoF = e[`${'anoF' + e.qualPlaca}`]
+               e.ModeloF = e[`${'ModeloF' + e.qualPlaca}`]
+               e.chassi = e[`${'chassi' + e.qualPlaca}`]
+
+               if (field_name === 'placa') {
+                  if (e.placa.includes(field_value)) {
+                     arr.push(e)
+                  }
+               } else {
+                  arr.push(e)
+               }
+            })
+
+            return resolve(objeto)
+         } catch (e) {
+            reject(e)
+         }
+      })
    }
 
    /*
