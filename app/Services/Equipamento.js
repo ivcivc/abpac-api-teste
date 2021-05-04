@@ -871,6 +871,7 @@ class Equipamento {
                   situacao: 'Aberto',
                   status: 'Aberto',
                   conta_id: lancamento.conta_id,
+                  endosso_id,
                   items: [
                      {
                         DC: 'C',
@@ -1523,6 +1524,16 @@ class Equipamento {
          throw error
       }
    }
+
+   /*async buscarBaixas(payload) {
+      // Opção controle - baixas
+      try {
+
+      } catch (error) {
+
+      }
+
+   }*/
 
    async localizarPor(payload) {
       try {

@@ -28,7 +28,7 @@ class LocalizarController {
       }*/
 
       if (!lodash.has(payload, 'whereStatus')) {
-         payload.whereStatus = ['equipamentos.status', 'like', '%%']
+         //payload.whereStatus = ['equipamentos.status', 'like', '%%']
       } else {
          payload.whereStatus = [
             'equipamentos.status',
@@ -129,6 +129,55 @@ class LocalizarController {
          }
 
          return this.localizarEquipamento(response, o)
+      }
+
+      if (payload.field_name === 'Adesao') {
+         let inicio = null
+         let fim = null
+         if (payload.field_value_periodo) {
+            inicio = payload.field_value_periodo.start
+            fim = payload.field_value_periodo.end
+         }
+
+         if (!inicio) {
+            return response
+               .status(200)
+               .send({ total_count: 0, pos: 0, data: [] })
+         }
+
+         const o = Database.from('equipamentos')
+            .select(
+               'equipamentos.id',
+               'pessoas.nome',
+               'equipamentos.placas',
+               'equipamentos.status',
+               'pessoas.id as pessoa_id'
+            )
+            .innerJoin('pessoas', 'equipamentos.pessoa_id', 'pessoas.id')
+            .orderBy('pessoas.nome', 'asc')
+            .whereBetween('dAdesao', [inicio, fim])
+            .paginate(
+               lodash.isUndefined(payload.page) ? 1 : payload.page,
+               payload.limit
+            )
+
+         let res = await o
+
+         res.total_count = res.total
+         //res.continue= payload.continuar
+
+         delete res.total
+         delete res.perPage
+         delete res.page
+         delete res.lastPage
+
+         if (payload.continuar) {
+            res.pos = payload.start
+         } else {
+            res.pos = 0
+         }
+         //let r= { data: res, total_count: res.length, continue: payload.continuar, pos: payload.pos, page: payload.page, limit: payload.limit}
+         response.status(200).send(res)
       }
    }
 

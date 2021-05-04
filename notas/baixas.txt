@@ -1,0 +1,24 @@
+Exemplos de baixas - Abril/2021
+
+74 TRANSPORTES
+1) OWS-8551 (3075) - BAIXA 06/04 (50%)
+    A) ID= 3672  idPrincipal= 3075  idPai= 3075  idFilho= null  ratear=Sim
+
+2) djc-4591 (2923) - BAIXA 17/04 (PARTICIPAR RATEIO)
+	a) id 3673 idPrincipal= 2426 idPai= 2426   endosso_id= 1619476962507
+
+3) gtt-0001 (3674) - baixa total ( ) boleto conta 1736 200,00
+  endosso_id= 1619488040256  ID= 3675 RATEAR= NÃO
+
+
+
+Lancamentos
+3) lancamento=> id= 1736 isBaixa = 1 creditoRateio= Sim  equipamento_id = 3675
+
+4) A.D. MAGELA BAIXA TOTAL (26/04 - 331)
+4.1) GOL GTX HHH-0001 #3676 ENDOSSO #3678 endosso_id=1619560734234 ratear: Não
+4.2) VW JETTA HHH-0002 (#3677) ENDOSSO (#3679) endosso_id=1619560734234 ratear: Não
+LANÇAMENTOS: isBaixa= 1 creditoRateio= Sim endosso_id= 1619560734234
+
+Toda baixa, gera endosso_id, no equipamento e tb no lançamento.
+

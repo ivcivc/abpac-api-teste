@@ -1770,6 +1770,7 @@ class Rateio {
                'valorTotal',
                'forma',
                'isEmail',
+               'isZap',
             ])
             .where('rateio_id', rateio_id)
             .where('creditoRateio', 'Não')
@@ -1786,6 +1787,7 @@ class Rateio {
                   'endCidade',
                   'endEstado',
                   'endCep',
+                  'telSms',
                ])
             })
             .with('boletos', builder => {

@@ -7,6 +7,10 @@ const kue = use('Kue')
 const Job = use('App/Jobs/ACBr')
 const PessoaModel = use('App/Models/Pessoa')
 const Redis = use('Redis')
+const Env = use('Env')
+const Drive = use('Drive')
+const Helpers = use('Helpers')
+const fs = require('fs')
 
 class LancamentoController {
    async index({ params, request, response }) {}
@@ -276,6 +280,57 @@ class LancamentoController {
       return response
          .header('Content-type', 'application/pdf')
          .download(result.arquivo)
+   }
+
+   async sendZapBoleto({ response, request }) {
+      const payload = request.all()
+      const ServiceZap = use('App/Services/Zap/MyZap')
+
+      return new Promise(async (resolve, reject) => {
+         try {
+            const pastaPDF = Helpers.tmpPath('ACBr/pdf/')
+            const filePath =
+               pastaPDF + 'boleto_' + payload.lancamento_id + '.pdf'
+            const fileName = 'boleto_' + payload.lancamento_id + '.pdf'
+
+            const isExist = await Drive.exists(filePath)
+
+            let tel = '55' + payload.telSms
+
+            tel = tel.replace(/[^\d]+/g, '')
+
+            if (isExist) {
+               fs.readFile(
+                  filePath,
+                  { encoding: 'base64' },
+                  async (err, data) => {
+                     if (err) {
+                        throw err
+                     }
+                     let res = await ServiceZap().sendFile(
+                        tel,
+                        payload.message,
+                        'abpac_boleto.pdf',
+                        data
+                     )
+                     return resolve({ success: true, res })
+                  }
+               )
+            } else {
+               console.log(
+                  'Arquivo (pdfDownload(cnab) não localizado ',
+                  arquivo
+               )
+               throw {
+                  success: false,
+                  arquivo: null,
+                  message: 'Arquivo não localizado',
+               }
+            }
+         } catch (e) {
+            return reject(e)
+         }
+      })
    }
 
    async gerarBoleto({ request, response, auth }) {

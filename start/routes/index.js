@@ -5,11 +5,49 @@
 const Route = use('Route')
 
 const Drive = use('Drive')
+const Helpers = use('Helpers')
 
 Route.group(() => {
 
+   Route.get('/view/:file/:tipo',async ({params, response}) => {
+      try {
+         const arquivo= params.file
+         const tipo= params.tipo
+         let pasta= ''
+         if (tipo === 'o') {
+            pasta = Helpers.tmpPath('rateio/ocorrencias/')
+         }
+         if (tipo === 'e') {
+            pasta = Helpers.tmpPath('rateio/equipamentos/')
+         }
+         if (tipo === 'b') {
+            pasta = Helpers.tmpPath('ACBr/pdf/')
+         }
+
+         if (arquivo) {
+            let existe = await Drive.exists(pasta + arquivo)
+
+            return response
+               .header('Content-type', 'application/pdf')
+               .download(pasta + arquivo)
+         }
+         return response.status(501)
+      } catch (e) {
+         console.log('PRINCIPAL ', e)
+         response.status(200).send({ success: false, message: 'modulo principal ' + e.message })
+      }
+
+   })
+
    Route.get('/', () => {
       return { message: 'Abpac Server' }
+   })
+
+   Route.post('/myZap', ({request, response}) => {
+      const o= request.all()
+      console.log('------------ myZap ----------------')
+      console.log(o)
+      return { message: "Deu certo o webhook"}
    })
 
    Route.resource('/pessoas', 'PessoaController').middleware([
@@ -95,6 +133,7 @@ Route.group(() => {
 
    Route.post('/equipamentos/buscarProtecoes', 'EquipamentoController.buscarProtecoes')
    Route.post('/equipamentos/buscarBeneficios', 'EquipamentoController.buscarBeneficios')
+   Route.post('/equipamentos/buscarBaixas', 'EquipamentoController.buscarBaixas')
 
    Route.post('/equipamento/endosso', 'EquipamentoOutrosController.endosso').middleware([
       'auth'
@@ -359,6 +398,8 @@ Route.group(() => {
 
    })
 
+
+
    Route.get('/ti',async ({response}) => {
       try {
          //return { success: false, message: 'modulo principal ' }
@@ -414,6 +455,7 @@ Route.group(() => {
    })
 
    Route.get('/lancamento/pdf/:boleto_id', 'LancamentoController.pdf')
+   Route.post('/lancamento/sendZapBoleto', 'LancamentoController.sendZapBoleto')
    Route.get('/lancamento/pdfDownload/:arquivo', 'LancamentoController.pdfDownload')
 
    //Route.resource('/cnab', 'CnabController')

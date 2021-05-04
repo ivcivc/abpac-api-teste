@@ -351,7 +351,7 @@ function Boleto() {
       function validarArquiConfiguracao(config) {
          if (!config) config = {}
          config.diasJurosMora = 6
-         config.valorJurosMora = 0.0333
+         config.valorJurosMora = 1 && 0.0333
          config.diasMulta = 6
          config.valorMulta = 2
          return config

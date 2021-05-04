@@ -97,6 +97,19 @@ class EmailMassaController {
       })
    }
 
+   async buscarLancamento(lancamento_id) {
+      return new Promise(async (resolve, reject) => {
+         try {
+            const lancamento = await ModelLancamento.findOrFail(lancamento_id)
+            await lancamento.load('pessoa')
+
+            resolve(lancamento)
+         } catch (error) {
+            reject(error)
+         }
+      })
+   }
+
    async *dispararEmailMassa(o) {
       let topic = null
       let lancamento = null
@@ -121,10 +134,14 @@ class EmailMassaController {
                      })
                   }
 
-                  lancamento = await ModelLancamento.findOrFail(
+                  lancamento = await this.buscarLancamento(item.lancamento_id)
+                  if (!lancamento) {
+                     throw { message: 'Lançamento não encontrado.' }
+                  }
+                  /*lancamento = await ModelLancamento.findOrFail(
                      item.lancamento_id
                   )
-                  await lancamento.load('pessoa')
+                  await lancamento.load('pessoa')*/
 
                   const pessoa_id = item.pessoa_id
 
@@ -241,7 +258,7 @@ class EmailMassaController {
    async onEmailMassa(data = null) {
       if (!data) {
       }
-
+      console.log(data)
       await Redis.set('_gerarFinanceiro', 'email-massa')
 
       let topic = Ws.getChannel('email_massa:*').topic(

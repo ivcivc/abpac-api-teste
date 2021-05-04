@@ -3,7 +3,13 @@
    // Passe o mouse para ver as descrições dos atributos existentes.
    // Para obter mais informações, visite: https://go.microsoft.com/fwlink/?linkid=830387
    "version": "0.2.0",
+
+   "scripts": {
+      "dev": "adonis serve --dev --debug",
+    },
+
    "configurations": [
+
       {
          "type": "node",
          "request": "launch",
