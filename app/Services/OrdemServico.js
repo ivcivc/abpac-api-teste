@@ -48,7 +48,11 @@ class OrdemServico {
             )
 
             let oPessoa = pessoaModel.toJSON()
-            json.ocorrencia.pessoa = { id: oPessoa.id, nome: oPessoa.nome }
+            json.ocorrencia.pessoa = {
+               id: oPessoa.id,
+               nome: oPessoa.nome,
+               cpfCnpj: oPessoa.cpfCnpj,
+            }
 
             let equipamentoModel = await ModelEquipamento.findOrFail(
                json.ocorrencia.equipamento_id
