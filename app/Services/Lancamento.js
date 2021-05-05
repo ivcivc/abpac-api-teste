@@ -1426,6 +1426,23 @@ class Lancamento {
          objBoleto.dVencimento2 = moment(dVenc, 'YYYY-MM-DD').format(
             'YYYY-MM-DD'
          )
+
+         if (lodash.isEmpty(jsonLancamento.pessoa.endCep)) {
+            jsonLancamento.pessoa.endCep = '32676205'
+         }
+         if (lodash.isEmpty(jsonLancamento.pessoa.endEstado)) {
+            jsonLancamento.pessoa.endEstado = 'MG'
+         }
+         if (lodash.isEmpty(jsonLancamento.pessoa.endCidade)) {
+            jsonLancamento.pessoa.endCidade = 'BETIM'
+         }
+         if (lodash.isEmpty(jsonLancamento.pessoa.endBairro)) {
+            jsonLancamento.pessoa.endBairro = 'NAO INFORMADO'
+         }
+         if (lodash.isEmpty(jsonLancamento.pessoa.endRua)) {
+            jsonLancamento.pessoa.endRua = 'NAO INFORMADO'
+         }
+
          objBoleto.valorTotal = objBoleto.valorTotal //.toString().replace('.', ',')
          objBoleto.banco = conta.banco
          objBoleto.agencia = conta.agencia
