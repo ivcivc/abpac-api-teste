@@ -37,10 +37,18 @@ class EmailMassaController {
          lResp = true
       }
 
-      this.socket.emit('message', {
-         operation: 'isPDFBusy',
-         data: lResp,
-      })
+      let topic = Ws.getChannel('email_massa:*').topic(
+         'email_massa:email_massa'
+      )
+
+      if (topic) {
+         //console.log('busy')
+         this.socket.emit('message', {
+            operation: 'isPDFBusy',
+            data: lResp,
+         })
+      }
+
    }
 
    async espera(tempo = 1000) {
@@ -282,7 +290,10 @@ class EmailMassaController {
          if (r.done) {
             it = false
          }
-         this.socket.emit('message', r)
+         if (topic) {
+            this.socket.emit('message', r)
+         }
+
       }
 
       await Redis.set('_gerarFinanceiro', 'livre')
