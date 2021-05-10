@@ -29,7 +29,7 @@ class EmailMassaController {
    }
 
    async onIsPDFBusy() {
-      console.log('message onIsPDFBusy')
+      //console.log('message onIsPDFBusy')
       let res = await Redis.get('_gerarFinanceiro')
 
       let lResp = false

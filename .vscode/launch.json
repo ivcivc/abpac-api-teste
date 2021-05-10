@@ -4,20 +4,32 @@
    // Para obter mais informações, visite: https://go.microsoft.com/fwlink/?linkid=830387
    "version": "0.2.0",
 
-   "scripts": {
+   /*"scripts": {
       "dev": "adonis serve --dev --debug",
-    },
+    },*/
 
    "configurations": [
+
 
       {
          "type": "node",
          "request": "launch",
-         "name": "Debug Application",
+         "name": "Debug Server",
          "runtimeExecutable": "npm",
          "runtimeArgs": ["run", "dev"],
          "port": 9229,
-         "internalConsoleOptions": "openOnSessionStart"
+         "internalConsoleOptions": "neverOpen",
+         //"console": "internalConsole",
+      },
+      {
+         "type": "node",
+         "request": "launch",
+         "name": "Debug Kue",
+         "runtimeExecutable": "npm",
+         "runtimeArgs": ["run", "kue"],
+         //"port": 9229,
+         "internalConsoleOptions": "openOnSessionStart",
+         //"console": "openOnSessionStart",
       },
       {
          "type": "node",

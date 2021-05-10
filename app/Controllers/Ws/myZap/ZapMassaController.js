@@ -226,21 +226,30 @@ class ZapMassaController {
    }
 
    async onZapMassa(data = null) {
-      let topic = Ws.getChannel('zap_massa:*').topic('zap_massa:zap_massa')
+      try {
+         let topic = Ws.getChannel('zap_massa:*').topic('zap_massa:zap_massa')
 
-      const rateio_id = data.rateio_id
-      const lista = data.lista
+         const rateio_id = data.rateio_id
+         const lista = data.lista
 
-      const iterator = this.dispararZapMassa({ rateio_id, lista })
+         const iterator = this.dispararZapMassa({ rateio_id, lista })
 
-      let it = true
-      while (it) {
-         let r = await iterator.next()
-         if (r.done) {
-            it = false
+         let it = true
+         while (it) {
+            let r = await iterator.next()
+            if (r.done) {
+               it = false
+            }
+            if (topic) {
+               this.socket.emit('message', r)
+            }
          }
-         this.socket.emit('message', r)
+      } catch (e) {
+         console.log('Ocorreu uma falha no metodo onZapMassa (ZapMassaController')
+         console.log(e)
+         console.log('dados ', data)
       }
+
    }
 }
 

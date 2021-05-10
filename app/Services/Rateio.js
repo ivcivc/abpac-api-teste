@@ -1571,17 +1571,22 @@ class Rateio {
          let nossoNumero = boletoConfig.nossoNumero
          let mom = moment(payload.dVencimento, 'YYYY-MM-DD')
          let ano = `${mom.year()}`
+
          ano.padEnd(2, '0')
          let nMes = mom.month() + 1 // janeiro === 0
          let mes = `${nMes}`
+
          mes = mes.padStart(2, '0')
+
          let mesAno = `${mes}/${ano}`
          let anoMes = `${ano}-${mes}-`
 
          let strDVenc = moment(payload.dVencimento, 'YYYY-MM-DD').format(
             'YYYY-MM-DD'
          )
+
          let dia = strDVenc.substr(8, 2)
+
          dia = dia.padStart(2, '0')
 
          for (const key in query) {
@@ -1607,6 +1612,7 @@ class Rateio {
                }
 
                e.parcela = e.parcela.padStart(2, '0')
+
                e.dVencimento2 = anoMes + e.parcela
                e.dVencimento = e.parcela + '/' + mesAno
 
