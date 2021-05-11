@@ -291,8 +291,18 @@ class LancamentoController {
       })
    }
 
-   async logZap(oLog) {
-      return await ModelEmailLog.create(oLog)
+   async logZap(oLog, ID = null) {
+
+      if ( ! ID ) {
+         return await ModelEmailLog.create(oLog)
+      } else {
+         let log = await ModelEmailLog.find(ID)
+         if (!log) return null
+         log.merge(oLog)
+         log.save()
+         return log
+      }
+
    }
 
 
@@ -313,13 +323,71 @@ class LancamentoController {
 
          let process= null
 
+         let ID_Mensagem= null
+         let ID_Boleto= null
+         let ID_Equipamento= null
+         let ID_Ocorrencia= null
+
          try {
 
-            process= 1
+            // Log para envio de mensagem
+            let oLog= {
+               pessoa_id,
+               mensagem: `Nr. ${payload.telSms}. "${message}"`,
+               boleto_id: boleto_id,
+               response: "Mensagem enviada. Aguarde resposta!",
+               status: "pendente",
+               tipo: 'zap'
+            }
+            const registro= await this.logZap(oLog)
+            ID_Mensagem=  registro.id
 
+
+            if ( isAnexarBoleto ) {
+               let oLog= {
+                  pessoa_id,
+                  mensagem: `Nr. ${payload.telSms}. Envio de boleto.`,
+                  boleto_id: boleto_id,
+                  response: "Boleto enviado. Aguarde resposta!",
+                  status: "pendente",
+                  tipo: 'zap'
+               }
+               const registro= await this.logZap(oLog)
+               ID_Boleto= registro.id
+            }
+
+            if ( isAnexarRelEquipamentos ) {
+               let oLog= {
+                  pessoa_id,
+                  mensagem: `Nr. ${payload.telSms}. Envio relatório equipamentos`,
+                  boleto_id: boleto_id,
+                  response: "Relatório equipamentos enviado. Aguarde resposta!",
+                  status: "pendente",
+                  tipo: 'zap'
+               }
+               const registro= await this.logZap(oLog)
+               ID_Equipamento= registro.id
+            }
+
+            if ( isAnexarRelOcorrencias ) {
+               let oLog= {
+                  pessoa_id,
+                  mensagem: `Nr. ${payload.telSms}. Envio relatório ocorrências`,
+                  boleto_id: boleto_id,
+                  response: "Relatório de ocorrencias enviado. Aguarde resposta!",
+                  status: "pendente",
+                  tipo: 'zap'
+               }
+               const registro= await this.logZap(oLog)
+               ID_Ocorrencia= registro.id
+            }
+
+            // Retorno antecipado para o cliente....
             setTimeout(() => {
                return resolve({ success: true })
             }, 4000)
+
+            process= 1
 
             let tel = '55' + payload.telSms
             tel = tel.replace(/[^\d]+/g, '')
@@ -329,15 +397,14 @@ class LancamentoController {
                payload.message
             )
 
-            let oLog= {
-               pessoa_id,
-               mensagem: `Nr. ${payload.telSms}. "${message}"`,
+            oLog= {
                boleto_id: boleto_id,
                response: res.result === 'success' ? "Mensagem enviada com sucesso!" : `Status: ${res.result}`,
                status: res.result === 'success' ? "Enviado" : "falha",
                tipo: 'zap'
             }
-            await this.logZap(oLog)
+
+            await this.logZap(oLog, ID_Mensagem)
 
             await this.espera(100)
 
@@ -366,14 +433,10 @@ class LancamentoController {
                         )
 
                         let oLog= {
-                           pessoa_id,
-                           mensagem: `Nr. ${payload.telSms}. "Envio de boleto"`,
-                           boleto_id: boleto_id,
                            response: res.result === 'success' ? "Boleto enviado com sucesso!" : `Status: ${res.result}`,
-                           status: res.result === 'success' ? "Enviado" : "falha",
-                           tipo: 'zap'
+                           status: res.result === 'success' ? "Enviado" : "falha"
                         }
-                        await this.logZap(oLog)
+                        await this.logZap(oLog, ID_Boleto)
 
                      }
                   )
@@ -417,14 +480,11 @@ class LancamentoController {
                         )
 
                         let oLog= {
-                           pessoa_id,
-                           mensagem: `Nr. ${payload.telSms}. "Relatório de equipamentos"`,
-                           boleto_id: boleto_id,
+
                            response: res.result === 'success' ? "Relatório equipamentos enviado com sucesso!" : `Status: ${res.result}`,
-                           status: res.result === 'success' ? "Enviado" : "falha",
-                           tipo: 'zap'
+                           status: res.result === 'success' ? "Enviado" : "falha"
                         }
-                        await this.logZap(oLog)
+                        await this.logZap(oLog, ID_Equipamento)
                      }
                   )
                } else {
@@ -435,7 +495,7 @@ class LancamentoController {
                   throw {
                      success: false,
                      arquivo: null,
-                     message: 'Arquivo não localizado',
+                     message: 'Arquivo de equipamento não localizado',
                   }
                }
             }
@@ -467,14 +527,10 @@ class LancamentoController {
                         )
 
                         let oLog= {
-                           pessoa_id,
-                           mensagem: `Nr. ${payload.telSms}. Relatório de Ocorrências`,
-                           boleto_id: boleto_id,
                            response: res.result === 'success' ? "Relatório ocorrências enviado com sucesso!" : `Status: ${res.result}`,
-                           status: res.result === 'success' ? "Enviado" : "falha",
-                           tipo: 'zap'
+                           status: res.result === 'success' ? "Enviado" : "falha"
                         }
-                        await this.logZap(oLog)
+                        await this.logZap(oLog, ID_Ocorrencia)
                      }
                   )
                } else {
@@ -485,7 +541,7 @@ class LancamentoController {
                   throw {
                      success: false,
                      arquivo: null,
-                     message: 'Arquivo não localizado',
+                     message: 'Arquivo de ocorrência não localizado',
                   }
                }
             }
@@ -505,19 +561,28 @@ class LancamentoController {
             }
 
             if ( process == 1) {
+               let oLog= {}
                oLog.response= "Ocorreu falha ao tentar enviar uma mensagem."
                oLog.status= 'falha'
-               await this.logZap(oLog)
+               await this.logZap(oLog, ID_Mensagem)
             }
             if ( process == 2) {
-               oLog.response= "Ocorreu falha ao tentar enviar relatório equipamentos."
+               let oLog= {}
+               oLog.response= "Ocorreu falha ao tentar enviar boleto."
                oLog.status= 'falha'
-               await this.logZap(oLog)
+               await this.logZap(oLog, ID_Boleto)
             }
             if ( process == 3) {
+               let oLog= {}
+               oLog.response= "Ocorreu falha ao tentar enviar relatório equipamentos."
+               oLog.status= 'falha'
+               await this.logZap(oLog, ID_Equipamento)
+            }
+            if ( process == 4) {
+               let oLog= {}
                oLog.response= "Ocorreu falha ao tentar enviar relatório ocorrência."
                oLog.status= 'falha'
-               await this.logZap(oLog)
+               await this.logZap(oLog, ID_Ocorrencia)
             }
 
             if ( process == 0 ) {
