@@ -2,6 +2,7 @@
 
 const Database = use('Database')
 const LancamentoService = use('App/Services/Lancamento')
+const ModelEmailLog = use('App/Models/EmailLog')
 
 const kue = use('Kue')
 const Job = use('App/Jobs/ACBr')
@@ -282,53 +283,248 @@ class LancamentoController {
          .download(result.arquivo)
    }
 
+   async espera(tempo = 1000) {
+      return new Promise(async (resolve, reject) => {
+         setTimeout(() => {
+            resolve(true)
+         }, tempo)
+      })
+   }
+
+   async logZap(oLog) {
+      return await ModelEmailLog.create(oLog)
+   }
+
+
    async sendZapBoleto({ response, request }) {
-      const payload = request.all()
-      const ServiceZap = use('App/Services/Zap/MyZap')
 
       return new Promise(async (resolve, reject) => {
-         try {
-            const pastaPDF = Helpers.tmpPath('ACBr/pdf/')
-            const filePath =
-               pastaPDF + 'boleto_' + payload.lancamento_id + '.pdf'
-            const fileName = 'boleto_' + payload.lancamento_id + '.pdf'
+         const payload = request.all()
+         const ServiceZap = use('App/Services/Zap/MyZap')
 
-            const isExist = await Drive.exists(filePath)
+         const pessoa_id= payload.pessoa_id ? payload.pessoa_id : null
+         const isAnexarBoleto= payload.isAnexarBoleto ? payload.isAnexarBoleto : false
+         const isAnexarRelEquipamentos= payload.isAnexarRelEquipamentos ? payload.isAnexarRelEquipamentos : false
+         const isAnexarRelOcorrencias= payload.isAnexarRelOcorrencias ? payload.isAnexarRelOcorrencias : false
+         const message= payload.message
+         const boleto_id= payload.boleto_id
+         const rateio_id = payload.rateio_id
+         const lancamento_id= payload.lancamento_id
+
+         let process= null
+
+         try {
+
+            process= 1
+
+            setTimeout(() => {
+               return resolve({ success: true })
+            }, 4000)
 
             let tel = '55' + payload.telSms
-
             tel = tel.replace(/[^\d]+/g, '')
 
-            if (isExist) {
-               fs.readFile(
-                  filePath,
-                  { encoding: 'base64' },
-                  async (err, data) => {
-                     if (err) {
-                        throw err
+            const res= await ServiceZap().sendMessage(
+               tel,
+               payload.message
+            )
+
+            let oLog= {
+               pessoa_id,
+               mensagem: `Nr. ${payload.telSms}. "${message}"`,
+               boleto_id: boleto_id,
+               response: res.result === 'success' ? "Mensagem enviada com sucesso!" : `Status: ${res.result}`,
+               status: res.result === 'success' ? "Enviado" : "falha",
+               tipo: 'zap'
+            }
+            await this.logZap(oLog)
+
+            await this.espera(100)
+
+            if ( isAnexarBoleto ) {
+               process= 2
+               const pastaPDF = Helpers.tmpPath('ACBr/pdf/')
+               const filePath =
+                  pastaPDF + 'boleto_' + payload.lancamento_id + '.pdf'
+               const fileName = 'boleto_' + payload.lancamento_id + '.pdf'
+
+               const isExist = await Drive.exists(filePath)
+
+               if (isExist) {
+                  fs.readFile(
+                     filePath,
+                     { encoding: 'base64' },
+                     async (err, data) => {
+                        if (err) {
+                           throw err
+                        }
+                        let res = await ServiceZap().sendFile(
+                           tel,
+                           message,
+                           'abpac_boleto.pdf',
+                           data
+                        )
+
+                        let oLog= {
+                           pessoa_id,
+                           mensagem: `Nr. ${payload.telSms}. "Envio de boleto"`,
+                           boleto_id: boleto_id,
+                           response: res.result === 'success' ? "Boleto enviado com sucesso!" : `Status: ${res.result}`,
+                           status: res.result === 'success' ? "Enviado" : "falha",
+                           tipo: 'zap'
+                        }
+                        await this.logZap(oLog)
+
                      }
-                     let res = await ServiceZap().sendFile(
-                        tel,
-                        payload.message,
-                        'abpac_boleto.pdf',
-                        data
-                     )
-                     return resolve({ success: true, res })
+                  )
+               } else {
+                  console.log(
+                     'Arquivo (pdfDownload(cnab) não localizado ',
+                     arquivo
+                  )
+                  throw {
+                     success: false,
+                     arquivo: null,
+                     message: 'Arquivo não localizado',
                   }
-               )
-            } else {
-               console.log(
-                  'Arquivo (pdfDownload(cnab) não localizado ',
-                  arquivo
-               )
-               throw {
-                  success: false,
-                  arquivo: null,
-                  message: 'Arquivo não localizado',
                }
             }
+
+            await this.espera(160)
+
+            if ( isAnexarRelEquipamentos ) {
+               process= 3
+               const pasta = Helpers.tmpPath('rateio/equipamentos/')
+               const filePath =
+                  pasta + 'equip_' + rateio_id + '_'  + pessoa_id + '.pdf'
+               const fileName = 'equip_' + rateio_id + '_'  + pessoa_id + '.pdf'
+
+               const isExist = await Drive.exists(filePath)
+
+               if (isExist) {
+                  fs.readFile(
+                     filePath,
+                     { encoding: 'base64' },
+                     async (err, data) => {
+                        if (err) {
+                           throw err
+                        }
+                        let res = await ServiceZap().sendFile(
+                           tel,
+                           message,
+                           'equipamentos.pdf',
+                           data
+                        )
+
+                        let oLog= {
+                           pessoa_id,
+                           mensagem: `Nr. ${payload.telSms}. "Relatório de equipamentos"`,
+                           boleto_id: boleto_id,
+                           response: res.result === 'success' ? "Relatório equipamentos enviado com sucesso!" : `Status: ${res.result}`,
+                           status: res.result === 'success' ? "Enviado" : "falha",
+                           tipo: 'zap'
+                        }
+                        await this.logZap(oLog)
+                     }
+                  )
+               } else {
+                  console.log(
+                     'Arquivo (pdfEquipamentos não localizado ',
+                     arquivo
+                  )
+                  throw {
+                     success: false,
+                     arquivo: null,
+                     message: 'Arquivo não localizado',
+                  }
+               }
+            }
+
+            await this.espera(250)
+
+            if ( isAnexarRelOcorrencias ) {
+               process= 4
+               const pasta = Helpers.tmpPath('rateio/ocorrencias/')
+               const filePath =
+                  pasta + 'rateio_ocorrencias_' + rateio_id + '.pdf'
+               const fileName = 'rateio_ocorrencias' + rateio_id + '.pdf'
+
+               const isExist = await Drive.exists(filePath)
+
+               if (isExist) {
+                  fs.readFile(
+                     filePath,
+                     { encoding: 'base64' },
+                     async (err, data) => {
+                        if (err) {
+                           throw err
+                        }
+                        let res = await ServiceZap().sendFile(
+                           tel,
+                           message,
+                           'ocorrencias.pdf',
+                           data
+                        )
+
+                        let oLog= {
+                           pessoa_id,
+                           mensagem: `Nr. ${payload.telSms}. Relatório de Ocorrências`,
+                           boleto_id: boleto_id,
+                           response: res.result === 'success' ? "Relatório ocorrências enviado com sucesso!" : `Status: ${res.result}`,
+                           status: res.result === 'success' ? "Enviado" : "falha",
+                           tipo: 'zap'
+                        }
+                        await this.logZap(oLog)
+                     }
+                  )
+               } else {
+                  console.log(
+                     'Arquivo (pdfOcorrencias não localizado ',
+                     arquivo
+                  )
+                  throw {
+                     success: false,
+                     arquivo: null,
+                     message: 'Arquivo não localizado',
+                  }
+               }
+            }
+
+
          } catch (e) {
-            return reject(e)
+
+            reject(e)
+
+            let oLog= {
+               pessoa_id,
+               mensagem: `Nr. ${payload.telSms}. "${message}"`,
+               boleto_id: boleto_id,
+               response: "Ocorreu falha de comunicação com o servidor",
+               status: "falha",
+               tipo: 'zap'
+            }
+
+            if ( process == 1) {
+               oLog.response= "Ocorreu falha ao tentar enviar uma mensagem."
+               oLog.status= 'falha'
+               await this.logZap(oLog)
+            }
+            if ( process == 2) {
+               oLog.response= "Ocorreu falha ao tentar enviar relatório equipamentos."
+               oLog.status= 'falha'
+               await this.logZap(oLog)
+            }
+            if ( process == 3) {
+               oLog.response= "Ocorreu falha ao tentar enviar relatório ocorrência."
+               oLog.status= 'falha'
+               await this.logZap(oLog)
+            }
+
+            if ( process == 0 ) {
+               await this.logZap(oLog)
+            }
+
+
          }
       })
    }
