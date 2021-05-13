@@ -110,7 +110,9 @@ class LocalizarController {
       }
 
       if (payload.field_name === 'Placa') {
-         payload.field_value = payload.field_value.replace('-', '')
+         if ( !lodash.isEmpty(payload.field_value)) {
+            payload.field_value = payload.field_value.replace('-', '')
+         }
 
          if (!lodash.isEmpty(payload.field_value)) {
             /*o.where= ['equipamentos.placa1','like', '%'+payload.field_value+"%"]

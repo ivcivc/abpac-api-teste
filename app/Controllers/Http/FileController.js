@@ -488,8 +488,6 @@ class FileController {
    async busca({ response, request }) {
       const payload = request.all()
 
-      console.log('status porra')
-
       let modulos = []
 
       if (payload.modulos) {

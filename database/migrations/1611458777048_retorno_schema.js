@@ -29,7 +29,7 @@ class RetornoSchema extends Schema {
 
          table.varchar('codTipoOcorrencia', 40).index()
          table.varchar('descricaoTipoOcorrencia', 40).index()
-         table.varchar('motivoRejeicao1', 40).index()
+         table.varchar('motivoRejeicao1', 60).index()
 
          table.varchar('banco', 4)
          table.varchar('conta', 12)

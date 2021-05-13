@@ -46,7 +46,7 @@ class LancamentoController {
    async show({ params, response }) {
       try {
          const model = await new LancamentoService().get(params.id)
-         console.log('entrando')
+         console.log('entrando lançamento controlller')
          response.status(200).send({ type: true, data: model })
       } catch (error) {
          console.log(error)
