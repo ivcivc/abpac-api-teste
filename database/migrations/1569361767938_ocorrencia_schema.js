@@ -87,7 +87,7 @@ class OcorrenciaSchema extends Schema {
 
          table.date('dPatioEntrada')
          table.date('dOficinaEntrada')
-         table.varchar('oficinaEntrada', 30)
+         table.varchar('oficinaEntrada', 60)
 
          table.date('dPrevisaoEntrega')
          table.date('dProprietarioEntrega')

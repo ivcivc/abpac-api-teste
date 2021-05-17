@@ -613,6 +613,8 @@ class Cnab {
          try {
             const filePath = this.pastaPDF + 'boleto_' + arquivo + '.pdf'
 
+            console.log(`procurando o arquivo ${filePath}`)
+
             const isExist = await Drive.exists(filePath)
 
             if (isExist) {

@@ -795,14 +795,15 @@ class Lancamento {
             }
          }
 
-         if (moment(model.dVencimento).isAfter(moment())) {
+         // Permitido para constas vencidas a partir 16-05/2021 (Cris)
+         /*if (moment(model.dVencimento).isAfter(moment())) {
             // moment(model.dVencimento) < moment()
             nrErro = -100
             throw {
                success: false,
                message: 'Operação permitida apenas para contas vencidas',
             }
-         }
+         }*/
 
          const novoStatus = 'Inadimplente'
          const status = {

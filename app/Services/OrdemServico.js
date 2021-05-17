@@ -224,6 +224,17 @@ class OrdemServico {
                   .transacting(trx ? trx : null)
             }
          } else {
+            if ( data.status === 'Finalizado') {
+               await ModelLancamento.query()
+                  .where('ordem_servico_id', os.id)
+                  .where('situacao', 'Bloqueado')
+                  .update({
+                     situacao: 'Aberto',
+                     pessoa_id: data.pessoa_id,
+                     updated_at: moment(),
+                  })
+                  .transacting(trx ? trx : null)
+            }
             if (data.pessoa_id !== os.pessoa_id) {
                await ModelLancamento.query()
                   .where('ordem_servico_id', os.id)
