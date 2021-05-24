@@ -335,7 +335,7 @@ class OrdemServico {
       }
    }
 
-   async localizarPor(payload, parametros) {
+   async DELETAR_localizarPor(payload, parametros) {
       try {
          let res = null
 
@@ -361,6 +361,214 @@ class OrdemServico {
             code: e.code,
          }
       }
+   }
+
+   async localizarPor(payload, parametros) {
+      return new Promise(async (resolve, reject) => {
+
+         let continuar= parametros.continue
+         let start= parametros.start
+         let count= parametros.count
+         let pagina= parametros.pagina
+
+         let field_name = payload.field_name
+         let field_value= payload.field_value
+         let field_value_status= payload.field_value_status
+         let inicio = null
+         let fim = null
+         if (payload.field_value_periodo) {
+            inicio = payload.field_value_periodo.start
+            fim = payload.field_value_periodo.end
+         }
+         let ordenar= payload.ordenar ? payload.ordenar : field_name // "id"
+
+
+         let operador= '='
+
+         try {
+            const query = Database.select([
+               'ordem_servicos.id',
+               'ordem_servicos.dCompetencia',
+               'ordem_servicos.ocorrencia_terceiro_id',
+               'ordem_servicos.ocorrencia_id',
+               'ordem_servicos.rateio_id',
+               //'ordem_servicos.descricao',
+               'ordem_servicos.status',
+               'ordem_servicos.pessoa_id',
+               'ordem_servicos.valorTotal',
+
+               'ocorrencia_terceiros.id as terceiro_id',
+               'ocorrencia_terceiros.nome as terceiro_nome',
+               'ocorrencia_terceiros.placa as terceiro_placa',
+               'ocorrencia_terceiros.atender as terceiro_atender',
+               'ocorrencia_terceiros.status as terceiro_status',
+
+               'ocorrencias.id as ocorrencia_id',
+               'ocorrencias.status as ocorrencia_status',
+               'ocorrencias.dEvento as ocorrencia_dEvento',
+               'ocorrencia_pessoa.nome as ocorrencia_nome',
+               'ocorrencias.qualPlaca as ocorrencia_qualPlaca',
+
+               'pessoas.nome as pessoa_nome',
+               'pessoas.tipo as pessoa_tipo',
+               'pessoas.status as pessoa_status',
+
+               'ordem_servicos.equipamento_id',
+
+               'ocorrencias.equipamento_id as equipa_id',
+               'equipamentos.status as equipa_status',
+               'equipamentos.placa1 as equipa_placa1',
+               'equipamentos.marca1 as equipa_marca1',
+               'equipamentos.modelo1 as equipa_modelo1',
+               'equipamentos.placa2 as equipa_placa2',
+               'equipamentos.marca2 as equipa_marca2',
+               'equipamentos.modelo2 as equipa_modelo2',
+               'equipamentos.placa3 as equipa_placa3',
+               'equipamentos.marca3 as equipa_marca3',
+               'equipamentos.modelo3 as equipa_modelo3',
+
+               'equipamento.status as equip_status',
+               'equipamento.placa1 as equip_placa1',
+               'equipamento.marca1 as equip_marca1',
+               'equipamento.modelo1 as equip_modelo1',
+
+               'os_configs.descricao as descricao',
+               'os_configs.modelo as modelo',
+            ])
+               .from('ordem_servicos').distinct('ordem_servicos.id')
+            query.leftOuterJoin(
+                  'ocorrencias',
+                  'ordem_servicos.ocorrencia_id',
+                  'ocorrencias.id'
+               )
+            query.leftOuterJoin(
+                  'equipamentos',
+                  'ocorrencias.equipamento_id',
+                  'equipamentos.id'
+               )
+            query.leftOuterJoin(
+                  'pessoas as ocorrencia_pessoa',
+                  'ocorrencias.pessoa_id',
+                  'ocorrencia_pessoa.id'
+               )
+            query.leftOuterJoin(
+                  'equipamentos as equipamento',
+                  'ordem_servicos.equipamento_id',
+                  'equipamento.id'
+               )
+            query.leftOuterJoin(
+                  'pessoas',
+                  'ordem_servicos.pessoa_id',
+                  'pessoas.id'
+               )
+            query.leftOuterJoin(
+               'ocorrencia_terceiros',
+               'ordem_servicos.ocorrencia_terceiro_id',
+               'ocorrencia_terceiros.id'
+            )
+            query.leftOuterJoin(
+                  'os_configs',
+                  'ordem_servicos.config_id',
+                  'os_configs.id'
+               )
+
+            if ( field_value_status) {
+               if ( field_value_status !== 'todos') {
+                  console.log('status ', field_value_status)
+                  query.andWhere("ordem_servicos.status",  field_value_status)
+               }
+
+            }
+
+
+            switch (field_name) {
+               case "id_os" :
+                  console.log('os_id ', field_value)
+                  query.where("ordem_servicos.id", field_value)
+                  break
+
+               case "ocorrencia_id" :
+                  query.where("ordem_servicos.ocorrencia_id", field_value)
+                  break
+
+               case "nome" :
+                  query.where((builder) => {
+                     builder.orWhere('ocorrencia_pessoa.nome', 'like', '%' + field_value + '%')
+                     builder.orWhere('ocorrencia_terceiros.nome', 'like', '%' + field_value + '%')
+                     builder.orWhere('pessoas.nome', 'like', '%' + field_value + '%')
+                  })
+                  /*query.orWhere('ocorrencia_pessoa.nome', 'like', '%' + field_value + '%')
+                  query.orWhere('ocorrencia_terceiros.nome', 'like', '%' + field_value + '%')
+                  query.orWhere('pessoas.nome', 'like', '%' + field_value + '%')*/
+                  break
+
+               case "terceiro" :
+                  query.where('ocorrencia_terceiros.nome', 'like', '%' + field_value + '%')
+                  break
+
+               case "fornecedor" :
+                  query.where('pessoas.nome', 'like', '%' + field_value + '%')
+                  break
+
+               case "placa" :
+                  query.where((builder) => {
+                     builder.orWhere('equipamentos.placa1', 'like', '%' + field_value + '%')
+                     builder.orWhere('equipamento.placa1', 'like', '%' + field_value + '%')
+                     builder.orWhere('ocorrencia_terceiros.placa', 'like', '%' + field_value + '%')
+                  })
+                  break
+
+               case "rateio_id" :
+                  query.where("ordem_servicos.rateio_id", '=', field_value)
+                  break
+
+               case "competencia" :
+                  query.whereBetween('dCompetencia', [inicio, fim])
+                  break
+
+            }
+
+            switch (ordenar) {
+               case "id_os" :
+                  query.orderBy('ordem_servicos.id', 'desc')
+                  break
+               case "dCompetencia" :
+                  query.orderBy('ordem_servicos.dCompetencia', 'desc')
+                  break
+               case "tipo" :
+                  query.orderBy('os_configs.descricao', 'asc')
+                  break
+               case "fornecedor" :
+                  query.orderBy('ordem_servicos.id','desc')
+                  break
+               case "associado" :
+                  query.orderBy('ocorrencia_pessoa.nome', 'asc')
+                  break
+               case "terceiro" :
+                  query.orderBy('ocorrencia_terceiros.nome', 'asc')
+                  break
+               case "nome" :
+                  query.orderBy('ocorrencia_pessoa.nome', 'asc')
+                  query.orderBy('ordem_servicos.id','desc')
+
+                  //query.orderBy([{ column: 'ocorrencia_terceiros.nome'}, { column: 'ordem_servicos.id', order: "desc"])
+                  break
+            }
+
+            const res = await query.paginate(pagina, count)
+
+            const retorno= {
+               pos: continuar ? start : 0,
+               total_count: res.total,
+               data: res.data
+            }
+
+            resolve(retorno)
+
+         } catch (e) {
+            reject(e)
+         }
+      })
    }
 
    async localizarOcorrencia(payload, parametros) {

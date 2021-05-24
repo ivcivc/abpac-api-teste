@@ -1,5 +1,7 @@
 'use strict'
 
+const lodash = require('lodash')
+
 const OrdemServicoService = use('App/Services/OrdemServico')
 
 class OrdemServicoController {
@@ -59,9 +61,46 @@ class OrdemServicoController {
    async localizarPor({ request, response }) {
       const payload = request.all()
       let parametros = request.only(['continue', 'start', 'count'])
+      console.log('parameters===== ', parametros)
+      if ( lodash.has(parametros, 'continue')) {
+         if (! lodash.isBoolean(parametros.continue)) {
+            parametros.continue= parametros.continue === 'true'
+         }
+      } else {
+         parametros.continue= false
+      }
+      if (! parametros.continue) {
+         parametros.continue= false
+         parametros.start= 1
+         parametros.count= parseInt(parametros.count)
+         parametros.pagina= 1
+      } else {
+         parametros.pagina= (parseInt(parametros.start) / parseInt(parametros.count) ) + 1
+         parametros.count= parseInt(parametros.count)
+         parametros.start= parseInt(parametros.start)
+
+      }
+      console.log('parameters ', parametros)
 
       try {
          const query = await new OrdemServicoService().localizarPor(
+            payload,
+            parametros
+         )
+
+         response.status(200).send(query)
+      } catch (error) {
+         console.log(error)
+         response.status(400).send(error)
+      }
+   }
+
+   async localizarOS({ request, response }) {
+      const payload = request.all()
+      let parametros = request.only(['continue', 'start', 'count'])
+
+      try {
+         const query = await new OrdemServicoService().localizarOS(
             payload,
             parametros
          )

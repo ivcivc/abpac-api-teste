@@ -555,7 +555,8 @@ Route.group(() => {
       'auth'
      ])
 
-   Route.post('/ordemServico/localizarPor', 'ordem_servico/OrdemServicoController.localizarPor')
+  Route.post('/ordemServico/localizarPor', 'ordem_servico/OrdemServicoController.localizarPor')
+  // Route.post('/ordemServico/localizarOS', 'ordem_servico/OrdemServicoController.localizarOS')
 
 
    Route.post('upload99', async ({ request }) => {

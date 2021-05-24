@@ -2324,7 +2324,7 @@ class Rateio {
                      isFindOcorrencia = true
                      oOcorrencia = e.ocorrencia
                   }
-                  if (e.config.modelo === 'Participação (O.S.)') {
+                  if (e.config.modelo === 'Participação (Ocorrência)') {
                      if (e.isCredito) {
                         //nCreditos += e.valorTotal
                         nParticipacoes += e.valorTotal

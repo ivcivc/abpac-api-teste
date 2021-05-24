@@ -48,12 +48,12 @@ class OsConfigSchema extends Schema {
             .enu(
                'modelo',
                [
-                  'Padrão (O.S.)',
-                  'Ordem Serviço (O.S.)',
-                  'Terceiro (O.S.)',
-                  'Participação (O.S.)',
-                  'Salvado (O.S.)',
-                  'Indenização (O.S.)',
+                  'Padrão (Ocorrência)',
+                  'Ordem Serviço (Ocorrência)',
+                  'Terceiro',
+                  'Participação (Ocorrência)',
+                  'Salvado (Ocorrência)',
+                  'Indenização (Ocorrência)',
                   'Adesão',
                   'Assistencia 24h',
                   'Localizador/Bloqueador',
@@ -67,7 +67,7 @@ class OsConfigSchema extends Schema {
                }
             )
             .notNullable()
-            .defaultTo('Padrão (O.S.)')
+            .defaultTo('Padrão (Ocorrência)')
 
          table
             .integer('beneficio_id')
