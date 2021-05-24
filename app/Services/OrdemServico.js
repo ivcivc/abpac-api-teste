@@ -473,9 +473,12 @@ class OrdemServico {
                )
 
             if ( field_value_status) {
-               if ( field_value_status !== 'todos') {
+               if ( field_value_status !== 'todos' && field_value_status !== 'em aberto') {
                   console.log('status ', field_value_status)
                   query.andWhere("ordem_servicos.status",  field_value_status)
+               }
+               if ( field_value_status === 'em aberto') {
+                  query.whereIn("ordem_servicos.status",  ['Em espera', 'Em execução'])
                }
 
             }
