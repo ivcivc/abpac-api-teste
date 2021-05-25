@@ -104,6 +104,7 @@ class OrdemServico {
    }
 
    async add(data, trx, auth) {
+      console.log('ADD ======================================================')
       try {
          if (!trx) {
             trx = await Database.beginTransaction()
@@ -118,7 +119,7 @@ class OrdemServico {
             objFinanceiro = data.financeiro
             delete data['financeiro']
          }
-
+console.log('antes de criar....')
          const os = await Model.create(data, trx ? trx : null)
 
          const status = {
@@ -154,13 +155,14 @@ class OrdemServico {
 
          await trx.commit()
 
-         await os.load('config')
+         /*await os.load('config')
          await os.load('pessoa')
          await os.load('items')
          await os.load('user')
          await os.load('lancamentos')
 
-         return os
+         return os*/
+         return await this.get(os.id)
       } catch (e) {
          await trx.rollback()
          throw e
@@ -168,6 +170,7 @@ class OrdemServico {
    }
 
    async update(ID, data, trx, auth) {
+      console.log('update ======================================================')
       let nrErro = null
       if (!trx) {
          trx = await Database.beginTransaction()
@@ -311,12 +314,15 @@ class OrdemServico {
 
          await trx.commit()
 
-         await os.load('config')
-         //await os.load('items')
-         //await os.load('user')
-         //await os.load('lancamentos')
+         return await this.get(os.id)
 
-         return os //itemsDB
+         /*await os.load('config')
+         await os.load('pessoa')
+         await os.load('items')
+         await os.load('user')
+         await os.load('lancamentos')
+
+         return os //itemsDB*/
       } catch (e) {
          await trx.rollback()
 
