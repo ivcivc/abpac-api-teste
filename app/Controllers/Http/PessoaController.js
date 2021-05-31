@@ -103,17 +103,31 @@ class PessoaController {
    }
 
    async isCpfCnpj({ params, response }) {
-      const doc = params.cpfCnpj
-      console.log('recebi ', doc)
-      const res = await new PessoaServices().isCpfCnpj(doc)
+      let doc = params.cpfCnpj
+      if ( doc === 'null') {
+         doc= null
+      }
+      let id= params.id
+      if ( id === 'null') {
+         id= null
+      }
+
+      const res = await new PessoaServices().isCpfCnpj(doc,'Associado' , id)
 
       return res
    }
 
    async isCpfCnpjFornecedor({ params, response }) {
-      const doc = params.cpfCnpj
+      let doc = params.cpfCnpj
+      if ( doc === 'null') {
+         doc= null
+      }
+      let id= params.id
+      if ( id === 'null') {
+         id= null
+      }
 
-      const res = await new PessoaServices().isCpfCnpj(doc, 'Fornecedor')
+      const res = await new PessoaServices().isCpfCnpj(doc, 'Fornecedor', id)
 
       return res
    }

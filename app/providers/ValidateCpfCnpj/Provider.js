@@ -7,6 +7,8 @@ const validator = require("validator-brazil")
 class ValidateCpfCnpj extends ServiceProvider {
   async _Fn (data, field, message, args, get) {
     //const util = require('util')
+     console.log('TIPO ', data['tipo'])
+     console.log('field ', field)
     const tipoPessoa= data['tipoPessoa']
     if ( !tipoPessoa) {
        throw "Tipo de pessoa não informado"
@@ -16,7 +18,11 @@ class ValidateCpfCnpj extends ServiceProvider {
        throw "Tipo de pessoa não informado"
     }
 
-    const dados = data[field]
+     const dados = data[field]
+
+    if ( !dados && data.tipo === 'Fornecedor' ) {
+          return true
+    }
 
     if ( ! dados ) {
       throw tipoPessoa === 'Física'? 'CPF' : 'CNPJ' + ' não informado'

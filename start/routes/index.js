@@ -127,14 +127,14 @@ Route.group(() => {
    Route.resource('/pessoas', 'PessoaController').middleware([
       'auth'
      ]).validator( new Map([
-      [['/pessoas.store'], ['Pessoa/Create']],
+      [['/pessoas.store'], ['Pessoa/Create']]
       ]))
 
-   Route.get('/pessoa/IsCpfCnpj/:cpfCnpj', 'PessoaController.isCpfCnpj').middleware([
+   Route.get('/pessoa/IsCpfCnpj/:cpfCnpj/:id', 'PessoaController.isCpfCnpj').middleware([
       'auth'
    ])
 
-   Route.get('/fornecedor/IsCpfCnpj/:cpfCnpj', 'PessoaController.isCpfCnpjFornecedor').middleware([
+   Route.get('/fornecedor/IsCpfCnpj/:cpfCnpj/:id', 'PessoaController.isCpfCnpjFornecedor').middleware([
       'auth'
    ])
 

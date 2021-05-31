@@ -6,7 +6,7 @@ const Equipamento = use('App/Models/Equipamento')
 const PendenciaServices = use('App/Services/Pendencia')
 const Galeria = use('App/Models/File')
 const FileConfig = use('App/Models/FileConfig')
-
+const lodash= use('lodash')
 const Database = use('Database')
 
 class Pessoa {
@@ -98,18 +98,52 @@ class Pessoa {
       }
    }
 
-   async isCpfCnpj(doc, tipo = null) {
+   async isCpfCnpj(doc, tipo = null, id= null) {
       tipo = tipo === 'Fornecedor' ? 'Fornecedor' : 'Associado'
+      if ( tipo === 'Fornecedor' ) {
+         if ( lodash.isEmpty(doc)) {
+            return { isCpfCnpj:false }
+         }
+      }
+      if ( id ) {
+         id = parseInt(id)
+      }
       try {
          const pessoa = await Model.query()
             .where('tipo', tipo)
             .where('cpfCnpj', doc)
             .fetch()
 
-         console.log(pessoa)
+         const recno= pessoa.rows.length
 
-         //return pessoa
-         return { isCpfCnpj: pessoa.rows.length > 0 }
+         if ( tipo === 'Associado' && !id && recno === 0) {
+            return { isCpfCnpj: false }
+         }
+         if ( tipo === 'Associado' && id && recno === 0) {
+            return { isCpfCnpj: false }
+         }
+         if ( tipo === 'Associado' && !id && recno > 0) {
+            return { isCpfCnpj: true }
+         }
+         if ( tipo === 'Associado' && id && recno > 0) {
+            return { isCpfCnpj: pessoa.rows[0].id === id ? false : true }
+         }
+
+         if ( tipo === 'Fornecedor' && !id && recno === 0) {
+            return { isCpfCnpj: false }
+         }
+         if ( tipo === 'Fornecedor' && id && recno === 0) {
+            return { isCpfCnpj: false }
+         }
+         if ( tipo === 'Fornecedor' && !id && recno > 0) {
+            return { isCpfCnpj: true }
+         }
+         if ( tipo === 'Fornecedor' && id && recno > 0) {
+            return { isCpfCnpj: pessoa.rows[0].id === id ? false : true}
+         }
+
+
+         return { isCpfCnpj: true }
       } catch (e) {
          throw e
       }

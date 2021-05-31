@@ -119,7 +119,7 @@ class OrdemServico {
             objFinanceiro = data.financeiro
             delete data['financeiro']
          }
-console.log('antes de criar....')
+
          const os = await Model.create(data, trx ? trx : null)
 
          const status = {
