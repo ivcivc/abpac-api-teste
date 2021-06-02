@@ -26,7 +26,7 @@ class PessoaSchema extends Schema {
             enumName: 'pessoa_tipo_pessoa',
          })
 
-         table.string('cpfCnpj', 14).notNullable()
+         table.string('cpfCnpj', 14)
 
          table.string('rg', 16)
 
@@ -70,7 +70,7 @@ class PessoaSchema extends Schema {
             .defaultTo('associado')
             .index()
 
-         table.unique(['cpfCnpj', 'tipo'])
+         table.index(['cpfCnpj', 'tipo'])
 
          table.integer('user')
 

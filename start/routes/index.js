@@ -241,6 +241,7 @@ Route.group(() => {
       'auth'
      ])
 
+
    Route.resource('/ocorrencias', 'OcorrenciaController').middleware([
       'auth'
    ])
@@ -557,6 +558,8 @@ Route.group(() => {
 
   Route.post('/ordemServico/localizarPor', 'ordem_servico/OrdemServicoController.localizarPor')
   // Route.post('/ordemServico/localizarOS', 'ordem_servico/OrdemServicoController.localizarOS')
+
+   Route.get('/localizarOSQueContemFornecedor/:ordem_servico_id/:pessoa_id', 'ordem_servico/OrdemServicoController.localizarOSQueContemFornecedor')
 
 
    Route.post('upload99', async ({ request }) => {
