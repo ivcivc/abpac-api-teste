@@ -1052,19 +1052,6 @@ class OrdemServico {
       })
    }
 
-   async localizarOSQueContemFornecedor(os_id, pessoa_id) {
-      return new Promise(async (resolve, reject) => {
-        try {
-           const query = Model.query().where('id', os_id).andWhere('pessoa_id', pessoa_id).whereNot('status', 'Cancelado').fetch()
-
-           return resolve(query)
-
-        } catch (e) {
-            reject(e)
-        }
-
-      })
-   }
 }
 
 module.exports = OrdemServico

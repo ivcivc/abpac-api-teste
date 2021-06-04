@@ -58,21 +58,6 @@ class OrdemServicoController {
 
    async destroy({ params, request, response }) {}
 
-   async localizarOSQueContemFornecedor({params, response}) {
-      const pessoa_id= params.pessoa_id
-      const os_id= params.ordem_servico_id
-
-      try {
-         const os = await new OrdemServicoService().localizarOSQueContemFornecedor(os_id, pessoa_id)
-
-         response.status(200).send({ type: true, data: os })
-      } catch (error) {
-         console.log(error)
-         response.status(400).send(error)
-      }
-
-   }
-
    async localizarPor({ request, response }) {
       const payload = request.all()
       let parametros = request.only(['continue', 'start', 'count'])
