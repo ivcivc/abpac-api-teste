@@ -173,6 +173,8 @@ Route.group(() => {
       'auth'
    ])
 
+   Route.get('/equipamentos/localizarPorCategoria/:categoria_id', 'EquipamentoController.localizarPorCategoria')
+
    /*Route.get('/restricao/getAllRestricao', 'EquipamentoController.getAllRestricao').middleware([
       'auth'
    ])*/

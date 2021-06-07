@@ -1671,6 +1671,22 @@ class Equipamento {
          throw e
       }
    }
+
+   async localizarPorCategoria(categoria_id) {
+      const equipamento = await Model.query().where("categoria_id", categoria_id).where("status","Ativo")
+         //.with('equipamentoStatuses')
+         .with('pessoa', build => {
+            build.select('id','nome','cpfCnpj')
+         })
+
+         .with('categoria')
+         //.with('equipamentoProtecoes')
+         //.with('equipamentoBeneficios')
+         //.with('equipamentoBeneficios.beneficio')
+         .fetch()
+
+      return equipamento
+   }
 }
 
 module.exports = Equipamento

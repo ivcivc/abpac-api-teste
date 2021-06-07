@@ -228,6 +228,23 @@ class EquipamentoController {
          })
       }
    }
+
+   async localizarPorCategoria({ params, response }) {
+      const categoria_id = params.categoria_id
+
+      try {
+         const service = await new EquipamentoServices().localizarPorCategoria(categoria_id)
+
+         response.status(200).send({ type: true, data: service })
+      } catch (error) {
+         console.log(error)
+         response.status(400).send({
+            code: error.code,
+            message: error.message,
+            name: error.name,
+         })
+      }
+   }
 }
 
 module.exports = EquipamentoController
