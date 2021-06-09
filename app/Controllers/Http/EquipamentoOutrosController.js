@@ -27,6 +27,8 @@ class EquipamentoOutrosController {
    async endosso({ request, response, auth }) {
       const payload = request.all()
 
+      console.log('endosso...................')
+
       try {
          const equipamento = await new EquipamentoServices().endosso(
             payload,

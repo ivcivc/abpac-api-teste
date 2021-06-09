@@ -190,11 +190,21 @@ class OrdemServico {
             }
          }
 
-         if (data.status !== os.status) {
+         await ModelLancamento.query()
+            .where('ordem_servico_id', os.id)
+            .update({
+               pessoa_id: data.pessoa_id,
+               dCompetencia: data.dCompetencia,
+               updated_at: moment(),
+            })
+            .transacting(trx ? trx : null)
+
+
+         /**if (data.status !== os.status) {
             if (os.status !== 'Finalizado' && data.status === 'Finalizado') {
                await ModelLancamento.query()
                   .where('ordem_servico_id', os.id)
-                  .where('situacao', 'Bloqueado')
+                  .where('situacao', 'Aberto')
                   .update({
                      situacao: 'Aberto',
                      pessoa_id: data.pessoa_id,
@@ -244,7 +254,7 @@ class OrdemServico {
                   .update({ pessoa_id: data.pessoa_id, updated_at: moment() })
                   .transacting(trx ? trx : null)
             }
-         }
+         }**/
 
          if (data.status !== os.status) {
             const status = {
@@ -565,6 +575,8 @@ class OrdemServico {
             }
 
             const res = await query.paginate(pagina, count)
+
+            res.data.forEach(e => e.field_name= field_name)
 
             const retorno= {
                pos: continuar ? start : 0,

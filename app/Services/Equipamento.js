@@ -15,6 +15,8 @@ const ServiceConfig = use('App/Services/LancamentoConfig')
 const FileConfig = use('App/Models/FileConfig')
 const Galeria = use('App/Models/File')
 const LancamentoService = use('App/Services/Lancamento')
+const ModelCategoria = use('App/Models/Categoria')
+
 //const ModelRateioEquipamento = use('App/Models/RateioEquipamento')
 
 const Database = use('Database')
@@ -335,6 +337,7 @@ class Equipamento {
 
    async endossoBaixarTodosEquipamentos(payload, auth) {
       let trx = null
+      let nrErro= 0
       // Modulo de baixa de todos os euipamentos de um associado. Cancelamento
       try {
          if (!trx) {
@@ -581,6 +584,14 @@ class Equipamento {
          }*/
 
          if (tipo_endosso === 'categoria-rateio') {
+
+            const categoria = await ModelCategoria.findOrFail(data.categoria_id)
+
+            const categoria_tipo= categoria.tipo
+
+            //const nValorInicio= categoria.valorMercadoInicio
+            //const nValorFim= categoria.valorMercadoFim
+
             let novoEquipamento = equipamento.toJSON()
             delete novoEquipamento['id']
             novoEquipamento.idPai = equipamento.id
@@ -588,6 +599,10 @@ class Equipamento {
             novoEquipamento.idPrincipal = oEquipamento.idPrincipal
             novoEquipamento.endosso_id = endosso_id
             novoEquipamento.status = 'Ativo'
+
+            novoEquipamento.especie1= categoria_tipo
+            //novoEquipamento.especie2= !lodash.isNull(novoEquipamento.marca2) ? categoria_tipo : null
+            //novoEquipamento.especie3= !lodash.isNull(novoEquipamento.marca3) ? categoria_tipo : null
 
             novoEquipamento.categoria_id = data.categoria_id
             novoEquipamento.tipoEndosso = 'Alteração de categoria de rateio'

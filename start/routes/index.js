@@ -214,6 +214,7 @@ Route.group(() => {
    Route.post('/equipamento/endosso', 'EquipamentoOutrosController.endosso').middleware([
       'auth'
    ])
+
    Route.get('/equipamentos/getIDEndossos/:id', 'EquipamentoOutrosController.getIDEndossos').middleware([
       'auth'
    ])

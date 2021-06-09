@@ -1114,7 +1114,7 @@ class Lancamento {
          const historico = payload.historico
          const tipo = payload.tipo
          const status = 'Aberto'
-         let situacao = 'Bloqueado'
+         let situacao = 'Aberto'
          const ordem_servico_status = payload.ordem_servico_status
          const ordem_servico_id = payload.ordem_servico_id
          const equipamento_id = payload.equipamento_id
@@ -1170,7 +1170,7 @@ class Lancamento {
                   parseInt(ordem_servico_id) > 0
                      ? `Criado O.S. ${ordem_servico_id}`
                      : 'Conta gerada pelo sistema',
-               status: 'Bloqueado',
+               status: 'Aberto',
             }
             await ModelStatus.create(oStatus, trx ? trx : null)
 
