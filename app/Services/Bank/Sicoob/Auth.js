@@ -36,7 +36,7 @@ function Auth() {
                   recurso: 'boleto',
                   refreshToken: null,
                   token: null,
-                  validate: null,
+                  Validate: null,
                   authValidate: null,
                }
             }
@@ -84,7 +84,7 @@ function Auth() {
                .format('YYYY-MM-DD HH:mm:ss')
 
             queryConfig.authValidate = dVencRefreshToken
-            queryConfig.validate = dVencToken
+            queryConfig.Validate = dVencToken
             queryConfig.token = data.access_token
             queryConfig.refreshToken = data.refresh_token
 
@@ -110,12 +110,13 @@ function Auth() {
 
       /*function getMinutesBetweenDates(startDate, endDate) {
          var diff = endDate.getTime() - startDate.getTime()
-         return diff / 60000
+         return diff / 60000 
       }*/
 
       async function refreshToken(model) {
          return new Promise(async (resolve, reject) => {
-            const tokenVenc = moment(model.validate).format() //.format('YYYY-MM-DD HH:MM:SS')
+            console.log('refreshToken.')
+            const tokenVenc = moment(model.Validate).format() //.format('YYYY-MM-DD HH:MM:SS')
             const agora = moment().format() //.format('YYYY-MM-DD HH:MM:SS')
 
             // solicitar refresh
@@ -162,8 +163,10 @@ function Auth() {
             modelAuthorization.merge({
                token: data.access_token,
                refreshToken: data.refresh_token,
-               validate: dVencRefreshToken,
+               Validate: dVencRefreshToken,
             })
+
+            console.log('Refresh token ', modelAuthorization)
 
             await modelAuthorization.save()
 
@@ -173,6 +176,7 @@ function Auth() {
 
       async function validarToken(model) {
          try {
+            console.log('Validar token.')
             if (
                lodash.isEmpty(model.token) &&
                lodash.isEmpty(model.refreshToken)
@@ -183,8 +187,8 @@ function Auth() {
                   message: 'É preciso autenticar.',
                }
             //const autVenc = moment(model.refreshTokenValidate).format() //.format('YYYY-MM-DD HH:MM:SS')
-            const tokenVenc = moment(model.validate).format() //.format('YYYY-MM-DD HH:MM:SS')
-            const agora = moment().format()
+            const tokenVenc = moment(model.Validate).format('YYYY-MM-DD HH:MM:SS') //.format('YYYY-MM-DD HH:MM:SS')
+            const agora = moment().format('YYYY-MM-DD HH:MM:SS')
             if (agora > tokenVenc) {
                try {
                   return await refreshToken(model)
@@ -202,6 +206,7 @@ function Auth() {
 
       async function getRecurso(conta_id, recurso) {
          try {
+            console.log('Recurso.')
             const model = await Database.from('bank_configs')
                .where('conta_id', conta_id)
                .andWhere('recurso', recurso)
@@ -215,13 +220,6 @@ function Auth() {
                }
             }
 
-            let dd = moment(model.tokenValidate)
-            let ee = dd.format('YYYY-MM-DD HH:MM:SS')
-            let jj = new Date(model.tokenValidate)
-            let r = moment(model.tokenValidate, 'YYYY-MM-DD HH:MM:SS')
-
-            let a = moment().format('YYYY-MM-DD HH:MM:SS')
-
             return validarToken(model)
          } catch (e) {
             return e
@@ -231,6 +229,7 @@ function Auth() {
       async function getToken(config = null) {
          return new Promise(async (resolve, reject) => {
             try {
+               console.log('getToken.')
                let oToken = await getRecurso(config.conta_id, config.recurso)
                return resolve({
                   token: oToken.token,

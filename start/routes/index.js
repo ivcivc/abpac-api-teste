@@ -173,7 +173,8 @@ Route.group(() => {
       'auth'
    ])
 
-   Route.get('/equipamentos/localizarPorCategoria/:categoria_id', 'EquipamentoController.localizarPorCategoria')
+   Route.post('/equipamentos/localizarPorCategoria', 'EquipamentoController.localizarPorCategoria')
+   Route.get('/equipamentos/localizarPorSubCategoria/:categoria_id', 'EquipamentoController.localizarPorSubCategoria')
 
    /*Route.get('/restricao/getAllRestricao', 'EquipamentoController.getAllRestricao').middleware([
       'auth'
@@ -427,10 +428,10 @@ Route.group(() => {
    /*Route.post('/cnab/arquivarArquivoRemessa', 'CnabController.arquivarArquivoRemessa').middleware([
          'auth'
          ])*/
-   Route.get('/tt',async ({response}) => {
+   Route.get('/tiAddBoleto',async ({response}) => {
       try {
          const lancamento = use('App/Models/Lancamento')
-         const lanca= await lancamento.find(1)
+         const lanca= await lancamento.find(3384)
          await lanca.load('conta')
          await lanca.load('pessoa')
 
@@ -456,15 +457,15 @@ Route.group(() => {
             conta_id: 1
          })*/
 
-         let res= await boleto.prorrogarDataVencimento({
+         /*let res= await boleto.prorrogarDataVencimento({
             numeroContrato: '123455',
             modalidade: 1,
             dataVencimento: "2018-09-20T00:00:00-03:00",
             conta_id: 1
-         })
-         /*let res= await boleto.novoBoleto(lanca.toJSON(),{
-            conta_id: 1
          })*/
+         let res= await boleto.novoBoleto(lanca.toJSON(),{
+            conta_id: 1
+         })
          //let res= await boleto.localizarBoleto()
 
          return res
@@ -492,15 +493,29 @@ Route.group(() => {
 
    })
 
-   Route.get('/bank/callback',async ({response, request}) => {
+   Route.post('/prorrogarDV',async ({response, request}) => {
+      try {
+         let config= request.all()
+
+         const factory= use('App/Services/Bank/Factory')
+         let boleto= await factory().Boleto('sicoob')
+         let res= await boleto.prorrogarDataVencimento(config)
+         return res         
+
+      } catch (error) {
+         return error
+      } 
+
+   })
+
+   Route.get('/openbank/sicoob/auth',async ({response, request}) => {
       try {
          let Auth= use('App/Services/Bank/Sicoob/Auth')
          let res= request.all()
          return new Auth().callback(res)
       } catch (error) {
          return error
-      }
-
+      } 
 
    })
 

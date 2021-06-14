@@ -1687,8 +1687,8 @@ class Equipamento {
       }
    }
 
-   async localizarPorCategoria(categoria_id) {
-      const equipamento = await Model.query().where("categoria_id", categoria_id).where("status","Ativo")
+   async localizarPorCategoria(categoria) {
+      const equipamento = await Model.query().where("especie1", categoria).where("status","Ativo")
          //.with('equipamentoStatuses')
          .with('pessoa', build => {
             build.select('id','nome','cpfCnpj')
@@ -1702,6 +1702,22 @@ class Equipamento {
 
       return equipamento
    }
+
+   async localizarPorSubCategoria(categoria_id) {
+      const equipamento = await Model.query().where("categoria_id", categoria_id).where("status","Ativo")
+         //.with('equipamentoStatuses')
+         .with('pessoa', build => {
+            build.select('id','nome','cpfCnpj')
+         })
+
+         .with('categoria')
+         //.with('equipamentoProtecoes')
+         //.with('equipamentoBeneficios')
+         //.with('equipamentoBeneficios.beneficio')
+         .fetch()
+
+      return equipamento
+   }   
 }
 
 module.exports = Equipamento

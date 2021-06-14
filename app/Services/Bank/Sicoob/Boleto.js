@@ -28,7 +28,8 @@ function Boleto() {
           * dataVencimento (yyyy-MM-dd)
           */
          try {
-            const scope = 'prorrogacoes/data-vencimento'
+            const scope = 'cobranca_boletos_prorrogacoes_data_vencimento'
+            
             config.scope = scope
             config.recurso = 'boleto'
 
@@ -58,14 +59,19 @@ function Boleto() {
             const meta = {
                'Content-Type': 'application/json',
                Authorization: `Bearer ${retToken.token}`,
+               'Client_id': Env.get('SICOOB_CLIENT_ID'),
+               'scope': scope,
             }
             const headers = new Headers(meta)
 
-            const url = Env.get('SICOOB_URL_COBRANCA') + '/' + scope
+            const url = Env.get('SICOOB_URL_COBRANCA') + '/prorrogacoes/data-vencimento'
+            console.log(url)
+            console.log(token)
+            console.log(meta)
             const response = await fetch(url, {
                method: 'PATCH',
                headers: headers,
-               body: arr,
+               body: arrCompile,
             })
 
             if (response.status === 401) {
@@ -350,16 +356,22 @@ function Boleto() {
 
       function validarArquiConfiguracao(config) {
          if (!config) config = {}
-         config.diasJurosMora = 6
-         config.valorJurosMora = 1 && 0.0333
-         config.diasMulta = 6
-         config.valorMulta = 2
+         config.tipoJurosMora= lodash.has(config, 'tipoJurosMora') ? config.tipoJurosMora : 2 // 2= taxa mensal 3= isento
+         config.diasJurosMora = lodash.has(config, 'diasJurosMora') ? config.diasJurosMora  : 6 
+         config.valorJurosMora = lodash.has(config,'valorJurosMora') ? config.valorJurosMora :  1 //&& 0.0333
+
+         config.tipoMulta= lodash.has(config, 'tipoMulta') ? config.tipoMulta : 2 // 2= percentual
+         config.diasMulta = lodash.has(config, 'diasMulta') ? config.diasMulta : 6
+         config.valorMulta = lodash.has(config, 'valorMulta') ? config.valorMulta : 2
          return config
       }
 
       async function localizarBoleto(config = null) {
          try {
             const scope = 'cobranca_boletos_consultar'
+            if ( !config) {
+               config= { conta_id: 1}
+            }
             config.scope = scope
             config.recurso = 'boleto'
 
@@ -375,9 +387,10 @@ function Boleto() {
                throw { success: false, erroNr: 801, message: 'Token inválido.' }
 
             const para = {
-               numeroContrato: '2554645',
+               numeroContrato: '464228',
                modalidade: 1,
-               nossoNumero: '123',
+               nossoNumero: '64745',
+               //"linhaDigitavel":"75691409290104642280209353580013986470000094828"
             }
 
             let query = Object.keys(para)
@@ -389,13 +402,15 @@ function Boleto() {
             const meta = {
                'Content-Type': 'application/json',
                Authorization: `Bearer ${retToken.token}`,
+               'Client_id': Env.get('SICOOB_CLIENT_ID')
             }
             const headers = new Headers(meta)
 
-            const url = Env.get('SICOOB_URL_COBRANCA') + '?' + query
+            const url = Env.get('SICOOB_URL_COBRANCA') + '?' + query 
             const response = await fetch(url, {
                method: 'GET',
                headers: headers,
+               scope: scope
             })
 
             if (response.status === 401) {
@@ -458,6 +473,7 @@ function Boleto() {
 
             const oConta = await localizarConta(config.conta_id)
 
+            let dEmissao= moment().format('YYYY-MM-DD') + 'T00:00:00-03:00'
             let dVencimento = lancamento.dVencimento.toJSON()
             let cVencimento = dVencimento.substr(0, 10) + 'T00:00:00-03:00'
             let dVencMoment = moment(dVencimento, 'YYYY-MM-DD')
@@ -473,12 +489,12 @@ function Boleto() {
             let objBoleto = {
                numeroContrato: oConta.convenio,
                modalidade: 1,
-               numeroContaCorrente: oConta.contaCorrente,
+               numeroContaCorrente: oConta.contaCorrente + oConta.contaCorrenteDV,
                especieDocumento: 'DM',
-               dataEmissao: '2018-09-20T00:00:00-03:00',
+               dataEmissao: dEmissao,
                //nossoNumero: 2588658,
                seuNumero: lancamento.id,
-               identificacaoBoletoEmpresa: 'Identif boleto empresa',
+               identificacaoBoletoEmpresa: lancamento.id, 
                identificacaoEmissaoBoleto: 1, // cliente emite
                identificacaoDistribuicaoBoleto: 2, // cliente distribui
                valor: lancamento.valorTotal,
@@ -492,11 +508,11 @@ function Boleto() {
                //valorSegundoDesconto: 0,
                //dataTerceiroDesconto: '2018-09-20T00:00:00-03:00',
                //valorTerceiroDesconto: 0,
-               tipoMulta: 2,
+               tipoMulta: config.tipoMulta,
                dataMulta: dMulta,
                valorMulta: config.valorMulta,
 
-               tipoJurosMora: 2, // taxa mensal,
+               tipoJurosMora: config.tipoJurosMora, // taxa mensal,
                dataJurosMora: dJurosMora,
                valorJurosMora: config.valorJurosMora,
 
@@ -537,18 +553,30 @@ function Boleto() {
             arr.push(objBoleto)
             let arrCompile = JSON.stringify(arr)
 
+            const para = new URLSearchParams({
+               Client_id: Env.get('SICOOB_CLIENT_ID'),
+               scope: scope,
+               
+            })
+
             const meta = {
                'Content-Type': 'application/json',
-               Authorization: `Bearer ${token}`,
+               'Authorization': `Bearer ${token}`,
+               "Client_id": Env.get('SICOOB_CLIENT_ID'),
+               'scope': scope,
+               
             }
             const headers = new Headers(meta)
 
             const url = Env.get('SICOOB_URL_COBRANCA')
+            console.log(url)
+            //console.log(headers)
+            console.log(meta)
             const response = await fetch(url, {
                method: 'POST',
                //body: arrCompile,
                body: arrCompile,
-               headers: headers,
+               headers: headers               
             })
 
             console.log('status ', response.status)
