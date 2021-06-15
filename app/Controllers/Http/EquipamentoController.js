@@ -133,6 +133,25 @@ class EquipamentoController {
       }
    }
 
+   async localizarBeneficioPorModelo({ response, request }) {
+      try {
+         const payload = request.all()
+
+         const equipamento = await new EquipamentoServices().localizarBeneficioPorModelo(
+            payload.modelo
+         )
+
+         response.status(200).send({ type: true, data: equipamento })
+      } catch (error) {
+         console.log(error)
+         response.status(400).send({
+            code: error.code,
+            message: error.message,
+            name: error.name,
+         })
+      }
+   }
+
    async localizarEquipaPorAssist24h({ response, request }) {
       try {
          const payload = request.all()

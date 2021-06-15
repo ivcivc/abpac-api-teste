@@ -207,6 +207,10 @@ Route.group(() => {
    Route.post('/equipamentos/localizarEquipaPorAssist24h', 'EquipamentoController.localizarEquipaPorAssist24h').middleware([
       'auth'
    ])
+   
+   Route.post('/equipamentos/localizarBeneficioPorModelo', 'EquipamentoController.localizarBeneficioPorModelo').middleware([
+      'auth'
+   ])
 
    Route.post('/equipamentos/buscarProtecoes', 'EquipamentoController.buscarProtecoes')
    Route.post('/equipamentos/buscarBeneficios', 'EquipamentoController.buscarBeneficios')

@@ -303,9 +303,17 @@ class Equipamento {
             .where('pessoa_id', pessoa_id)
             .where('status', 'Ativo')
 
-         for (const key in query) {
-            if (Object.hasOwnProperty.call(query, key)) {
-               const element = query[key]
+         const queryBaixados = await Database.from('equipamentos')
+            .where('pessoa_id', pessoa_id)
+            .where('status', 'Inativo')
+            .where('baixa', 'Sim')
+            .whereIn('ratear', ['Sim','Não'])
+
+         const arr= lodash.union(query, queryBaixados)   
+
+         for (const key in arr) {
+            if (Object.hasOwnProperty.call(arr, key)) {
+               const element = arr[key]
                element.valorRateio = 0.0
                element.valorTaxaAdm = 0.0
                element.valorBeneficios = 0.0
@@ -328,7 +336,7 @@ class Equipamento {
             }
          }
 
-         return { success: true, data: query }
+         return { success: true, data: arr }
       } catch (e) {
          await trx.rollback()
          throw e
@@ -1604,6 +1612,70 @@ class Equipamento {
          }
 
          return await query.paginate(1, 40)
+      } catch (e) {
+         throw e
+      }
+   }
+
+   async localizarBeneficioPorModelo(modelo) {
+      try {
+
+         const query = await Database.select(
+            [
+               'equipamentos.id',
+               'placas',
+               'dAdesao',
+               'pessoa_id',
+               'equipamentos.status',
+               'especie1',
+               'especie2',
+               'especie3',
+               'placa1',
+               'placa2',
+               'placa3',
+               'marca1',
+               'marca2',
+               'marca3',
+               'modelo1',
+               'modelo2',
+               'modelo3',
+               'anoF1',
+               'anoF2',
+               'anoF3',
+               'modeloF1',
+               'modeloF2',
+               'modeloF3',
+               'categoria_id',
+               'beneficios.id as beneficios_id',
+               'beneficios.descricao as beneficios_descricao',
+               'beneficios.status as beneficios_status',
+               'beneficios.modelo as beneficios_modelo',
+               'equipamento_beneficios.dTermino as equipamento_beneficio_dTermino',
+               'equipamento_beneficios.status as equipamento_beneficio_status',
+               'pessoas.nome AS pessoa_nome',
+               'pessoas.cpfCnpj AS pessoa_cpfCnpj'
+            ])
+            .from('equipamentos').distinct('equipamentos.id')
+            .leftOuterJoin(
+                  'equipamento_beneficios',
+                  'equipamentos.id',
+                  'equipamento_beneficios.equipamento_id'
+               )
+               .leftOuterJoin(
+                  'beneficios',
+                  'equipamento_beneficios.beneficio_id',
+                  'beneficios.id'
+               )               
+            .innerJoin(
+               'pessoas',
+               'equipamentos.pessoa_id',
+               'pessoas.id'
+            )
+            .where('equipamentos.status', 'Ativo')
+            .where('beneficios.modelo', modelo)           
+            //.fetch()
+
+         return query
       } catch (e) {
          throw e
       }
