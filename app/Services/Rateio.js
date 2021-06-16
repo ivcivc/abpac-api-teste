@@ -189,6 +189,7 @@ class Rateio {
    }
 
    async equipamentosDeBaixas() {
+
       try {
          const query = await ModelEquipamento.query()
             .select(

@@ -332,9 +332,38 @@ class Equipamento {
                   element.valorBeneficios = rateio.valorBeneficios
                   element.valorTotal = rateio.valorTotal
                   element.rateio_id = rateio.rateio_id
+               } else {
+                  const rateio = await Database.from('rateio_equipamentos')
+                  .where('equipamento_id', ID)
+                  .orderBy('rateio_id', 'desc')
+                  .first()
+                  if (rateio) {
+                     element.valorRateio = rateio.valorRateio
+                     element.valorTaxaAdm = rateio.valorTaxaAdm
+                     element.valorBeneficios = rateio.valorBeneficios
+                     element.valorTotal = rateio.valorTotal
+                     element.rateio_id = rateio.rateio_id
+                  }
+
                }
             }
          }
+
+         arr.forEach(e => {
+            e.valorCobrar=  e.valorTotal
+            if ( e.status === 'Inativo') {
+               if ( e.dEndosso) {
+                  let cData= moment(e.dEndosso).format('YYYY-MM-DD')
+                
+                  let dia= parseInt(cData.substr(8,2))
+                  if ( dia <= 15) {
+                     if ( e.valorTotal  > 0 ) {
+                        e.valorCobrar= e.valorTotal * 0.5
+                     }
+                  } 
+               }
+            }
+         })
 
          return { success: true, data: arr }
       } catch (e) {
