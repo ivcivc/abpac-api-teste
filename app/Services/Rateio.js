@@ -194,6 +194,7 @@ class Rateio {
          const query = await ModelEquipamento.query()
             .select(
                'id',
+               'idPrincipal',
                'placa1',
                'categoria_id',
                'pessoa_id',
@@ -402,6 +403,7 @@ class Rateio {
          const query = await ModelEquipamento.query()
             .select(
                'id',
+               'idPrincipal',
                'placa1',
                'categoria_id',
                'pessoa_id',
@@ -1003,7 +1005,9 @@ class Rateio {
       for (const key in payload.equipamento) {
          if (payload.equipamento.hasOwnProperty(key)) {
             const e = payload.equipamento[key]
+
             let registroEquipa = {
+               equipamento_id_principal: e.idPrincipal === 0  ? e.id : e.idPrincipal, //e.equipamento_id_principal,
                categoria_id: e.categoria_id,
                categoria_abreviado: e.categoria.abreviado,
                categoria_nome: e.categoria.nome,
