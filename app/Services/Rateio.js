@@ -189,7 +189,6 @@ class Rateio {
    }
 
    async equipamentosDeBaixas() {
-
       try {
          const query = await ModelEquipamento.query()
             .select(
@@ -957,6 +956,7 @@ class Rateio {
       for (const key in payload.creditoBaixa) {
          if (payload.creditoBaixa.hasOwnProperty(key)) {
             const e = payload.creditoBaixa[key]
+            console.log('credito baixa ', e.id)
             const dRecebimento = moment(e.dRecebimento, 'YYYY-MM-DD').format(
                'YYYY-MM-DD'
             )
@@ -1003,11 +1003,13 @@ class Rateio {
       let arrRateioEquipa = []
 
       for (const key in payload.equipamento) {
+         console.log('Equipamentos ', payload.equipamento.length)
          if (payload.equipamento.hasOwnProperty(key)) {
             const e = payload.equipamento[key]
-
+            console.log('.')
             let registroEquipa = {
-               equipamento_id_principal: e.idPrincipal === 0  ? e.id : e.idPrincipal, //e.equipamento_id_principal,
+               equipamento_id_principal:
+                  e.idPrincipal === 0 ? e.id : e.idPrincipal, //e.equipamento_id_principal,
                categoria_id: e.categoria_id,
                categoria_abreviado: e.categoria.abreviado,
                categoria_nome: e.categoria.nome,
@@ -1065,6 +1067,7 @@ class Rateio {
 
             if (e.baixa == 'Sim') {
                // Marcar no Equipamento (endosso/Baixa/Inativo) como rateado
+               console.log('baixa - marcar no equipamento ', e.id)
                let affectedRows = await Database.table('equipamentos')
                   .where('id', e.id)
                   .where('updated_at', e.updated_at)
@@ -1090,6 +1093,7 @@ class Rateio {
       for (const key in payload.equipamentoBaixa) {
          if (payload.equipamentoBaixa.hasOwnProperty(key)) {
             const e = payload.equipamentoBaixa[key]
+            console.log('equipamento baixa ', e.id)
             let registroEquipa = {
                categoria_id: e.categoria_id,
                categoria_abreviado: e.categoria.abreviado,
@@ -1309,7 +1313,7 @@ class Rateio {
             }
          }
       }
-
+      console.log('finalizando transação')
       //await trx.rollback()
       await Redis.set('_isGravarRateio', false)
       await trx.commit()
@@ -1385,6 +1389,8 @@ class Rateio {
    }
 
    async gerarFinanceiroLoc(rateio_id, auth) {
+      let query = null
+
       try {
          let model = await Model.findOrFail(rateio_id)
 
@@ -1392,7 +1398,7 @@ class Rateio {
             throw { message: 'Não é permitido a geração de financeiro.' }
          }
 
-         const query = await Database.select([
+         query = await Database.select([
             'e.rateio_id',
             'e.pessoa_id',
             'pessoa_nome',
@@ -1487,6 +1493,7 @@ class Rateio {
    }
 
    async gerarFinanceiro(payload, trx, auth) {
+      let nrErro = 0
       try {
          let model = await Model.findOrFail(payload.rateio_id)
 
@@ -1931,11 +1938,12 @@ class Rateio {
                .with('beneficios')
                .fetch()
 
-            const modelEquipamentoBaixa = await ModelRateioEquipamentoBaixa.query()
-               .where('rateio_id', rateio_id)
-               .where('pessoa_id', pessoa_id)
-               .with('beneficios')
-               .fetch()
+            const modelEquipamentoBaixa =
+               await ModelRateioEquipamentoBaixa.query()
+                  .where('rateio_id', rateio_id)
+                  .where('pessoa_id', pessoa_id)
+                  .with('beneficios')
+                  .fetch()
 
             const equipaJsonBaixa = modelEquipamentoBaixa.toJSON()
 
@@ -2208,9 +2216,10 @@ class Rateio {
 
             const modelRateio = await Model.findOrFail(rateio_id)
 
-            const modelRateioInadimplente = await ModelRateioInadimplente.query()
-               .where('rateio_id', rateio_id)
-               .fetch()
+            const modelRateioInadimplente =
+               await ModelRateioInadimplente.query()
+                  .where('rateio_id', rateio_id)
+                  .fetch()
             const inadJson = modelRateioInadimplente.toJSON()
             let inadDebito = 0.0
             let inadCredito = 0.0

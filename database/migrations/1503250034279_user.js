@@ -12,7 +12,7 @@ class UserSchema extends Schema {
         .notNullable()
         .unique();
       table
-        .string("email", 254)
+        .varchar("email", 254)
         .notNullable()
         .unique();
       table.string("password", 60).notNullable();

@@ -207,7 +207,7 @@ Route.group(() => {
    Route.post('/equipamentos/localizarEquipaPorAssist24h', 'EquipamentoController.localizarEquipaPorAssist24h').middleware([
       'auth'
    ])
-   
+
    Route.post('/equipamentos/localizarBeneficioPorModelo', 'EquipamentoController.localizarBeneficioPorModelo').middleware([
       'auth'
    ])
@@ -320,6 +320,15 @@ Route.group(() => {
    Route.post('/lancamentoAddBoleto', 'LancamentoController.gerarBoleto').middleware([
       'auth'
      ])
+
+   Route.post('/lancamentoLocBoletoOpenBank', 'LancamentoController.lancamentoLocBoletoOpenBank').middleware([
+      'auth'
+   ])
+
+   Route.post('/baixarBoletoOpenBank', 'LancamentoController.baixarBoletoOpenBank').middleware([
+      'auth'
+   ])
+
    /*Route.resource('/rateio', 'RateioController').middleware([
       'auth'
      ])*/
@@ -488,7 +497,7 @@ Route.group(() => {
          //return { success: false, message: 'modulo principal ' }
          const factory= use('App/Services/Bank/Factory')
          let boleto= await factory().Boleto('sicoob')
-         let res= await boleto.localizarBoleto()
+         let res= await boleto.localizarBoleto({conta_id: 1, nossoNumero: 64745, modalidade: 1, convenio: '464228'})
          return res
       } catch (e) {
          console.log('PRINCIPAL ', e)
@@ -504,11 +513,26 @@ Route.group(() => {
          const factory= use('App/Services/Bank/Factory')
          let boleto= await factory().Boleto('sicoob')
          let res= await boleto.prorrogarDataVencimento(config)
-         return res         
+         return res
 
       } catch (error) {
          return error
-      } 
+      }
+
+   })
+
+   Route.post('/baixa',async ({response, request}) => {
+      try {
+         let config= request.all()
+
+         const factory= use('App/Services/Bank/Factory')
+         let boleto= await factory().Boleto('sicoob')
+         let res= await boleto.baixa(config)
+         return res
+
+      } catch (error) {
+         return error
+      }
 
    })
 
@@ -519,7 +543,7 @@ Route.group(() => {
          return new Auth().callback(res)
       } catch (error) {
          return error
-      } 
+      }
 
    })
 
@@ -536,6 +560,7 @@ Route.group(() => {
    Route.post('/cnab/localizarRetornoArquivado', 'CnabController.localizarRetornoArquivado').middleware([
          'auth'
          ])
+
 
    Route.get('/gerador', async (request, response) =>  {
       const PDFKit = use('pdfkit');

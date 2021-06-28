@@ -15,6 +15,7 @@ function Auth() {
 
       async function callback(res) {
          try {
+            console.log('callback ')
             const modelConta = await ModelConta.findBy('modeloBoleto', 'sicoob')
 
             let conta_id = modelConta.id
@@ -60,7 +61,7 @@ function Auth() {
                headers: headers,
             })
             const data = await response.json()
-
+console.log('resposta autenticação ', data)
             if (lodash(data, 'error')) {
                if (data.error === 'invalid_grant') {
                   return `<html><h1>Autenticação inválida!</h1><script type="text/javascript" language="JavaScript">
@@ -110,7 +111,7 @@ function Auth() {
 
       /*function getMinutesBetweenDates(startDate, endDate) {
          var diff = endDate.getTime() - startDate.getTime()
-         return diff / 60000 
+         return diff / 60000
       }*/
 
       async function refreshToken(model) {

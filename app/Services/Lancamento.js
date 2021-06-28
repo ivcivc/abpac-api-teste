@@ -2,6 +2,9 @@
 
 const moment = require('moment')
 
+const Helpers = use('Helpers')
+const fs = use('fs')
+
 const Model = use('App/Models/Lancamento')
 const ModelItem = use('App/Models/LancamentoItem')
 const ModelStatus = use('App/Models/LancamentoStatus')
@@ -22,6 +25,8 @@ const Redis = use('Redis')
 const kue = use('Kue')
 const Job = use('App/Jobs/ACBr')
 
+const Factory= use('App/Services/Bank/Factory')
+
 //const Mo = use('App/Models/OcorrenciaTerceiro')
 
 class Lancamento {
@@ -34,6 +39,7 @@ class Lancamento {
 
          await model.load('items')
          await model.load('boletos')
+         await model.load('conta')
 
          let json = model.toJSON()
 
@@ -50,17 +56,7 @@ class Lancamento {
             trx = await Database.beginTransaction()
          }
 
-         if (data.forma === 'boleto' && data.tipo === 'Receita') {
-            const livre = await Redis.get('_gerarFinanceiro')
-            if (livre !== 'livre' && livre !== 'financeiro') {
-               nrErro = -100
-               throw {
-                  success: false,
-                  message:
-                     'Transação abortada. O servidor de emissão de boletos está ocupado. Tente mais tarde!',
-               }
-            }
-         }
+         delete data['conta']
 
          data.historico = !lodash.isEmpty(data.historico) ? data.historico : ''
          let items = data.items
@@ -135,43 +131,6 @@ class Lancamento {
 
          if (model.pessoa_id) {
             await model.load('pessoa')
-         }
-
-         // Gerar remessa - Kue
-         if (isJobs) {
-            if (
-               data.situacao !== 'Compensado' &&
-               model.tipo === 'Receita' &&
-               model.forma === 'boleto'
-            ) {
-               let dados = model.toJSON()
-               let arrLancamentos = []
-               arrLancamentos.push(dados)
-               let aut = auth.user //.toJSON()
-               let oAuth = { user: aut }
-               const data = {
-                  lancamentos: arrLancamentos,
-                  auth: oAuth,
-                  metodo: 'gerarCobranca',
-               } // Data to be passed to job handle
-               const priority = 'normal' // Priority of job, can be low, normal, medium, high or critical
-               const attempts = 1 // Number of times to attempt job if it fails
-               const remove = true // Should jobs be automatically removed on completion
-               const jobFn = job => {
-                  // Function to be run on the job before it is saved
-                  job.backoff()
-               }
-               const job = kue.dispatch(Job.key, data, {
-                  priority,
-                  attempts,
-                  remove,
-                  jobFn,
-               })
-
-               // If you want to wait on the result, you can do this
-               const result = await job.result
-               let x = 1
-            }
          }
 
          return model
@@ -304,6 +263,7 @@ class Lancamento {
 
          let model = await Model.findOrFail(ID)
          delete data['pessoa']
+         delete data['conta']
 
          const update_at_db = moment(model.updated_at).format()
          const update_at = moment(data.updated_at).format()
@@ -1295,6 +1255,143 @@ class Lancamento {
          await trx.rollback()
          if (nrErro) {
             if (nrErro === -100) {
+               throw e
+            }
+         }
+         throw {
+            message: e.message,
+            sqlMessage: e.sqlMessage,
+            sqlState: e.sqlState,
+            errno: e.errno,
+            code: e.code,
+         }
+      }
+   }
+
+   async openBank_novoBoleto(data, auth) {
+      let nrErro = null
+      let trx = null
+
+      try {
+         trx= await Database.beginTransaction()
+
+         let model = await Model.findOrFail(data.id)
+         await model.load('boletos')
+         await model.load('pessoa')
+         //await model.load('items')
+         await model.load('conta')
+
+
+         const update_at_db = moment(model.updated_at).format()
+         const update_at = moment(data.updated_at).format()
+
+         if (update_at_db !== update_at) {
+            nrErro = -100
+            throw {
+               success: false,
+               message:
+                  'Transação abortada! Este registro foi alterado por outro usuário.',
+            }
+         }
+
+         const modelJson= model.toJSON()
+         console.log( modelJson)
+         if ( lodash.has(modelJson, 'boletos')) {
+            modelJson.boletos.forEach( b => {
+               if ( b.status === 'Aberto') {
+                  nrErro = -200
+                  throw {
+                     success: false,
+                     message:
+                        'Não é possivel adicionar boleto. Já existe um boleto ativo.',
+                  }
+               }
+            })
+         }
+
+         modelJson.boleto_nota1= data.boleto_nota1
+         modelJson.boleto_nota2= data.boleto_nota2
+         modelJson.boleto_nota3= data.boleto_nota3
+
+         let boleto= await Factory().Boleto('sicoob')
+
+         let res= await boleto.novoBoleto(modelJson,{
+            conta_id: data.conta_id
+         })
+console.log('res = ', res)
+         if ( !res) {
+            nrErro = -350
+            throw {
+               success: false,
+               message:
+                  'Ocorreu uma falha não esperada no módulo open bank.',
+            }
+         }
+
+         if ( ! lodash.has(res, 'resultado')) {
+            nrErro = -351
+            throw {
+               success: false,
+               message:
+                  'O Open bank não respondeu um resultado esperado.',
+            }
+         }
+         const oResult= res.resultado[0]
+
+         console.log('Novo boleto - sicoob resposta ', oResult)
+
+         if ( oResult.status) {
+            if ( oResult.status.codigo !== 200) {
+               nrErro = -352
+               throw {
+                  success: false,
+                  message: oResult.status.mensagem
+               }
+            }
+         }
+
+         const oBoleto= oResult.boleto
+
+         const modelBoleto= await ModelBoleto.create({
+            pessoa_id: data.pessoa_id,
+            conta_id: data.conta_id,
+            lancamento_id: data.id,
+            valorTotal: oBoleto.valor,
+            dVencimento: oBoleto.dataVencimento,
+            nossoNumero: oBoleto.nossoNumero,
+            boleto_nota1: data.boleto_nota1,
+            boleto_nota2: data.boleto_nota2,
+            boleto_nota3: data.boleto_nota3,
+            isOpenBank: true,
+            linhaDigitavel: oBoleto.linhaDigitavel,
+            status: "Aberto"
+         },  trx ? trx : null)
+
+         //await trx.rollback()
+         await trx.commit()
+
+         const pastaPDF = Helpers.tmpPath('ACBr/pdf/')
+         const arquivo= `boleto_${model.id}.pdf`
+
+         fs.writeFile(
+            pastaPDF + arquivo,
+            oBoleto.pdfBoleto,
+            'base64',
+            async (err, data) => {
+               if (err) {
+                  console.log('falha na gravação do boleto ' + arquivo)
+               }
+               console.log('boleto gravado com sucesso!')
+            }
+         )
+
+         return modelBoleto
+
+      } catch (e) {
+         await trx.rollback()
+
+         if (nrErro) {
+            if (nrErro === -100 || nrErro === -200 || nrErro === -350 || nrErro === -351 || nrErro === -352) {
                throw e
             }
          }

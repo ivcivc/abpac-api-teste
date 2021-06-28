@@ -12,6 +12,9 @@ const Env = use('Env')
 const Drive = use('Drive')
 const Helpers = use('Helpers')
 const fs = require('fs')
+const CnabService = use('App/Services/Cnab')
+const factory= use('App/Services/Bank/Factory')
+const lodash= require('lodash')
 
 class LancamentoController {
    async index({ params, request, response }) {}
@@ -261,26 +264,66 @@ class LancamentoController {
 
    async pdfDownload({ response, params }) {
       const data = { arquivo: params.arquivo, metodo: 'pdf-download' } // Data to be passed to job handle
-      const priority = 'normal' // Priority of job, can be low, normal, medium, high or critical
-      const attempts = 1 // Number of times to attempt job if it fails
-      const remove = true // Should jobs be automatically removed on completion
-      const jobFn = job => {
-         // Function to be run on the job before it is saved
-         job.backoff()
+
+      try {
+         const result= await new CnabService().pdfBase64(data.arquivo)
+
+         if ( result.success) {
+
+            return response.send({success: true, pdfBase64: result.arquivo})
+
+         } else {
+
+            return response.status(401).send(result)
+         }
+      } catch (e) {
+         console.log('retornou catch ')
+         return response.status(401).send(e)
       }
-      const job = kue.dispatch(Job.key, data, {
-         priority,
-         attempts,
-         remove,
-         jobFn,
-      })
+   }
 
-      // If you want to wait on the result, you can do this
-      const result = await job.result
+   async lancamentoLocBoletoOpenBank({ response, request }) {
+      const data = request.all()
 
-      return response
-         .header('Content-type', 'application/pdf')
-         .download(result.arquivo)
+      try {
+
+         let boleto= await factory().Boleto('sicoob')
+         let res= await boleto.localizarBoleto( {nossoNumero: data.nossoNumero, conta_id: data.conta_id, convenio: data.convenio })
+
+         return res
+
+      } catch (error) {
+
+         console.log(error)
+         response.status(400).send(error)
+      }
+
+   }
+
+   async baixarBoletoOpenBank({ response, request }) {
+      const data = request.all()
+
+      try {
+
+         let boleto= await factory().Boleto('sicoob')
+         let res= await boleto.baixa( {nossoNumero: data.nossoNumero, conta_id: data.conta_id, convenio: data.convenio })
+
+         if ( lodash.has(res, 'success')) {
+            if ( ! res.success) {
+               if ( res.erroNr === 601) {
+                  res.message= "A concessão de autorização fornecida é inválida"
+               }
+               throw res
+            }
+         }
+         return res
+
+      } catch (error) {
+
+         console.log(error)
+         response.status(400).send(error)
+      }
+
    }
 
    async espera(tempo = 1000) {
@@ -598,6 +641,24 @@ class LancamentoController {
       const payload = request.all()
 
       try {
+
+         const service = await new LancamentoService().openBank_novoBoleto(
+            payload,
+            auth
+         )
+
+         response.status(200).send({ type: true, data: service })
+      } catch (error) {
+
+         console.log(error)
+         response.status(400).send(error)
+      }
+   }
+
+   /*async gerarBoleto({ request, response, auth }) {
+      const payload = request.all()
+
+      try {
          const _gerarFinanceiro = await Redis.get('_gerarFinanceiro')
          if (!_gerarFinanceiro) {
             await Redis.set('_gerarFinanceiro', 'financeiro') // gerar financeiro
@@ -627,7 +688,7 @@ class LancamentoController {
          console.log(error)
          response.status(400).send(error)
       }
-   }
+   }*/
 }
 
 module.exports = LancamentoController

@@ -636,6 +636,45 @@ class Cnab {
       })
    }
 
+   async pdfBase64(arquivo) {
+      return new Promise(async (resolve, reject) => {
+         try {
+            const filePath = this.pastaPDF + 'boleto_' + arquivo + '.pdf'
+
+            const isExist = await Drive.exists(filePath)
+
+            if (isExist) {
+
+               fs.readFile(filePath, {encoding: 'base64'}, (err, data) => {
+                  if (err) {
+                     throw {
+                        success: false,
+                        arquivo: null,
+                        message: 'Não foi possível abrir o arquivo PDF',
+                     }
+                  }
+                  //console.log(`data:PDF;base64,${data}`);
+                  return resolve({ success: true, arquivo: data })
+               })
+
+
+            } else {
+               console.log(
+                  'Arquivo (pdfDownload(cnab) não localizado ',
+                  arquivo
+               )
+               throw {
+                  success: false,
+                  arquivo: null,
+                  message: 'Arquivo PDF não localizado',
+               }
+            }
+         } catch (e) {
+            reject(e)
+         }
+      })
+   }
+
    async pdf(boleto_id) {
       return new Promise(async (resolve, reject) => {
          try {

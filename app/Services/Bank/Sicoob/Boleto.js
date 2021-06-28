@@ -19,6 +19,119 @@ function Boleto() {
          }
       }
 
+      async function baixa(config = null) {
+         /**
+          *  Parametros:
+          * modalidade Número que identifica a modalidade do boleto. - 1 SIMPLES COM REGISTRO - 5 CARNÊ DE PAGAMENTOS - 6 INDEXADA - 14 CARTÃO DE CRÉDITO
+          * numeroContrato: (integer) Obrigatorio
+          * nossoNumero: (integer)
+          */
+         try {
+            const scope = 'baixa'
+
+            config.scope = scope
+            config.recurso = 'boleto'
+
+            let retToken = await getToken(config)
+
+            if (lodash.has(retToken, 'erroNr')) {
+               throw retToken
+            }
+
+            let token = retToken.token
+
+            if (!token)
+               throw { success: false, erroNr: 801, message: 'Token inválido.' }
+
+            const para = {
+               numeroContrato: config.numeroContrato,
+               modalidade: config.modalidade,
+               nossoNumero: config.nossoNumero
+            }
+
+            let arr = []
+            arr.push(para)
+            let arrCompile = JSON.stringify(arr)
+
+            const meta = {
+               'Content-Type': 'application/json',
+               Authorization: `Bearer ${retToken.token}`,
+               'Client_id': Env.get('SICOOB_CLIENT_ID'),
+               'scope': scope,
+            }
+            const headers = new Headers(meta)
+
+            const url = Env.get('SICOOB_URL_COBRANCA') + '/baixa'
+            console.log(url)
+            console.log(token)
+            console.log(meta)
+            const response = await fetch(url, {
+               method: 'PATCH',
+               headers: headers,
+               body: arrCompile,
+            })
+
+            if (response.status === 401) {
+               throw {
+                  success: false,
+                  erroNr: 401,
+                  message: 'Acesso não autorizado!',
+               }
+            }
+
+            if (response.status === 403) {
+               throw {
+                  success: false,
+                  erroNr: 403,
+                  message:
+                     'O token de acesso não permite o acesso. Credencial inválida!',
+               }
+            }
+
+            // 207 -> solicitação recebida com sucesso. Verifique o status de cada registro no retorno
+
+            /*if (response.status === 204) {
+               throw {
+                  success: true,
+                  status: 204,
+                  message: 'A requisição foi processada com êxito e não está retornando conteúdo!',
+               }
+            }        */
+
+            let data = await response.json()
+
+            return data
+         } catch (e) {
+            console.log('prorrogarDataVencimento ', e)
+            let obj = e
+
+            if (lodash(e, 'erroNr')) {
+               obj = {
+                  message:
+                     'Ocorreu um erro de comunicação com o banco provedor.',
+                  status: e.status,
+                  erroNr: e.status,
+                  statusText: e.statusText,
+               }
+
+               if (e.erroNr === 601) {
+                  return e
+               }
+
+               if (e.erroNr === 401 || e.erroNr === 403) {
+                  return e
+               }
+
+               if (e.erroNr === 801) {
+                  // token inválido
+                  return e
+               }
+            }
+
+            return obj //{ x: 1 }
+         }
+      }
+
       async function prorrogarDataVencimento(config = null) {
          /**
           *  Parametros:
@@ -29,7 +142,7 @@ function Boleto() {
           */
          try {
             const scope = 'cobranca_boletos_prorrogacoes_data_vencimento'
-            
+
             config.scope = scope
             config.recurso = 'boleto'
 
@@ -357,8 +470,9 @@ function Boleto() {
       function validarArquiConfiguracao(config) {
          if (!config) config = {}
          config.tipoJurosMora= lodash.has(config, 'tipoJurosMora') ? config.tipoJurosMora : 2 // 2= taxa mensal 3= isento
-         config.diasJurosMora = lodash.has(config, 'diasJurosMora') ? config.diasJurosMora  : 6 
+         config.diasJurosMora = lodash.has(config, 'diasJurosMora') ? config.diasJurosMora  : 6
          config.valorJurosMora = lodash.has(config,'valorJurosMora') ? config.valorJurosMora :  1 //&& 0.0333
+
 
          config.tipoMulta= lodash.has(config, 'tipoMulta') ? config.tipoMulta : 2 // 2= percentual
          config.diasMulta = lodash.has(config, 'diasMulta') ? config.diasMulta : 6
@@ -370,7 +484,11 @@ function Boleto() {
          try {
             const scope = 'cobranca_boletos_consultar'
             if ( !config) {
-               config= { conta_id: 1}
+               config= { conta_id: null}
+               throw { success: false, erroNr: 802, message: 'Não foi informado o arquivo de configuração.' }
+            }
+            if ( !lodash.has(config, 'conta_id')) {
+               throw { success: false, erroNr: 803, message: 'Não foi informado o id da conta.' }
             }
             config.scope = scope
             config.recurso = 'boleto'
@@ -387,9 +505,9 @@ function Boleto() {
                throw { success: false, erroNr: 801, message: 'Token inválido.' }
 
             const para = {
-               numeroContrato: '464228',
+               numeroContrato: config.convenio,
                modalidade: 1,
-               nossoNumero: '64745',
+               nossoNumero: config.nossoNumero,
                //"linhaDigitavel":"75691409290104642280209353580013986470000094828"
             }
 
@@ -406,7 +524,7 @@ function Boleto() {
             }
             const headers = new Headers(meta)
 
-            const url = Env.get('SICOOB_URL_COBRANCA') + '?' + query 
+            const url = Env.get('SICOOB_URL_COBRANCA') + '?' + query
             const response = await fetch(url, {
                method: 'GET',
                headers: headers,
@@ -462,6 +580,7 @@ function Boleto() {
                   success: false,
                   message: 'Arquivo de configuração não recibido',
                }
+
             config = validarArquiConfiguracao(config)
             const scope = 'cobranca_boletos_incluir'
             config.scope = scope
@@ -494,7 +613,7 @@ function Boleto() {
                dataEmissao: dEmissao,
                //nossoNumero: 2588658,
                seuNumero: lancamento.id,
-               identificacaoBoletoEmpresa: lancamento.id, 
+               identificacaoBoletoEmpresa: lancamento.id,
                identificacaoEmissaoBoleto: 1, // cliente emite
                identificacaoDistribuicaoBoleto: 2, // cliente distribui
                valor: lancamento.valorTotal,
@@ -535,8 +654,8 @@ function Boleto() {
                /*beneficiarioFinal: {
                numeroCpfCnpj: '98784978699',
                nome: 'Lucas de Lima',
-            },*/
-               mensagensInstrucao: {
+               },*/
+              /* mensagensInstrucao: {
                   tipoInstrucao: 1,
                   mensagens: [
                      'Descrição da Instrução 1',
@@ -545,9 +664,29 @@ function Boleto() {
                      'Descrição da Instrução 4',
                      'Descrição da Instrução 5',
                   ],
-               },
+               },*/
                gerarPdf: true,
             }
+
+            // Mensagens
+            let arrMsg= gerarMensagens(objBoleto)
+
+            if (! lodash.isEmpty(lancamento.boleto_nota1)) {
+               arrMsg.push(lancamento.boleto_nota1)
+            }
+            if ( !lodash.isEmpty(lancamento.boleto_nota2)) {
+               arrMsg.push(lancamento.boleto_nota2)
+            }
+            if ( !lodash.isEmpty(lancamento.boleto_nota3)) {
+               arrMsg.push(lancamento.boleto_nota3)
+            }
+
+            const mensagensInstrucao= {
+               tipoInstrucao: 1,
+               mensagens: arrMsg,
+            }
+            objBoleto.mensagensInstrucao= mensagensInstrucao
+            // Fim de mensagens.
 
             let arr = []
             arr.push(objBoleto)
@@ -556,7 +695,7 @@ function Boleto() {
             const para = new URLSearchParams({
                Client_id: Env.get('SICOOB_CLIENT_ID'),
                scope: scope,
-               
+
             })
 
             const meta = {
@@ -564,7 +703,7 @@ function Boleto() {
                'Authorization': `Bearer ${token}`,
                "Client_id": Env.get('SICOOB_CLIENT_ID'),
                'scope': scope,
-               
+
             }
             const headers = new Headers(meta)
 
@@ -576,7 +715,7 @@ function Boleto() {
                method: 'POST',
                //body: arrCompile,
                body: arrCompile,
-               headers: headers               
+               headers: headers
             })
 
             console.log('status ', response.status)
@@ -588,8 +727,15 @@ function Boleto() {
                   message: 'Acesso não autorizado!',
                }
             }
+            if (response.status === 500) {
+               throw {
+                  success: false,
+                  erroNr: 401,
+                  message: 'Ocorreu um erro interno na comunicação do banco!',
+               }
+            }
 
-            let data = await response.json() // 207 recebido com sucesso
+            let data = await response.json() // 207 recebido com sucesso -  200 successo por boleto []
 
             return data
          } catch (e) {
@@ -613,6 +759,11 @@ function Boleto() {
                   return e
                }
 
+               if (e.erroNr === 500) {
+                  // Erro interno do banco
+                  return e
+               }
+
                if (e.erroNr === 801) {
                   // token inválido
                   return e
@@ -623,12 +774,37 @@ function Boleto() {
          }
       }
 
+      function gerarMensagens(o) {
+         let arr= []
+         if ( o.tipoJurosMora == 2) {
+            let cData= moment(o.dataMulta, 'YYYY-MM-DD').format('DD/MM/YYYY')
+            let n= o.valorJurosMora.toFixed(1/30)
+            if ( n.length > 5) {
+               n= n.substr(0,5)
+            }
+            let m= `A partir de ${cData}, juros de ${n}% dia.`
+            arr.push(m)
+         }
+
+         if ( o.tipoMulta == 2) {
+            let cData= moment(o.dataJurosMora, 'YYYY-MM-DD').format('DD/MM/YYYY')
+            let n= o.valorMulta.toFixed(2)
+            if ( n.length > 5) {
+               n= n.substr(0,5)
+            }
+            let m= `A partir de ${cData}, multa de ${n}%.`
+            arr.push(m)
+         }
+         return arr
+      }
+
       return {
          localizarBoleto,
          novoBoleto,
          segundaVia,
          localizarPorPagador,
          prorrogarDataVencimento,
+         baixa
       }
    } catch (e) {
       console.log('função boleto ', e)

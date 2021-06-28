@@ -62,7 +62,7 @@ class LancamentoSchema extends Schema {
          table
             .integer('conta_id')
             .unsigned()
-            .notNullable()
+            //.notNullable()
             .references('id')
             .inTable('contas')
             .onUpdate('CASCADE')
