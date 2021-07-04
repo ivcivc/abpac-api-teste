@@ -20,7 +20,7 @@ module.exports = {
     | is over 1mb it will not be processed.
     |
     */
-      limit: '20mb',
+      limit: '50mb',
 
       /*
     |--------------------------------------------------------------------------
@@ -101,7 +101,7 @@ module.exports = {
     | Also this value is considered when `autoProcess` is set to true.
     |
     */
-      maxSize: '20mb',
+      maxSize: '50mb',
 
       /*
     |--------------------------------------------------------------------------

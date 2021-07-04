@@ -147,19 +147,21 @@ class ZapMassaController {
 
                   //let msgPersonalizada = `Olá Associado! Seguem os relatórios do rateio e o boleto emitido para ${associado}, com vencimento para o dia ${dVencimento}, no valor de R$ ${valorTotal}.`
                   //let msgPersonalizada = `Olá Associado! Esta mensagem é para lembrar que o rateio do mês de abril foi fechado. Os relatórios do rateio e o boleto emitido para ${associado}, com vencimento para o dia ${dVencimento}, no valor de R$ ${valorTotal} serão enviados por e-mail. Caso não receba no prazo de 24 horas, entre em contato.`
-                  let msgPersonalizada = `Olá ${associado}! Esta mensagem é para lembrar que o rateio do mês de abril foi fechado. Os relatórios do rateio e o boleto com vencimento para o dia ${dVencimento}, no valor de R$ ${valorTotal} serão enviados por e-mail. Caso não receba no prazo de 24 horas, entre em contato conosco.`
+                  //let msgPersonalizada = `Olá ${associado}! Esta mensagem é para lembrar que o rateio do mês de abril foi fechado. Os relatórios do rateio e o boleto com vencimento para o dia ${dVencimento}, no valor de R$ ${valorTotal} serão enviados por e-mail. Caso não receba no prazo de 24 horas, entre em contato conosco.`
+                  let msgPersonalizada = `Olá *${associado}!*\r\nEsta mensagem é para lembrar que o rateio do mês de junho foi fechado.\r\nOs relatórios do rateio e o boleto com vencimento para o dia *${dVencimento}*, no valor de R$ ${valorTotal} estão disponíveis nos seguintes endereços:\r\n`
 
-                  let msgLinks = `Clique no link para visualizar o boleto ${API_URL}/view/${linkBoleto}/b Veículo: ${API_URL}/view/${linkEquipa}/e Ocorrências: ${API_URL}/view/${linkOcorrencia}/o`
 
-                  /*let service = await ServiceZap().sendMessage(
+                  let msgLinks = `*1) Boleto:* ${API_URL}/view/${linkBoleto}/b\r\n*2) Veículo:* ${API_URL}/view/${linkEquipa}/\r\n*3) Ocorrências:* ${API_URL}/view/${linkOcorrencia}/o`
+
+                  let service = await ServiceZap().sendMessage(
                      numeroTelefone,
                      msgPersonalizada + msgLinks
-                  )*/
-                  let service = await ServiceZap().sendMessage(
+                  )
+                  /*let service = await ServiceZap().sendMessage(
                      numeroTelefone,
                      msgPersonalizada // msg+ msgLinks,
                      //`${API_URL}/view/${linkBoleto}/b`
-                  )
+                  )*/
 
                   let mensagem =
                      'Nr.' + numeroTelefone + '. Enviado com sucesso!'

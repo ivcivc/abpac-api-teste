@@ -1388,14 +1388,16 @@ class Rateio {
       }
    }
 
-   async gerarFinanceiroLoc(rateio_id, auth) {
+   async gerarFinanceiroLoc(rateio_id, isAberto = false) {
       let query = null
 
       try {
          let model = await Model.findOrFail(rateio_id)
 
-         if (model.status !== 'Aberto') {
-            throw { message: 'Não é permitido a geração de financeiro.' }
+         if ( ! isAberto) {
+            if (model.status !== 'Aberto') {
+               throw { message: 'Não é permitido a geração de financeiro.' }
+            }            
          }
 
          query = await Database.select([
@@ -1493,6 +1495,7 @@ class Rateio {
    }
 
    async gerarFinanceiro(payload, trx, auth) {
+      console.log('gerando financeiro')
       let nrErro = 0
       try {
          let model = await Model.findOrFail(payload.rateio_id)
@@ -1604,9 +1607,11 @@ class Rateio {
          for (const key in query) {
             if (Object.hasOwnProperty.call(query, key)) {
                const e = query[key]
-               e.nossoNumero = nossoNumero
-               boletoConfig.nossoNumero = nossoNumero++
-               e.modeloBoleto = boletoConfig.modelo
+               console.log('item ', )
+
+               //e.nossoNumero = nossoNumero
+               //boletoConfig.nossoNumero = nossoNumero++
+               //e.modeloBoleto = boletoConfig.modelo
 
                e.banco = conta.banco
                e.agencia = conta.agencia
@@ -1647,15 +1652,15 @@ class Rateio {
                )
                e.lancamento_id = lancamentoAdd.id
 
-               let boletoAdd = await this.addBoleto(trx, auth, e, rateioConfig)
+               //let boletoAdd = await this.addBoleto(trx, auth, e, rateioConfig)
             }
          }
 
-         const boleto = await new Boleto().gerarBoleto(query)
+         /*const boleto = await new Boleto().gerarBoleto(query)
 
          if (!boleto.success) {
             throw boleto
-         }
+         }*/
          //query.forEach(e => {})
 
          await model.save(trx ? trx : null)
@@ -1680,6 +1685,7 @@ class Rateio {
       queryBeneficiosAgrupados = null
    ) {
       return new Promise(async (resolve, reject) => {
+         console.log( 'addReceber ')
          const lanca = {
             tipo: 'Receita',
             dVencimento: item.dVencimento2,
@@ -1789,6 +1795,7 @@ class Rateio {
                'forma',
                'isEmail',
                'isZap',
+               'isRelatorio'
             ])
             .where('rateio_id', rateio_id)
             .where('creditoRateio', 'Não')
@@ -1809,7 +1816,8 @@ class Rateio {
                ])
             })
             .with('boletos', builder => {
-               builder.where('status', 'Aberto')
+                //builder.where('status', 'Aberto')
+               builder.whereIn('status',['Aberto', 'Compensado'])
             })
             .fetch()
 
@@ -1924,7 +1932,8 @@ class Rateio {
       return new Promise(async (resolve, reject) => {
          try {
             const pasta = Helpers.tmpPath('rateio/equipamentos/')
-            const arquivo = `equip_${rateio_id}_${pessoa_id}.pdf`
+            let arquivo = `equip_${rateio_id}_${pessoa_id}.pdf`
+            arquivo= arquivo.trim()
 
             if (await Drive.exists(pasta + arquivo)) {
                return resolve({ arquivo, pdfDoc: null, pasta }) // await Drive.get(pasta + arquivo)
@@ -2197,8 +2206,10 @@ class Rateio {
             pdfDoc.pipe(fs.createWriteStream(pasta + arquivo))
             pdfDoc.end()
 
+            console.log('gerei o pdf ....')
             return resolve({ arquivo, pdfDoc, pasta })
          } catch (e) {
+            console.log('falha===> ', e)
             return reject(e)
          }
       })

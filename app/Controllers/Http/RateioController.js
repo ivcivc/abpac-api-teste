@@ -257,6 +257,7 @@ class RateioController {
    async gerarFinanceiro({ request, response, auth }) {
       const payload = request.all()
 
+      let trx= null
       try {
          const _gerarFinanceiro = await Redis.get('_gerarFinanceiro')
          if (!_gerarFinanceiro) {
@@ -276,31 +277,23 @@ class RateioController {
             }
          }
 
-         let aut = auth.user.toJSON()
-         let oAuth = { user: aut }
-         const data = { payload, auth: oAuth, metodo: 'gerarFinanceiro' } // Data to be passed to job handle
-         const priority = 'normal' // Priority of job, can be low, normal, medium, high or critical
-         const attempts = 1 // Number of times to attempt job if it fails
-         const remove = true // Should jobs be automatically removed on completion
-         const jobFn = job => {
-            // Function to be run on the job before it is saved
-            job.backoff()
-         }
-         const job = kue.dispatch(Job.key, data, {
-            priority,
-            attempts,
-            remove,
-            jobFn,
-         })
+         trx = await Database.beginTransaction()
 
-         // If you want to wait on the result, you can do this
-         const result = await job.result
+         //let aut = auth.user.toJSON()
+         //let oAuth = { user: aut }
 
-         return result
+         const modelRateio = await new RateioServices().gerarFinanceiro(payload, trx, auth)
 
-         response.status(200).send({ type: true, data: service })
+
+         await trx.commit()
+
+         response.status(200).send({ type: true, data: modelRateio })
       } catch (error) {
-         // await trx.rollback()
+         if ( trx) {
+            await trx.rollback()
+         }
+         // 
+         await Redis.set('_gerarFinanceiro', 'livre')
 
          response.status(400).send(error)
       }

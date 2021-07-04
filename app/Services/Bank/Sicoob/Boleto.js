@@ -31,7 +31,7 @@ function Boleto() {
 
             config.scope = scope
             config.recurso = 'boleto'
-
+console.log('recebi parametros config ', config)
             let retToken = await getToken(config)
 
             if (lodash.has(retToken, 'erroNr')) {
@@ -44,7 +44,7 @@ function Boleto() {
                throw { success: false, erroNr: 801, message: 'Token inválido.' }
 
             const para = {
-               numeroContrato: config.numeroContrato,
+               numeroContrato: config.convenio,
                modalidade: config.modalidade,
                nossoNumero: config.nossoNumero
             }
@@ -88,6 +88,18 @@ function Boleto() {
                }
             }
 
+            let resposta= await response.json()
+
+            if (response.status === 207) {
+               let linha= resposta.resultado[0]
+               if ( linha.status.codigo === 200) {
+                  console.log('baixa retornou codigo 200..', resposta)
+                  resposta= { success: true, message: "Baixa realizada com sucesso", data: linha.boleto}
+               } else {
+                  throw { success: false, message: linha.status.mensagem, codigo: linha.status.codigo}
+               }
+            }
+
             // 207 -> solicitação recebida com sucesso. Verifique o status de cada registro no retorno
 
             /*if (response.status === 204) {
@@ -98,14 +110,14 @@ function Boleto() {
                }
             }        */
 
-            let data = await response.json()
+            let data = resposta
 
             return data
          } catch (e) {
             console.log('prorrogarDataVencimento ', e)
             let obj = e
 
-            if (lodash(e, 'erroNr')) {
+            if (lodash.has(e, 'erroNr')) {
                obj = {
                   message:
                      'Ocorreu um erro de comunicação com o banco provedor.',
@@ -128,7 +140,7 @@ function Boleto() {
                }
             }
 
-            return obj //{ x: 1 }
+            throw obj //{ x: 1 }
          }
       }
 
@@ -219,7 +231,7 @@ function Boleto() {
             console.log('prorrogarDataVencimento ', e)
             let obj = e
 
-            if (lodash(e, 'erroNr')) {
+            if (lodash.has(e, 'erroNr')) {
                obj = {
                   message:
                      'Ocorreu um erro de comunicação com o banco provedor.',
@@ -335,7 +347,7 @@ function Boleto() {
             console.log('localizarBoleto ', e)
             let obj = e
 
-            if (lodash(e, 'erroNr')) {
+            if (lodash.has(e, 'erroNr')) {
                obj = {
                   message:
                      'Ocorreu um erro de comunicação com o banco provedor.',
@@ -422,7 +434,7 @@ function Boleto() {
             console.log('localizarBoleto ', e)
             let obj = e
 
-            if (lodash(e, 'erroNr')) {
+            if (lodash.has(e, 'erroNr')) {
                obj = {
                   message:
                      'Ocorreu um erro de comunicação com o banco provedor.',
@@ -578,7 +590,7 @@ function Boleto() {
             if (!config)
                throw {
                   success: false,
-                  message: 'Arquivo de configuração não recibido',
+                  message: 'Arquivo de configuração não recebido',
                }
 
             config = validarArquiConfiguracao(config)
