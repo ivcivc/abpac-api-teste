@@ -379,9 +379,9 @@ Route.group(() => {
    'auth'
    ])
 
-   Route.post('/rateio/simulador', 'RateioController.simulador').middleware([
+   /*Route.post('/rateio/simulador', 'RateioController.simulador').middleware([
    'auth'
-   ])
+   ])*/
 
    Route.post('/rateio/lista_equipamentos', 'RateioController.PDF_TodosEquipamentosRateioPorPessoa').middleware([
       'auth'
