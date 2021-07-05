@@ -30,6 +30,7 @@ class ZapMassaController {
    }
 
    async logZap(o) {
+      console.log('gerar log ', o)
       const log = await ModelEmailLog.create(o)
    }
 
@@ -145,13 +146,18 @@ class ZapMassaController {
 
                   const API_URL = Env.get('API_URL')
 
+                  const digitoCPF= json.pessoa.cpfCnpj.substring(0,2)
+         
+
                   //let msgPersonalizada = `Olá Associado! Seguem os relatórios do rateio e o boleto emitido para ${associado}, com vencimento para o dia ${dVencimento}, no valor de R$ ${valorTotal}.`
                   //let msgPersonalizada = `Olá Associado! Esta mensagem é para lembrar que o rateio do mês de abril foi fechado. Os relatórios do rateio e o boleto emitido para ${associado}, com vencimento para o dia ${dVencimento}, no valor de R$ ${valorTotal} serão enviados por e-mail. Caso não receba no prazo de 24 horas, entre em contato.`
                   //let msgPersonalizada = `Olá ${associado}! Esta mensagem é para lembrar que o rateio do mês de abril foi fechado. Os relatórios do rateio e o boleto com vencimento para o dia ${dVencimento}, no valor de R$ ${valorTotal} serão enviados por e-mail. Caso não receba no prazo de 24 horas, entre em contato conosco.`
-                  let msgPersonalizada = `Olá *${associado}!*\r\nEsta mensagem é para lembrar que o rateio do mês de junho foi fechado.\r\nOs relatórios do rateio e o boleto com vencimento para o dia *${dVencimento}*, no valor de R$ ${valorTotal} estão disponíveis nos seguintes endereços:\r\n`
+                  //let msgPersonalizada = `Olá *${associado}!*\r\nEsta mensagem é para lembrar que o rateio do mês de junho foi fechado.\r\nOs relatórios do rateio e o boleto com vencimento para o dia *${dVencimento}*, no valor de R$ ${valorTotal} estão disponíveis nos seguintes endereços:\r\n`
+                  let msgPersonalizada = `Olá *${associado}!*\r\nEsta mensagem é para lembrar que o rateio do mês de junho foi fechado.\r\nOs relatórios do rateio e o boleto com vencimento para o dia *${dVencimento}*, no valor de R$ ${valorTotal} estão disponíveis no seguinte endereço:\r\n`
 
+                  //let msgLinks = `*1) Boleto:* ${API_URL}/view/${linkBoleto}/b\r\n*2) Veículo:* ${API_URL}/view/${linkEquipa}/\r\n*3) Ocorrências:* ${API_URL}/view/${linkOcorrencia}/o`
+                  let msgLinks = `* ${API_URL}/web/rateio/${rateio_id}_${pessoa_id}${digitoCPF}`
 
-                  let msgLinks = `*1) Boleto:* ${API_URL}/view/${linkBoleto}/b\r\n*2) Veículo:* ${API_URL}/view/${linkEquipa}/\r\n*3) Ocorrências:* ${API_URL}/view/${linkOcorrencia}/o`
 
                   let service = await ServiceZap().sendMessage(
                      numeroTelefone,

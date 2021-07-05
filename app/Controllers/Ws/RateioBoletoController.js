@@ -51,6 +51,7 @@ class RateioBoletoController {
 
       
          } catch (error) {
+            console.log('CATH >>>>>>>>>>>>>>>>>>>>>>>> 2')
             console.log(error)
             this.socket.broadcastToAll("RATEIO-BOLETO-REFRESH", { tipo: 'ERROR', data: null, message: "Não foi possível carregar o financeiro"})
          }
@@ -200,7 +201,7 @@ class RateioBoletoController {
          try {
 
 
-            if ( registro.pessoa_id === 1843) {
+            //if ( registro.pessoa_id === 1843) {
 
                const service = await new LancamentoService().openBank_novoBoleto(
                   registro,
@@ -209,10 +210,10 @@ class RateioBoletoController {
 
 
                return resolve(service)   
-            }
+            //}
 
    
-            resolve({success: false, message: "boleto - MOCK "})
+            //resolve({success: false, message: "boleto - MOCK "})
          } catch (error) {
 
             if ( error.nrErro === -200 ) {

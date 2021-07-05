@@ -11,12 +11,141 @@ const Job = use('App/Jobs/ACBr')
 
 const Helpers = use('Helpers')
 
+const ModelRateio = use('App/Models/Rateio')
+const ModelLancamento = use('App/Models/Lancamento')
+
+
+const moment = use('moment')
+
 class RateioController {
    async callback({ request, response }) {
       console.log('callback acionado......')
       let x = request
       console.log(request.all())
       return request.all()
+   }
+
+   async exibirLinkRelatorioBoleto({params, request}) {
+     let obj= {} 
+
+     try {
+         const token= params.token
+         obj= {
+            titulo: "Rateio", 
+            dVencimento: "", 
+            link_boleto: '',
+            link_equipamento: '',
+            link_ocorrencia: '',
+            success: false,
+            msg: ''      
+         }
+
+         if ( !token ) {
+            return obj
+         }
+         let arr= token.split('_')
+         if ( arr.length !== 2) {
+            return obj
+         }
+         const rateio_id= arr[0]
+         const pessoa_id_digito= arr[1]
+         const tamanho= pessoa_id_digito.length
+         const pessoa_id= pessoa_id_digito.substring(0, tamanho - 2)
+         const digito= pessoa_id_digito.substring(tamanho - 2)
+
+         const modelRateio= await ModelRateio.findOrFail(rateio_id)
+
+         let m= moment(modelRateio.dFim, 'YYYY-MM-DD').format('YYYYMMDD')
+   
+         const ano= m.substring(0,4)
+         const mes= m.substring(4).substring(0,2)
+   
+         let Mes= ''
+         switch (mes) {
+            case '01' : 
+               Mes= 'Janeiro'
+               break
+            case '02' : 
+               Mes= 'Fevereiro'
+               break
+            case '03' : 
+               Mes= 'Março'
+               break 
+               case '04' : 
+               Mes= 'Abril'
+               break
+            case '05' : 
+               Mes= 'Maio'
+               break
+            case '06' : 
+               Mes= 'Junho'
+               break   
+            case '07' : 
+               Mes= 'Julho'
+               break
+            case '08' : 
+               Mes= 'Agosto'
+               break
+            case '09' : 
+               Mes= 'Setembro'
+               break          
+            case '10' : 
+               Mes= 'Outubro'
+               break
+            case '11' : 
+               Mes= 'Novembro'
+               break
+            case '12' : 
+               Mes= 'Dezembro'
+               break    
+
+         }
+
+         obj.titulo= `Rateio (${Mes}/${ano})`
+
+         const query = await ModelLancamento.query().select('id', 'dVencimento', 'conta_id', 'pessoa_id', 'rateio_id', 'valorTotal', 'situacao', 'status', 'creditoRateio', 'isBaixa', 'isZap', 'isEmail', 'isRelatorio', 'updated_at')
+               .where('rateio_id', rateio_id)
+               .where('pessoa_id', pessoa_id)
+               .where('creditoRateio', 'Não')         
+               .with('pessoa', build => {
+                  build.select('id','nome','cpfCnpj', 'parcela')
+               })
+               /*.with('boletos', build => {
+                  build.whereIn('status',['Aberto', 'Compensado'])
+               })
+               .with('conta')*/
+               .fetch()
+
+
+         if ( ! query) {
+            obj.msg= 'Boleto não localizado'
+            throw {}
+         }
+         if ( query.rows.length == 0 ) {
+            obj.msg= 'Boleto não localizado'
+            throw {}
+         }
+
+         const json= query.toJSON()
+
+         if ( json[0].pessoa.cpfCnpj.substring(0,2) !== digito) {
+            obj.msg= 'Token não localizado!'
+            throw {}
+         }
+
+         const item= query.rows[0]
+         obj.dVencimento= moment(item.dVencimento, 'YYYY-MM-DD').format('DD/MM/YYYY')
+         obj.link_boleto= `https://abpac-app.com.br/api/view/boleto_${item.id}.pdf/b`
+         obj.link_equipamento= `https://abpac-app.com.br/api/view/equip_${rateio_id}_${item.pessoa_id}.pdf/e`
+         obj.link_ocorrencia= `https://abpac-app.com.br/api/view/rateio_ocorrencias_${rateio_id}.pdf/o`
+
+         return obj
+
+      } catch (error) {
+         console.log(error)
+         return obj
+      }
+
    }
 
    async auth({ request, response }) {
@@ -359,6 +488,7 @@ class RateioController {
 
          //response.status(200).send({ type: true  })
       } catch (error) {
+         console.log('CATH >>>>>>>>>>>>>>>>>>>>>>>> 5')
          console.log('nivel 2-a')
          response.status(400).send(error)
       }

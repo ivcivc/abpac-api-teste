@@ -370,6 +370,7 @@ class ACBrJob {
                console.log('JOB - SAINDO disparar-email-massa')
                return resolve({ success: true })
             } catch (error) {
+               console.log('CATH >>>>>>>>>>>>>>>>>>>>>>>> 1')
                lancamento.isEmail = 2
                await lancamento.save()
                emailLog(error)

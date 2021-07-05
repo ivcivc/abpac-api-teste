@@ -960,10 +960,21 @@ class Rateio {
             const dRecebimento = moment(e.dRecebimento, 'YYYY-MM-DD').format(
                'YYYY-MM-DD'
             )
-            const dEndosso = moment(
-               e.equipamento.dEndosso,
-               'YYYY-MM-DD'
-            ).format('YYYY-MM-DD')
+
+            let dEndosso = null
+            // Tem situação que não grava o equipamento_id no lancamento. Ao carregar o credito de baixa, não é carregado o objeto equipamento (um equipamento baixado)
+            if ( ! e.equipamento) {
+               if ( e.endossos) {
+                  e.equipamento= e.endossos[0] // pega o primemeiro equipamento da lista de endossos
+               }
+            }
+            if ( e.equipamento ) {
+               dEndosso = moment(
+                  e.equipamento.dEndosso,
+                  'YYYY-MM-DD'
+               ).format('YYYY-MM-DD')               
+            }
+
             let oRegistro = {
                rateio_id: rateio.id,
                dRecebimento: dRecebimento,
@@ -998,7 +1009,7 @@ class Rateio {
             }
          }
       }
-
+console.log('indo pro equipamento')
       // Equipamentos
       let arrRateioEquipa = []
 
@@ -1088,6 +1099,7 @@ class Rateio {
       }
       //await rateio.equipamentos().createMany(arrRateioEquipa, trx ? trx : null)
 
+      console.log('Entrando no rateio equipaBaixa linha 1091 ')
       // Equipamentos Baixa (Não participam diretamente do rateio - copiam o valor rateado e aplica desconto 50% quando for de direito)
       let arrRateioEquipaBaixa = []
       for (const key in payload.equipamentoBaixa) {
@@ -1163,6 +1175,8 @@ class Rateio {
             }
          }
       }
+
+      console.log('Entrando no inadimplente')
 
       // Inadimplente
       if (lodash.has(payload.inadimplente, 'creditos')) {
@@ -1894,6 +1908,8 @@ class Rateio {
             message: 'Email(s) entregue(s) na fila de execução.',
          }
       } catch (e) {
+         console.log('CATH >>>>>>>>>>>>>>>>>>>>>>>> 3')
+
          await Redis.set('_gerarFinanceiro', 'livre')
 
          let topic = Ws.getChannel('email_massa:*').topic(

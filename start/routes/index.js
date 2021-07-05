@@ -10,16 +10,18 @@ const lodash = use('lodash')
 
 Route.group(() => {
 
-   Route.get('/web/:token',async ({params, response}) => {
+   /*Route.get('/web/:token',async ({params, response}) => {
       console.log('buscando token.')
+
       return { titulo: "Rateio de Junho/2021", dVencimento: "15/07/2022", link_boleto: 'https://abpac-app.com.br/api/view/boleto_3381.pdf/b',
       link_equipamento: 'https://abpac-app.com.br/api/view/equip_5_1843.pdf/e',
       link_ocorrencia: 'https://abpac-app.com.br/api/view/rateio_ocorrencias_5.pdf/o'
-   }
-   })
+      }
+   })*/
+
+   Route.get('/web/:token','RateioController.exibirLinkRelatorioBoleto')
 
 
-   
    Route.get('/view/:file/:tipo',async ({params, response}) => {
       try {
          const arquivo= params.file
@@ -389,9 +391,6 @@ Route.group(() => {
    'auth'
    ])
 
-   Route.post('/rateio/simulador', 'RateioController.simulador').middleware([
-   'auth'
-   ])
 
    Route.post('/rateio/lista_equipamentos', 'RateioController.PDF_TodosEquipamentosRateioPorPessoa').middleware([
       'auth'
