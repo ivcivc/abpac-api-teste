@@ -144,7 +144,7 @@ class ZapMassaController {
                      'YYYY-MM-DD'
                   ).format('DD/MM/YYYY')
 
-                  const API_URL = Env.get('API_URL')
+                  const URL_SERVIDOR_WEB = Env.get('URL_SERVIDOR_WEB')
 
                   const digitoCPF= json.pessoa.cpfCnpj.substring(0,2)
          
@@ -155,8 +155,8 @@ class ZapMassaController {
                   //let msgPersonalizada = `Olá *${associado}!*\r\nEsta mensagem é para lembrar que o rateio do mês de junho foi fechado.\r\nOs relatórios do rateio e o boleto com vencimento para o dia *${dVencimento}*, no valor de R$ ${valorTotal} estão disponíveis nos seguintes endereços:\r\n`
                   let msgPersonalizada = `Olá *${associado}!*\r\nEsta mensagem é para lembrar que o rateio do mês de junho foi fechado.\r\nOs relatórios do rateio e o boleto com vencimento para o dia *${dVencimento}*, no valor de R$ ${valorTotal} estão disponíveis no seguinte endereço:\r\n`
 
-                  //let msgLinks = `*1) Boleto:* ${API_URL}/view/${linkBoleto}/b\r\n*2) Veículo:* ${API_URL}/view/${linkEquipa}/\r\n*3) Ocorrências:* ${API_URL}/view/${linkOcorrencia}/o`
-                  let msgLinks = `* ${API_URL}/web/rateio/${rateio_id}_${pessoa_id}${digitoCPF}`
+                  //let msgLinks = `*1) Boleto:* ${URL_SERVIDOR_WEB}/view/${linkBoleto}/b\r\n*2) Veículo:* ${URL_SERVIDOR_WEB}/view/${linkEquipa}/\r\n*3) Ocorrências:* ${URL_SERVIDOR_WEB}/view/${linkOcorrencia}/o`
+                  let msgLinks = `${URL_SERVIDOR_WEB}/rateio/${rateio_id}_${pessoa_id}${digitoCPF}`
 
 
                   let service = await ServiceZap().sendMessage(
@@ -166,7 +166,7 @@ class ZapMassaController {
                   /*let service = await ServiceZap().sendMessage(
                      numeroTelefone,
                      msgPersonalizada // msg+ msgLinks,
-                     //`${API_URL}/view/${linkBoleto}/b`
+                     //`${URL_SERVIDOR_WEB}/view/${linkBoleto}/b`
                   )*/
 
                   let mensagem =

@@ -183,6 +183,14 @@ class EmailMassaController {
                      email = 'ivan.a.oliveira@terra.com.br'
                   }
 
+                  const URL_SERVIDOR_WEB = Env.get('URL_SERVIDOR_WEB') //"https://abpac-app.com.br/web" //
+                  const digitoCPF= json.pessoa.cpfCnpj.substring(0,2)
+                  let msgLinks = `${URL_SERVIDOR_WEB}/rateio/${rateio_id}_${pessoa_id}${digitoCPF}`
+   
+                  console.log('gerado link:  ', msgLinks)
+   
+                  json.link= msgLinks                  
+
                   await this.espera(1000)
 
                   let send = await Mail.send(
@@ -193,7 +201,7 @@ class EmailMassaController {
                            .to(email)
                            .from(Env.get('MAIL_EMPRESA'))
                            .subject('Boleto ABPAC')
-                           .attach(arquivoEquipa, {
+                           /*.attach(arquivoEquipa, {
                               filename: 'lista_veiculos.pdf',
                            })
                            .attach(arquivoOcorrencia, {
@@ -201,7 +209,7 @@ class EmailMassaController {
                            })
                            .attach(Helpers.tmpPath(arqPDF), {
                               filename: 'boleto.pdf',
-                           })
+                           })*/
                         /*.embed(
                                  Helpers.publicPath('images/logo-abpac.png'),
                                  'logo'

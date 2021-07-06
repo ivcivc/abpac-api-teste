@@ -321,6 +321,14 @@ class ACBrJob {
                   email = 'ivan.a.oliveira@terra.com.br'
                }
 
+               const URL_SERVIDOR_WEB = Env.get('URL_SERVIDOR_WEB')
+               const digitoCPF= json.pessoa.cpfCnpj.substring(0,2)
+               let msgLinks = `* ${URL_SERVIDOR_WEB}/web/rateio/${rateio_id}_${pessoa_id}${digitoCPF}`
+
+               console.log('gerado link: ', msgLinks)
+
+               json.link= msgLinks
+
                const arqPDFequipa =
                   respTabelaEquipa.pasta + respTabelaEquipa.arquivo
 
@@ -332,7 +340,7 @@ class ACBrJob {
                         .to(email)
                         .from(Env.get('MAIL_EMPRESA'))
                         .subject('Boleto ABPAC')
-                        .attach(arqPDFequipa, {
+                        /*.attach(arqPDFequipa, {
                            filename: 'lista_veiculos.pdf',
                         })
                         .attach(
@@ -344,7 +352,7 @@ class ACBrJob {
                         )
                         .attach(Helpers.tmpPath(arqPDF), {
                            filename: 'boleto.pdf',
-                        })
+                        })*/
                      /*.embed(
                               Helpers.publicPath('images/logo-abpac.png'),
                               'logo'
