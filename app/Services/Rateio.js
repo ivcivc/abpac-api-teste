@@ -1,4 +1,5 @@
 'use strict'
+/*Rateio */
 const Helpers = use('Helpers')
 const lodash = require('lodash')
 const ModelEquipamento = use('App/Models/Equipamento')
@@ -2016,6 +2017,7 @@ console.log('indo pro equipamento')
             let toutros = 0.0
             let trateio = 0.0
             let associado = ''
+
 
             const equipaJson = model.toJSON()
 
