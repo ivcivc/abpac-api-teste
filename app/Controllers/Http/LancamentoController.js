@@ -3,7 +3,7 @@
 const Database = use('Database')
 const LancamentoService = use('App/Services/Lancamento')
 const ModelEmailLog = use('App/Models/EmailLog')
-
+const ModelBoleto = use('App/Models/Boleto')
 const kue = use('Kue')
 const Job = use('App/Jobs/ACBr')
 const PessoaModel = use('App/Models/Pessoa')
@@ -305,8 +305,14 @@ class LancamentoController {
 
       try {
 
+         const modelBoleto= await ModelBoleto.findOrFail(data.boleto_id)
+
+         if ( modelBoleto.status !== 'Aberto') {
+            throw { success: false, message: "Não é possível baixar/cancelar este boleto"}
+         }
+
          let boleto= await factory().Boleto('sicoob')
-         let res= await boleto.baixa( {nossoNumero: data.nossoNumero, conta_id: data.conta_id, convenio: data.convenio })
+         let res= await boleto.baixa( {nossoNumero: data.nossoNumero, conta_id: data.conta_id, convenio: data.convenio, modalidade: 1 })
 
          if ( lodash.has(res, 'success')) {
             if ( ! res.success) {
@@ -314,13 +320,17 @@ class LancamentoController {
                   res.message= "A concessão de autorização fornecida é inválida"
                }
                throw res
-            }
+            } 
+
+            modelBoleto.status= 'Cancelado'
+            await modelBoleto.save()
+            res.data= modelBoleto
          }
          return res
 
       } catch (error) {
 
-         console.log(error)
+         console.log('baixa falha= ', error)
          response.status(400).send(error)
       }
 

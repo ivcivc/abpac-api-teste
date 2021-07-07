@@ -48,7 +48,6 @@ class EmailMassaController {
             data: lResp,
          })
       }
-
    }
 
    async espera(tempo = 1000) {
@@ -64,6 +63,7 @@ class EmailMassaController {
       let isFalha = true
       let boleto_id = item.boleto_id
       let response = ''
+      let pessoa_id = item.pessoa_id ? item.pessoa_id : null
 
       if (lodash.has(resp, 'code')) {
          mensagem = resp.message
@@ -102,6 +102,7 @@ class EmailMassaController {
          status,
          response,
          boleto_id,
+         pessoa_id,
       })
    }
 
@@ -110,6 +111,7 @@ class EmailMassaController {
          try {
             const lancamento = await ModelLancamento.findOrFail(lancamento_id)
             await lancamento.load('pessoa')
+            await lancamento.load('boletos')
 
             resolve(lancamento)
          } catch (error) {
@@ -121,11 +123,11 @@ class EmailMassaController {
    async *dispararEmailMassa(o) {
       let topic = null
       let lancamento = null
+      let json = null
+      const rateio_id = o.rateio_id
+      const lista = o.lista
 
       try {
-         const rateio_id = o.rateio_id
-         const lista = o.lista
-
          for (const key in lista) {
             if (Object.hasOwnProperty.call(lista, key)) {
                let item = null
@@ -151,10 +153,18 @@ class EmailMassaController {
                   )
                   await lancamento.load('pessoa')*/
 
+                  json = lancamento.toJSON()
+
+                  json.boleto_id = null
+                  json.boletos.forEach(b => {
+                     if (b.status === 'Aberto' || b.status === 'Compensado') {
+                        json.boleto_id = b.id
+                     }
+                  })
+
                   const pessoa_id = item.pessoa_id
 
-                  let json = lancamento.toJSON()
-                  json.boleto_id = item.boleto_id
+                  //json.boleto_id = item.boleto_id
                   json.dVencimento = moment(json.dVencimento).format(
                      'DD/MM/YYYY'
                   )
@@ -162,19 +172,21 @@ class EmailMassaController {
                   let arqPDF = 'ACBr/pdf/boleto_' + item.lancamento_id + '.pdf'
 
                   // Tabela de equipamentosAtivos
-                  const respTabelaEquipa = await new RateioServices().PDF_TodosEquipamentosRateioPorPessoa(
-                     pessoa_id,
-                     rateio_id,
-                     false
-                  )
+                  const respTabelaEquipa =
+                     await new RateioServices().PDF_TodosEquipamentosRateioPorPessoa(
+                        pessoa_id,
+                        rateio_id,
+                        false
+                     )
                   let arquivoEquipa =
                      respTabelaEquipa.pasta + respTabelaEquipa.arquivo
 
                   // Tabela de ocorrencias
-                  const respTabelaOcorrencias = await new RateioServices().PDF_RateioRelatorioOcorrencias(
-                     rateio_id,
-                     false
-                  )
+                  const respTabelaOcorrencias =
+                     await new RateioServices().PDF_RateioRelatorioOcorrencias(
+                        rateio_id,
+                        false
+                     )
                   const arquivoOcorrencia =
                      respTabelaOcorrencias.pasta + respTabelaOcorrencias.arquivo
 
@@ -182,6 +194,14 @@ class EmailMassaController {
                   if (Env.get('NODE_ENV') === 'development') {
                      email = 'ivan.a.oliveira@terra.com.br'
                   }
+
+                  const URL_SERVIDOR_WEB = Env.get('URL_SERVIDOR_WEB') //"https://abpac-app.com.br/web" //
+                  const digitoCPF = json.pessoa.cpfCnpj.substring(0, 2)
+                  let msgLinks = `${URL_SERVIDOR_WEB}/rateio/${rateio_id}_${pessoa_id}${digitoCPF}`
+
+                  console.log('gerado link:  ', msgLinks)
+
+                  json.link = msgLinks
 
                   await this.espera(1000)
 
@@ -193,7 +213,7 @@ class EmailMassaController {
                            .to(email)
                            .from(Env.get('MAIL_EMPRESA'))
                            .subject('Boleto ABPAC')
-                           .attach(arquivoEquipa, {
+                        /*.attach(arquivoEquipa, {
                               filename: 'lista_veiculos.pdf',
                            })
                            .attach(arquivoOcorrencia, {
@@ -201,7 +221,7 @@ class EmailMassaController {
                            })
                            .attach(Helpers.tmpPath(arqPDF), {
                               filename: 'boleto.pdf',
-                           })
+                           })*/
                         /*.embed(
                                  Helpers.publicPath('images/logo-abpac.png'),
                                  'logo'
@@ -222,7 +242,7 @@ class EmailMassaController {
                      })
                   }
 
-                  this.emailLog(send, item)
+                  this.emailLog(send, json)
                } catch (error) {
                   let res = null
 
@@ -231,7 +251,11 @@ class EmailMassaController {
                      lancamento.isEmail = 2
                      await lancamento.save()
 
-                     this.emailLog(error, item)
+                     if (json) {
+                        this.emailLog(error, json)
+                     } else {
+                        this.emailLog(error, item)
+                     }
                   }
 
                   topic = Ws.getChannel('email_massa:*').topic(
@@ -267,7 +291,7 @@ class EmailMassaController {
       if (!data) {
       }
       console.log(data)
-      await Redis.set('_gerarFinanceiro', 'email-massa')
+      //await Redis.set('_gerarFinanceiro', 'email-massa')
 
       let topic = Ws.getChannel('email_massa:*').topic(
          'email_massa:email_massa'
@@ -293,10 +317,9 @@ class EmailMassaController {
          if (topic) {
             this.socket.emit('message', r)
          }
-
       }
 
-      await Redis.set('_gerarFinanceiro', 'livre')
+      //await Redis.set('_gerarFinanceiro', 'livre')
    }
 }
 

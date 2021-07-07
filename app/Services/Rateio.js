@@ -1,4 +1,5 @@
 'use strict'
+/*Rateio */
 const Helpers = use('Helpers')
 const lodash = require('lodash')
 const ModelEquipamento = use('App/Models/Equipamento')
@@ -960,10 +961,20 @@ class Rateio {
             const dRecebimento = moment(e.dRecebimento, 'YYYY-MM-DD').format(
                'YYYY-MM-DD'
             )
-            const dEndosso = moment(
-               e.equipamento.dEndosso,
-               'YYYY-MM-DD'
-            ).format('YYYY-MM-DD')
+
+            let dEndosso = null
+            // Tem situação que não grava o equipamento_id no lancamento. Ao carregar o credito de baixa, não é carregado o objeto equipamento (um equipamento baixado)
+            if (!e.equipamento) {
+               if (e.endossos) {
+                  e.equipamento = e.endossos[0] // pega o primemeiro equipamento da lista de endossos
+               }
+            }
+            if (e.equipamento) {
+               dEndosso = moment(e.equipamento.dEndosso, 'YYYY-MM-DD').format(
+                  'YYYY-MM-DD'
+               )
+            }
+
             let oRegistro = {
                rateio_id: rateio.id,
                dRecebimento: dRecebimento,
@@ -998,7 +1009,7 @@ class Rateio {
             }
          }
       }
-
+      console.log('indo pro equipamento')
       // Equipamentos
       let arrRateioEquipa = []
 
@@ -1088,6 +1099,7 @@ class Rateio {
       }
       //await rateio.equipamentos().createMany(arrRateioEquipa, trx ? trx : null)
 
+      console.log('Entrando no rateio equipaBaixa linha 1091 ')
       // Equipamentos Baixa (Não participam diretamente do rateio - copiam o valor rateado e aplica desconto 50% quando for de direito)
       let arrRateioEquipaBaixa = []
       for (const key in payload.equipamentoBaixa) {
@@ -1163,6 +1175,8 @@ class Rateio {
             }
          }
       }
+
+      console.log('Entrando no inadimplente')
 
       // Inadimplente
       if (lodash.has(payload.inadimplente, 'creditos')) {
@@ -1388,14 +1402,16 @@ class Rateio {
       }
    }
 
-   async gerarFinanceiroLoc(rateio_id, auth) {
+   async gerarFinanceiroLoc(rateio_id, isAberto = false) {
       let query = null
 
       try {
          let model = await Model.findOrFail(rateio_id)
 
-         if (model.status !== 'Aberto') {
-            throw { message: 'Não é permitido a geração de financeiro.' }
+         if (!isAberto) {
+            if (model.status !== 'Aberto') {
+               throw { message: 'Não é permitido a geração de financeiro.' }
+            }
          }
 
          query = await Database.select([
@@ -1493,6 +1509,7 @@ class Rateio {
    }
 
    async gerarFinanceiro(payload, trx, auth) {
+      console.log('gerando financeiro')
       let nrErro = 0
       try {
          let model = await Model.findOrFail(payload.rateio_id)
@@ -1579,6 +1596,43 @@ class Rateio {
             .where('e.rateio_id', payload.rateio_id)
 
          //await model.save(trx ? trx : null)
+         const queryBaixa = await Database.select([
+            'e.rateio_id',
+            'e.pessoa_id',
+            'pessoa_nome',
+            'p.cpfCnpj',
+            'p.tipoPessoa',
+            'p.parcela',
+            'p.endRua',
+            'p.endBairro',
+            'p.endCidade',
+            'p.endEstado',
+            'p.endComplemento',
+            'p.endCep',
+            'p.telSms',
+            'p.email',
+         ])
+            .from('rateio_equipamento_baixas as e')
+            .leftOuterJoin('pessoas as p', 'e.pessoa_id', 'p.id') //.where('pessoas.modulo', 'Associado')
+            .groupBy('pessoa_id')
+            .sum('e.valorBeneficios as valorBeneficios')
+            .sum('valorTaxaAdm as valorTaxaAdm')
+            .sum('valorRateio as valorRateio')
+            .sum('valorTotal as valorTotal')
+            .orderBy(['p.nome'])
+            .where('e.rateio_id', payload.rateio_id)
+
+         // Incluir baixas no lancamento
+         queryBaixa.forEach(e => {
+            delete e['categoria_nome']
+            const r = query.find(o => o.pessoa_id === e.pessoa_id)
+            if (r) {
+               r.valorRateio = r.valorRateio + e.valorRateio
+               r.valorTaxaAdm = r.valorTaxaAdm + e.valorTaxaAdm
+               r.valorTaxaAdmBase = r.valorTaxaAdmBase + e.valorTaxaAdmBase
+               r.valorTotal = r.valorTotal + e.valorTotal
+            }
+         })
 
          let nossoNumero = boletoConfig.nossoNumero
          let mom = moment(payload.dVencimento, 'YYYY-MM-DD')
@@ -1604,9 +1658,10 @@ class Rateio {
          for (const key in query) {
             if (Object.hasOwnProperty.call(query, key)) {
                const e = query[key]
-               e.nossoNumero = nossoNumero
-               boletoConfig.nossoNumero = nossoNumero++
-               e.modeloBoleto = boletoConfig.modelo
+
+               //e.nossoNumero = nossoNumero
+               //boletoConfig.nossoNumero = nossoNumero++
+               //e.modeloBoleto = boletoConfig.modelo
 
                e.banco = conta.banco
                e.agencia = conta.agencia
@@ -1647,15 +1702,15 @@ class Rateio {
                )
                e.lancamento_id = lancamentoAdd.id
 
-               let boletoAdd = await this.addBoleto(trx, auth, e, rateioConfig)
+               //let boletoAdd = await this.addBoleto(trx, auth, e, rateioConfig)
             }
          }
 
-         const boleto = await new Boleto().gerarBoleto(query)
+         /*const boleto = await new Boleto().gerarBoleto(query)
 
          if (!boleto.success) {
             throw boleto
-         }
+         }*/
          //query.forEach(e => {})
 
          await model.save(trx ? trx : null)
@@ -1789,6 +1844,7 @@ class Rateio {
                'forma',
                'isEmail',
                'isZap',
+               'isRelatorio',
             ])
             .where('rateio_id', rateio_id)
             .where('creditoRateio', 'Não')
@@ -1809,7 +1865,8 @@ class Rateio {
                ])
             })
             .with('boletos', builder => {
-               builder.where('status', 'Aberto')
+               //builder.where('status', 'Aberto')
+               builder.whereIn('status', ['Aberto', 'Compensado'])
             })
             .fetch()
 
@@ -1886,6 +1943,8 @@ class Rateio {
             message: 'Email(s) entregue(s) na fila de execução.',
          }
       } catch (e) {
+         console.log('CATH >>>>>>>>>>>>>>>>>>>>>>>> 3')
+
          await Redis.set('_gerarFinanceiro', 'livre')
 
          let topic = Ws.getChannel('email_massa:*').topic(
@@ -1924,7 +1983,8 @@ class Rateio {
       return new Promise(async (resolve, reject) => {
          try {
             const pasta = Helpers.tmpPath('rateio/equipamentos/')
-            const arquivo = `equip_${rateio_id}_${pessoa_id}.pdf`
+            let arquivo = `equip_${rateio_id}_${pessoa_id}.pdf`
+            arquivo = arquivo.trim()
 
             if (await Drive.exists(pasta + arquivo)) {
                return resolve({ arquivo, pdfDoc: null, pasta }) // await Drive.get(pasta + arquivo)
@@ -2013,26 +2073,27 @@ class Rateio {
                   for (const b in e.beneficios) {
                      const o = e.beneficios[b]
                      if (o.modelo === 'Assistencia 24h') {
-                        let nValor =
+                        let nValor = o.valor
+                        /*
                            descontoEspecial > 0
                               ? o.valor - (o.valor * descontoEspecial) / 100
-                              : o.valor
+                              : o.valor*/
                         assist24h += nValor
                         tassist24h += nValor
                      }
                      if (o.modelo === 'Terceiro') {
-                        let nValor =
-                           descontoEspecial > 0
+                        let nValor = o.valor
+                        /*descontoEspecial > 0
                               ? o.valor - (o.valor * descontoEspecial) / 100
-                              : o.valor
+                              : o.valor */
                         terceiro += nValor
                         tterceiro += nValor
                      }
                      if (o.modelo === 'Outros') {
-                        let nValor =
-                           descontoEspecial > 0
+                        let nValor = o.valor
+                        /*descontoEspecial > 0
                               ? o.valor - (o.valor * descontoEspecial) / 100
-                              : o.valor
+                              : o.valor */
                         outros += nValor
                         toutros += nValor
                      }
@@ -2197,8 +2258,10 @@ class Rateio {
             pdfDoc.pipe(fs.createWriteStream(pasta + arquivo))
             pdfDoc.end()
 
+            console.log('gerei o pdf ....')
             return resolve({ arquivo, pdfDoc, pasta })
          } catch (e) {
+            console.log('falha===> ', e)
             return reject(e)
          }
       })

@@ -1295,15 +1295,17 @@ class Lancamento {
          }
 
          const modelJson= model.toJSON()
-         console.log( modelJson)
+       
          if ( lodash.has(modelJson, 'boletos')) {
             modelJson.boletos.forEach( b => {
                if ( b.status === 'Aberto') {
                   nrErro = -200
                   throw {
                      success: false,
+                     nrErro: -200,
                      message:
                         'Não é possivel adicionar boleto. Já existe um boleto ativo.',
+                        data: b
                   }
                }
             })
@@ -1318,7 +1320,7 @@ class Lancamento {
          let res= await boleto.novoBoleto(modelJson,{
             conta_id: data.conta_id
          })
-console.log('res = ', res)
+
          if ( !res) {
             nrErro = -350
             throw {
