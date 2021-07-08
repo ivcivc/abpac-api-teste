@@ -17,6 +17,10 @@ const Galeria = use('App/Models/File')
 const LancamentoService = use('App/Services/Lancamento')
 const ModelCategoria = use('App/Models/Categoria')
 
+const Env = use('Env')
+
+const DB_DATABASE = Env.get('DB_DATABASE')
+
 //const ModelRateioEquipamento = use('App/Models/RateioEquipamento')
 
 const Database = use('Database')
@@ -307,9 +311,9 @@ class Equipamento {
             .where('pessoa_id', pessoa_id)
             .where('status', 'Inativo')
             .where('baixa', 'Sim')
-            .whereIn('ratear', ['Sim','Não'])
+            .whereIn('ratear', ['Sim', 'Não'])
 
-         const arr= lodash.union(query, queryBaixados)   
+         const arr = lodash.union(query, queryBaixados)
 
          for (const key in arr) {
             if (Object.hasOwnProperty.call(arr, key)) {
@@ -334,9 +338,9 @@ class Equipamento {
                   element.rateio_id = rateio.rateio_id
                } else {
                   const rateio = await Database.from('rateio_equipamentos')
-                  .where('equipamento_id', ID)
-                  .orderBy('rateio_id', 'desc')
-                  .first()
+                     .where('equipamento_id', ID)
+                     .orderBy('rateio_id', 'desc')
+                     .first()
                   if (rateio) {
                      element.valorRateio = rateio.valorRateio
                      element.valorTaxaAdm = rateio.valorTaxaAdm
@@ -344,23 +348,22 @@ class Equipamento {
                      element.valorTotal = rateio.valorTotal
                      element.rateio_id = rateio.rateio_id
                   }
-
                }
             }
          }
 
          arr.forEach(e => {
-            e.valorCobrar=  e.valorTotal
-            if ( e.status === 'Inativo') {
-               if ( e.dEndosso) {
-                  let cData= moment(e.dEndosso).format('YYYY-MM-DD')
-                
-                  let dia= parseInt(cData.substr(8,2))
-                  if ( dia <= 15) {
-                     if ( e.valorTotal  > 0 ) {
-                        e.valorCobrar= e.valorTotal * 0.5
+            e.valorCobrar = e.valorTotal
+            if (e.status === 'Inativo') {
+               if (e.dEndosso) {
+                  let cData = moment(e.dEndosso).format('YYYY-MM-DD')
+
+                  let dia = parseInt(cData.substr(8, 2))
+                  if (dia <= 15) {
+                     if (e.valorTotal > 0) {
+                        e.valorCobrar = e.valorTotal * 0.5
                      }
-                  } 
+                  }
                }
             }
          })
@@ -374,7 +377,7 @@ class Equipamento {
 
    async endossoBaixarTodosEquipamentos(payload, auth) {
       let trx = null
-      let nrErro= 0
+      let nrErro = 0
       // Modulo de baixa de todos os euipamentos de um associado. Cancelamento
       try {
          if (!trx) {
@@ -621,10 +624,9 @@ class Equipamento {
          }*/
 
          if (tipo_endosso === 'categoria-rateio') {
-
             const categoria = await ModelCategoria.findOrFail(data.categoria_id)
 
-            const categoria_tipo= categoria.tipo
+            const categoria_tipo = categoria.tipo
 
             //const nValorInicio= categoria.valorMercadoInicio
             //const nValorFim= categoria.valorMercadoFim
@@ -637,7 +639,7 @@ class Equipamento {
             novoEquipamento.endosso_id = endosso_id
             novoEquipamento.status = 'Ativo'
 
-            novoEquipamento.especie1= categoria_tipo
+            novoEquipamento.especie1 = categoria_tipo
             //novoEquipamento.especie2= !lodash.isNull(novoEquipamento.marca2) ? categoria_tipo : null
             //novoEquipamento.especie3= !lodash.isNull(novoEquipamento.marca3) ? categoria_tipo : null
 
@@ -1648,61 +1650,56 @@ class Equipamento {
 
    async localizarBeneficioPorModelo(modelo) {
       try {
-
-         const query = await Database.select(
-            [
-               'equipamentos.id',
-               'placas',
-               'dAdesao',
-               'pessoa_id',
-               'equipamentos.status',
-               'especie1',
-               'especie2',
-               'especie3',
-               'placa1',
-               'placa2',
-               'placa3',
-               'marca1',
-               'marca2',
-               'marca3',
-               'modelo1',
-               'modelo2',
-               'modelo3',
-               'anoF1',
-               'anoF2',
-               'anoF3',
-               'modeloF1',
-               'modeloF2',
-               'modeloF3',
-               'categoria_id',
-               'beneficios.id as beneficios_id',
-               'beneficios.descricao as beneficios_descricao',
-               'beneficios.status as beneficios_status',
-               'beneficios.modelo as beneficios_modelo',
-               'equipamento_beneficios.dTermino as equipamento_beneficio_dTermino',
-               'equipamento_beneficios.status as equipamento_beneficio_status',
-               'pessoas.nome AS pessoa_nome',
-               'pessoas.cpfCnpj AS pessoa_cpfCnpj'
-            ])
-            .from('equipamentos').distinct('equipamentos.id')
+         const query = await Database.select([
+            'equipamentos.id',
+            'placas',
+            'dAdesao',
+            'pessoa_id',
+            'equipamentos.status',
+            'especie1',
+            'especie2',
+            'especie3',
+            'placa1',
+            'placa2',
+            'placa3',
+            'marca1',
+            'marca2',
+            'marca3',
+            'modelo1',
+            'modelo2',
+            'modelo3',
+            'anoF1',
+            'anoF2',
+            'anoF3',
+            'modeloF1',
+            'modeloF2',
+            'modeloF3',
+            'categoria_id',
+            'beneficios.id as beneficios_id',
+            'beneficios.descricao as beneficios_descricao',
+            'beneficios.status as beneficios_status',
+            'beneficios.modelo as beneficios_modelo',
+            'equipamento_beneficios.dTermino as equipamento_beneficio_dTermino',
+            'equipamento_beneficios.status as equipamento_beneficio_status',
+            'pessoas.nome AS pessoa_nome',
+            'pessoas.cpfCnpj AS pessoa_cpfCnpj',
+         ])
+            .from('equipamentos')
+            .distinct('equipamentos.id')
             .leftOuterJoin(
-                  'equipamento_beneficios',
-                  'equipamentos.id',
-                  'equipamento_beneficios.equipamento_id'
-               )
-               .leftOuterJoin(
-                  'beneficios',
-                  'equipamento_beneficios.beneficio_id',
-                  'beneficios.id'
-               )               
-            .innerJoin(
-               'pessoas',
-               'equipamentos.pessoa_id',
-               'pessoas.id'
+               'equipamento_beneficios',
+               'equipamentos.id',
+               'equipamento_beneficios.equipamento_id'
             )
+            .leftOuterJoin(
+               'beneficios',
+               'equipamento_beneficios.beneficio_id',
+               'beneficios.id'
+            )
+            .innerJoin('pessoas', 'equipamentos.pessoa_id', 'pessoas.id')
             .where('equipamentos.status', 'Ativo')
-            .where('beneficios.modelo', modelo)           
-            //.fetch()
+            .where('beneficios.modelo', modelo)
+         //.fetch()
 
          return query
       } catch (e) {
@@ -1764,13 +1761,13 @@ class Equipamento {
             pessoas.nome AS pessoa_nome,
             pessoas.cpfCnpj AS pessoa_cpfCnpj
          FROM
-               abpac.equipamento_beneficios
+               ${DB_DATABASE}.equipamento_beneficios
                   LEFT outer JOIN
-               abpac.equipamentos ON equipamento_beneficios.equipamento_id = equipamentos.id
+               ${DB_DATABASE}.equipamentos ON equipamento_beneficios.equipamento_id = equipamentos.id
                LEFT outer  JOIN
-               abpac.beneficios ON equipamento_beneficios.beneficio_id = beneficios.id
+               ${DB_DATABASE}.beneficios ON equipamento_beneficios.beneficio_id = beneficios.id
                LEFT  outer JOIN
-               abpac.pessoas on equipamentos.pessoa_id = pessoas.id
+               ${DB_DATABASE}.pessoas on equipamentos.pessoa_id = pessoas.id
          WHERE
 
                equipamento_beneficios.beneficio_id = ? and ${where}
@@ -1789,10 +1786,12 @@ class Equipamento {
    }
 
    async localizarPorCategoria(categoria) {
-      const equipamento = await Model.query().where("especie1", categoria).where("status","Ativo")
+      const equipamento = await Model.query()
+         .where('especie1', categoria)
+         .where('status', 'Ativo')
          //.with('equipamentoStatuses')
          .with('pessoa', build => {
-            build.select('id','nome','cpfCnpj')
+            build.select('id', 'nome', 'cpfCnpj')
          })
 
          .with('categoria')
@@ -1805,10 +1804,12 @@ class Equipamento {
    }
 
    async localizarPorSubCategoria(categoria_id) {
-      const equipamento = await Model.query().where("categoria_id", categoria_id).where("status","Ativo")
+      const equipamento = await Model.query()
+         .where('categoria_id', categoria_id)
+         .where('status', 'Ativo')
          //.with('equipamentoStatuses')
          .with('pessoa', build => {
-            build.select('id','nome','cpfCnpj')
+            build.select('id', 'nome', 'cpfCnpj')
          })
 
          .with('categoria')
@@ -1818,7 +1819,7 @@ class Equipamento {
          .fetch()
 
       return equipamento
-   }   
+   }
 }
 
 module.exports = Equipamento

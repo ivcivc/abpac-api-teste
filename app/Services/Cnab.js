@@ -218,9 +218,8 @@ class Cnab {
                content[indexObj].DataMulta = dJurosFormatado
 
                content[indexObj].DataDocumento = moment().format('DD/MM/YYYY')
-               content[indexObj].DataProcessamento = moment().format(
-                  'DD/MM/YYYY'
-               )
+               content[indexObj].DataProcessamento =
+                  moment().format('DD/MM/YYYY')
 
                content[indexObj].DataAbatimento = ''
                content[indexObj].ValorAbatimento = 0
@@ -250,25 +249,17 @@ class Cnab {
                content[indexObj].Sacado.CNPJCPF = e.cpfCnpj
                content[indexObj].Sacado.Pessoa = e.cpfCnpj.length === 11 ? 0 : 1
 
-               content[
-                  indexObj
-               ].Sacado.Logradouro = this.tirarCaracteresEspeciais(
-                  e.endRua,
-                  true
-               )
+               content[indexObj].Sacado.Logradouro =
+                  this.tirarCaracteresEspeciais(e.endRua, true)
                content[indexObj].Sacado.Numero = '.'
                content[indexObj].Sacado.Bairro = this.tirarCaracteresEspeciais(
                   e.endBairro,
                   true
                )
-               content[
-                  indexObj
-               ].Sacado.Complemento = this.tirarCaracteresEspeciais(
-                  e.endComplemento,
-                  true
-               )
-                  ? this.tirarCaracteresEspeciais(e.endComplemento, true)
-                  : ''
+               content[indexObj].Sacado.Complemento =
+                  this.tirarCaracteresEspeciais(e.endComplemento, true)
+                     ? this.tirarCaracteresEspeciais(e.endComplemento, true)
+                     : ''
                content[indexObj].Sacado.Cidade = this.tirarCaracteresEspeciais(
                   e.endCidade,
                   true
@@ -644,8 +635,7 @@ class Cnab {
             const isExist = await Drive.exists(filePath)
 
             if (isExist) {
-
-               fs.readFile(filePath, {encoding: 'base64'}, (err, data) => {
+               fs.readFile(filePath, { encoding: 'base64' }, (err, data) => {
                   if (err) {
                      throw {
                         success: false,
@@ -656,8 +646,6 @@ class Cnab {
                   //console.log(`data:PDF;base64,${data}`);
                   return resolve({ success: true, arquivo: data })
                })
-
-
             } else {
                console.log(
                   'Arquivo (pdfDownload(cnab) não localizado ',
@@ -993,6 +981,192 @@ class Cnab {
             size: '5mb',
          })
 
+         //console.log('arquivo ', arquivo)
+
+         await arquivo.move(this.pastaRetorno, {
+            name: 'retorno_recebido.txt',
+            overwrite: true,
+         })
+
+         if (!arquivo.moved()) {
+            throw {
+               success: false,
+               message: 'O servidor retornou falha na leitura do arquivo.',
+            }
+         }
+
+         let isHeaderArquivo = false
+         let isHeaderLote = false
+
+         let isTraillerLote = false
+         let isTrailerArquivo = false
+
+         let pastaRetorno = this.pastaRetorno
+         let headerArquivo = {}
+         let headerLote = {}
+         let detalhe = {}
+         let isErro = false
+
+         let TU = 0
+         let isEntrarDetalhe = false
+         let isLoop = false
+
+         let detalhes = []
+
+         fs.readFile(pastaRetorno + 'paraestudar.txt', 'utf-8', (err, data) => {
+            if (err) {
+               throw err
+            }
+            let linhas = data.split(/\r?\n/)
+
+            linhas.forEach(linha => {
+               if (!isHeaderArquivo && !isLoop) {
+                  headerArquivo.banco = linha.toString().substr(0, 3)
+                  headerArquivo.cnpj = linha.toString().substr(18, 14)
+                  headerArquivo.contaCorrente = linha.toString().substr(58, 12)
+                  headerArquivo.contaCorrenteDV = linha.toString().substr(70, 1)
+                  headerArquivo.empresa = linha.toString().substr(72, 30)
+                  headerArquivo.retorno = linha.toString().substr(142, 1) // 2 = retorno
+                  headerArquivo.dataGeracao = linha.toString().substr(143, 8)
+                  headerArquivo.horaGeracao = linha.toString().substr(151, 6)
+                  headerArquivo.versaoLayout = linha.toString().substr(163, 3) // versao layout arq "081"
+
+                  isHeaderArquivo = true
+                  isLoop = true
+               }
+
+               if (isHeaderArquivo && !isHeaderLote && !isLoop) {
+                  headerLote.banco = linha.toString().substr(0, 3)
+                  headerLote.operacao = linha.toString().substr(8, 1)
+                  headerLote.empresa = {}
+                  headerLote.empresa.cnpj = linha.toString().substr(18, 15)
+                  headerLote.empresa.convenio = linha.toString().substr(33, 20)
+                  headerLote.empresa.agencia = linha.toString().substr(53, 5)
+                  headerLote.empresa.agenciaDV = linha.toString().substr(58, 1)
+                  headerLote.empresa.conta = linha.toString().substr(59, 12)
+                  headerLote.empresa.contaDV = linha.toString().substr(71, 1)
+                  headerLote.empresa.nome = linha.toString().substr(72, 30)
+                  headerLote.numeroControle = linha.toString().substr(183, 8)
+                  headerLote.dataGravacao = linha.toString().substr(191, 8)
+                  headerLote.dataCredito = linha.toString().substr(199, 8)
+                  isHeaderLote = true
+                  TU = 0
+                  isEntrarDetalhe = true
+                  isLoop = true
+               }
+
+               // Seguimento T
+               if (
+                  isHeaderArquivo &&
+                  isHeaderLote &&
+                  isEntrarDetalhe &&
+                  !isLoop &&
+                  TU === 0 &&
+                  linha.toString().substr(13, 1) === 'T'
+               ) {
+                  // Seguimento T
+                  detalhe.banco = linha.toString().substr(0, 3)
+                  detalhe.segmento = linha.toString().substr(13, 1)
+                  if (detalhe.segmento !== 'T') {
+                     isErro = true
+                     msg = 'Erro no segmento T'
+                  }
+                  detalhe.codigoMovimento = linha.toString().substr(16, 2)
+                  detalhe.nossoNumero = linha.toString().substr(37, 20)
+                  detalhe.numeroDocumento = linha.toString().substr(58, 15)
+                  detalhe.dataVencimento = linha.toString().substr(73, 8)
+                  detalhe.valorTitulo = linha.toString().substr(81, 15)
+
+                  detalhe.pagador = {}
+                  detalhe.pagador.cpfCnpjTipo = linha.toString().substr(132, 1)
+                  detalhe.pagador.cpfCnpj = linha.toString().substr(133, 15)
+                  detalhe.pagador.nome = linha.toString().substr(148, 40)
+                  detalhe.numeroContrato = linha.toString().substr(188, 10)
+                  detalhe.valorTarifa = linha.toString().substr(198, 15)
+
+                  detalhe.motivoOcorrencia = linha.toString().substr(213, 10)
+
+                  TU = 1
+                  isLoop = true
+               }
+
+               // Seguimento U
+               if (
+                  isHeaderArquivo &&
+                  isHeaderLote &&
+                  isEntrarDetalhe &&
+                  !isLoop &&
+                  TU === 1 &&
+                  linha.toString().substr(13, 1) === 'U'
+               ) {
+                  // Seguimento U
+                  detalhe.banco = linha.toString().substr(0, 3)
+                  detalhe.segmento = linha.toString().substr(13, 1)
+                  if (detalhe.segmento !== 'U') {
+                     isErro = true
+                     msg = 'Erro no segmento U'
+                  }
+                  TU = 0
+
+                  detalhes.push(detalhe)
+
+                  isLoop = true
+               }
+
+               isLoop = false
+            })
+
+            console.log(headerArquivo)
+            console.log(headerLote)
+            console.log(detalhes)
+         })
+
+         //console.log('result ', result)
+
+         /*console.log('content ', content)
+
+         let nTamanho = Object.keys(content).length
+         let arrRetorno = []
+         let grupo_id = new Date().getTime()
+         for (let i = 1; i <= nTamanho - 3; i++) {
+            let o = lodash.cloneDeep(content[`Titulo${i}`])
+            o.cedente = content.CEDENTE
+            o.banco = content.BANCO
+            o.conta = content.CONTA
+            o.grupo_id = grupo_id
+            arrRetorno.push(o)
+         }*/
+
+         //await Drive.delete(this.pastaRetorno + 'Retorno.ini')
+         //await Drive.delete(this.pastaRetorno + 'retorno_recebido.txt')
+
+         await Redis.set('_gerarFinanceiro', 'livre')
+
+         return { success: true, status: 'server', data: [] }
+      } catch (e) {
+         await Redis.set('_gerarFinanceiro', 'livre')
+         throw e
+      }
+   }
+
+   async lerArquivoRetornoACBr(request) {
+      try {
+         if ((await Redis.get('_gerarFinanceiro')) !== 'livre') {
+            throw {
+               success: false,
+               message: 'O servidor está ocupado no momento. Tente mais tarde!',
+            }
+         }
+
+         await Redis.set('_gerarFinanceiro', 'retorno')
+
+         const arquivo = request.file('upload', {
+            types: ['text'],
+            size: '5mb',
+         })
+
+         console.log('arquivo ', arquivo)
+
          await arquivo.move(this.pastaRetorno, {
             name: 'retorno_recebido.txt',
             overwrite: true,
@@ -1025,6 +1199,8 @@ class Cnab {
             encoding: 'latin1',
             keep_quotes: true,
          })
+
+         console.log('content ', content)
 
          let nTamanho = Object.keys(content).length
          let arrRetorno = []
