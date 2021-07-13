@@ -1,5 +1,7 @@
 'use strict'
 
+const { RouteResource } = require('@adonisjs/framework/src/Route/Manager')
+
 /** @type {typeof import('@adonisjs/framework/src/Route/Manager')} */
 
 const Route = use('Route')
@@ -21,6 +23,30 @@ Route.group(() => {
 
    Route.get('/web/:token','RateioController.exibirLinkRelatorioBoleto')
 
+   Route.get('converterNossoNumero/:nossoNumero', async ({params}) => {
+      let a=1
+      const montaNossoNumero= use('App/Services/Bank/converterNossoNumero')
+      //let nossoNumero=  montaNossoNumero(params.nossoNumero, params.nossoNumero.lenght)
+
+      //return nossoNumero
+
+
+      const ModelBoleto = use('App/Models/Boleto')
+      const query= await ModelBoleto.query().where('isOpenBank', false).fetch()
+
+
+      let qtd= 0
+      query.rows.forEach(async (e) => {
+         if ( ! e.boleto_nota3) {
+            e.boleto_nota3= e.nossoNumero
+            e.nossoNumero= montaNossoNumero(e.nossoNumero, null)
+            await e.save()
+
+            qtd++
+         }
+      })
+      return qtd
+   })
 
    Route.get('/view/:file/:tipo',async ({params, response}) => {
       try {

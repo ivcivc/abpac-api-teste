@@ -966,190 +966,329 @@ class Cnab {
    }
 
    async lerArquivoRetorno(request) {
-      try {
-         if ((await Redis.get('_gerarFinanceiro')) !== 'livre') {
-            throw {
-               success: false,
-               message: 'O servidor está ocupado no momento. Tente mais tarde!',
-            }
-         }
+      let retorno = null
+      let success = true
 
-         await Redis.set('_gerarFinanceiro', 'retorno')
-
-         const arquivo = request.file('upload', {
-            types: ['text'],
-            size: '5mb',
-         })
-
-         //console.log('arquivo ', arquivo)
-
-         await arquivo.move(this.pastaRetorno, {
-            name: 'retorno_recebido.txt',
-            overwrite: true,
-         })
-
-         if (!arquivo.moved()) {
-            throw {
-               success: false,
-               message: 'O servidor retornou falha na leitura do arquivo.',
-            }
-         }
-
-         let isHeaderArquivo = false
-         let isHeaderLote = false
-
-         let isTraillerLote = false
-         let isTrailerArquivo = false
-
-         let pastaRetorno = this.pastaRetorno
-         let headerArquivo = {}
-         let headerLote = {}
-         let detalhe = {}
-         let isErro = false
-
-         let TU = 0
-         let isEntrarDetalhe = false
-         let isLoop = false
-
-         let detalhes = []
-
-         fs.readFile(pastaRetorno + 'paraestudar.txt', 'utf-8', (err, data) => {
-            if (err) {
-               throw err
-            }
-            let linhas = data.split(/\r?\n/)
-
-            linhas.forEach(linha => {
-               if (!isHeaderArquivo && !isLoop) {
-                  headerArquivo.banco = linha.toString().substr(0, 3)
-                  headerArquivo.cnpj = linha.toString().substr(18, 14)
-                  headerArquivo.contaCorrente = linha.toString().substr(58, 12)
-                  headerArquivo.contaCorrenteDV = linha.toString().substr(70, 1)
-                  headerArquivo.empresa = linha.toString().substr(72, 30)
-                  headerArquivo.retorno = linha.toString().substr(142, 1) // 2 = retorno
-                  headerArquivo.dataGeracao = linha.toString().substr(143, 8)
-                  headerArquivo.horaGeracao = linha.toString().substr(151, 6)
-                  headerArquivo.versaoLayout = linha.toString().substr(163, 3) // versao layout arq "081"
-
-                  isHeaderArquivo = true
-                  isLoop = true
-               }
-
-               if (isHeaderArquivo && !isHeaderLote && !isLoop) {
-                  headerLote.banco = linha.toString().substr(0, 3)
-                  headerLote.operacao = linha.toString().substr(8, 1)
-                  headerLote.empresa = {}
-                  headerLote.empresa.cnpj = linha.toString().substr(18, 15)
-                  headerLote.empresa.convenio = linha.toString().substr(33, 20)
-                  headerLote.empresa.agencia = linha.toString().substr(53, 5)
-                  headerLote.empresa.agenciaDV = linha.toString().substr(58, 1)
-                  headerLote.empresa.conta = linha.toString().substr(59, 12)
-                  headerLote.empresa.contaDV = linha.toString().substr(71, 1)
-                  headerLote.empresa.nome = linha.toString().substr(72, 30)
-                  headerLote.numeroControle = linha.toString().substr(183, 8)
-                  headerLote.dataGravacao = linha.toString().substr(191, 8)
-                  headerLote.dataCredito = linha.toString().substr(199, 8)
-                  isHeaderLote = true
-                  TU = 0
-                  isEntrarDetalhe = true
-                  isLoop = true
-               }
-
-               // Seguimento T
-               if (
-                  isHeaderArquivo &&
-                  isHeaderLote &&
-                  isEntrarDetalhe &&
-                  !isLoop &&
-                  TU === 0 &&
-                  linha.toString().substr(13, 1) === 'T'
-               ) {
-                  // Seguimento T
-                  detalhe.banco = linha.toString().substr(0, 3)
-                  detalhe.segmento = linha.toString().substr(13, 1)
-                  if (detalhe.segmento !== 'T') {
-                     isErro = true
-                     msg = 'Erro no segmento T'
-                  }
-                  detalhe.codigoMovimento = linha.toString().substr(16, 2)
-                  detalhe.nossoNumero = linha.toString().substr(37, 20)
-                  detalhe.numeroDocumento = linha.toString().substr(58, 15)
-                  detalhe.dataVencimento = linha.toString().substr(73, 8)
-                  detalhe.valorTitulo = linha.toString().substr(81, 15)
-
-                  detalhe.pagador = {}
-                  detalhe.pagador.cpfCnpjTipo = linha.toString().substr(132, 1)
-                  detalhe.pagador.cpfCnpj = linha.toString().substr(133, 15)
-                  detalhe.pagador.nome = linha.toString().substr(148, 40)
-                  detalhe.numeroContrato = linha.toString().substr(188, 10)
-                  detalhe.valorTarifa = linha.toString().substr(198, 15)
-
-                  detalhe.motivoOcorrencia = linha.toString().substr(213, 10)
-
-                  TU = 1
-                  isLoop = true
-               }
-
-               // Seguimento U
-               if (
-                  isHeaderArquivo &&
-                  isHeaderLote &&
-                  isEntrarDetalhe &&
-                  !isLoop &&
-                  TU === 1 &&
-                  linha.toString().substr(13, 1) === 'U'
-               ) {
-                  // Seguimento U
-                  detalhe.banco = linha.toString().substr(0, 3)
-                  detalhe.segmento = linha.toString().substr(13, 1)
-                  if (detalhe.segmento !== 'U') {
-                     isErro = true
-                     msg = 'Erro no segmento U'
-                  }
-                  TU = 0
-
-                  detalhes.push(detalhe)
-
-                  isLoop = true
-               }
-
-               isLoop = false
+      return new Promise(async (resolve, reject) => {
+         try {
+            const arquivo = request.file('upload', {
+               types: ['text'],
+               size: '5mb',
             })
 
-            console.log(headerArquivo)
-            console.log(headerLote)
-            console.log(detalhes)
-         })
+            //console.log('arquivo ', arquivo)
+            const ano = new Date().getFullYear()
+            const mes = new Date().getMonth() + 1
+            const timestamp = new Date().getTime()
 
-         //console.log('result ', result)
+            const novoArquivo = `${ano}_${mes}_${timestamp}.ret`
 
-         /*console.log('content ', content)
+            await arquivo.move(this.pastaRetorno, {
+               name: novoArquivo,
+               overwrite: true,
+            })
 
-         let nTamanho = Object.keys(content).length
-         let arrRetorno = []
-         let grupo_id = new Date().getTime()
-         for (let i = 1; i <= nTamanho - 3; i++) {
-            let o = lodash.cloneDeep(content[`Titulo${i}`])
-            o.cedente = content.CEDENTE
-            o.banco = content.BANCO
-            o.conta = content.CONTA
-            o.grupo_id = grupo_id
-            arrRetorno.push(o)
-         }*/
+            if (!arquivo.moved()) {
+               throw {
+                  success: false,
+                  message: 'O servidor retornou falha na leitura do arquivo.',
+               }
+            }
 
-         //await Drive.delete(this.pastaRetorno + 'Retorno.ini')
-         //await Drive.delete(this.pastaRetorno + 'retorno_recebido.txt')
+            let isHeaderArquivo = false
+            let isHeaderLote = false
 
-         await Redis.set('_gerarFinanceiro', 'livre')
+            let pastaRetorno = this.pastaRetorno
+            let headerArquivo = {}
+            let headerLote = {}
+            let detalhe = {}
+            let isErro = false
+            let msg = ''
 
-         return { success: true, status: 'server', data: [] }
-      } catch (e) {
-         await Redis.set('_gerarFinanceiro', 'livre')
-         throw e
-      }
+            let TU = 0
+            let isEntrarDetalhe = false
+            let isLoop = false
+
+            let grupo_id = new Date().getTime()
+
+            let detalhes = []
+            let header = {}
+
+            const excluirArquivo = async () => {
+               try {
+                  await Drive.delete(pastaRetorno + novoArquivo)
+               } catch (e) {}
+            }
+
+            const arquivarArquivo = async () => {
+               try {
+                  await Drive.move(
+                     pastaRetorno + novoArquivo,
+                     pastaRetorno + 'arquivado/' + novoArquivo
+                  )
+               } catch (e) {}
+            }
+
+            fs.readFile(pastaRetorno + novoArquivo, 'utf-8', (err, data) => {
+               if (err) {
+                  throw err
+               }
+               let linhas = data.split(/\r?\n/)
+
+               linhas.forEach(linha => {
+                  if (!isHeaderArquivo && !isLoop) {
+                     headerArquivo.banco = linha.toString().substr(0, 3)
+                     headerArquivo.cnpj = linha.toString().substr(18, 14)
+                     headerArquivo.contaCorrente = linha
+                        .toString()
+                        .substr(58, 12)
+                     headerArquivo.contaCorrenteDV = linha
+                        .toString()
+                        .substr(70, 1)
+                     headerArquivo.empresa = linha.toString().substr(72, 30)
+                     headerArquivo.retorno = linha.toString().substr(142, 1) // 2 = retorno
+                     headerArquivo.dataGeracao = moment(
+                        linha.toString().substr(143, 8),
+                        'DDMMYYYY'
+                     ).format('YYYY-MM-DD')
+                     headerArquivo.horaGeracao = linha.toString().substr(151, 6)
+                     headerArquivo.versaoLayout = linha
+                        .toString()
+                        .substr(163, 3) // versao layout arq "081"
+
+                     isHeaderArquivo = true
+                     isLoop = true
+                  }
+
+                  if (isHeaderArquivo && !isHeaderLote && !isLoop) {
+                     headerLote.banco = linha.toString().substr(0, 3)
+                     headerLote.operacao = linha.toString().substr(8, 1) // TIPO OPERAÇÃO === T
+                     if (headerLote.operacao !== 'T') {
+                        isErro = true
+                        msg = 'Arquivo de retorno não validado'
+                     }
+                     headerLote.empresa = {}
+                     headerLote.empresa.cnpj = linha.toString().substr(18, 15)
+                     headerLote.empresa.convenio = linha
+                        .toString()
+                        .substr(33, 20)
+                     headerLote.empresa.agencia = linha.toString().substr(53, 5)
+                     headerLote.empresa.agenciaDV = linha
+                        .toString()
+                        .substr(58, 1)
+                     headerLote.empresa.conta = linha.toString().substr(59, 12)
+                     headerLote.empresa.contaDV = linha.toString().substr(71, 1)
+                     headerLote.empresa.nome = linha.toString().substr(73, 30)
+                     headerLote.numeroControle = linha.toString().substr(183, 8)
+                     headerLote.dataGravacao = moment(
+                        linha.toString().substr(191, 8),
+                        'DDMMYYYY'
+                     ).format('YYYY-MM-DD')
+
+                     headerLote.dataCredito = null //parseInt(headerLote.data) === 0 ? null : moment(linha.toString().substr(199, 8) ,'DDMMYYYY').format('YYYY-MM-DD')
+
+                     isHeaderLote = true
+                     TU = 0
+                     isEntrarDetalhe = true
+
+                     header = headerLote
+                     header.dataGeracao = headerArquivo.dataGeracao
+                     header.horaGeracao = headerArquivo.horaGeracao
+
+                     isLoop = true
+                  }
+
+                  // Seguimento T
+                  if (
+                     isHeaderArquivo &&
+                     isHeaderLote &&
+                     isEntrarDetalhe &&
+                     !isLoop &&
+                     TU === 0 &&
+                     linha.toString().substr(13, 1) === 'T'
+                  ) {
+                     detalhe = {}
+                     // Seguimento T
+                     detalhe.banco = linha.toString().substr(0, 3)
+                     detalhe.segmento = linha.toString().substr(13, 1)
+                     if (detalhe.segmento !== 'T') {
+                        isErro = true
+                        msg = 'Erro no segmento T'
+                     }
+                     detalhe.codigoMovimento = linha.toString().substr(15, 2)
+
+                     detalhe.nossoNumero = parseInt(
+                        linha.toString().substr(37, 10)
+                     ).toString()
+                     detalhe.parcela = linha.toString().substr(47, 2)
+                     detalhe.modalidade = linha.toString().substr(49, 2)
+                     detalhe.tipoFormulario = linha.toString().substr(51, 1)
+
+                     detalhe.numeroDocumento = parseInt(
+                        linha.toString().substr(58, 15)
+                     ).toString()
+
+                     detalhe.dataVencimento = moment(
+                        linha.toString().substr(73, 8),
+                        'DDMMYYYY'
+                     ).format('YYYY-MM-DD')
+
+                     let valorTitulo = linha.toString().substr(81, 15)
+                     detalhe.valorTitulo = parseFloat(
+                        valorTitulo.substring(0, 13) +
+                           '.' +
+                           valorTitulo.substr(13, 2)
+                     )
+
+                     detalhe.pagador = {}
+                     detalhe.pagador.cpfCnpjTipo = linha
+                        .toString()
+                        .substr(132, 1)
+                     detalhe.pagador.cpfCnpj = linha.toString().substr(133, 15)
+                     detalhe.pagador.nome = linha
+                        .toString()
+                        .substr(148, 40)
+                        .trim()
+                     detalhe.numeroContrato = linha.toString().substr(188, 10)
+                     let valorTarifa = linha.toString().substr(198, 15)
+                     detalhe.valorTarifa = parseFloat(
+                        valorTarifa.substring(0, 13) +
+                           '.' +
+                           valorTarifa.substr(13, 2)
+                     )
+
+                     detalhe.motivoOcorrencia = linha.toString().substr(213, 10)
+
+                     TU = 1
+                     isLoop = true
+                  }
+
+                  // Seguimento U
+                  if (
+                     isHeaderArquivo &&
+                     isHeaderLote &&
+                     isEntrarDetalhe &&
+                     !isLoop &&
+                     TU === 1 &&
+                     linha.toString().substr(13, 1) === 'U'
+                  ) {
+                     // Seguimento U
+                     detalhe.banco = linha.toString().substr(0, 3)
+                     detalhe.segmento = linha.toString().substr(13, 1)
+                     if (detalhe.segmento !== 'U') {
+                        isErro = true
+                        msg = 'Erro no segmento U'
+                     }
+
+                     let retCodigoRetorno = this.retTipoRetorno(
+                        linha.toString().substr(15, 2)
+                     )
+                     detalhe.codigoMovimentoRetorno = retCodigoRetorno.codigo
+                     detalhe.historico = retCodigoRetorno.historico
+
+                     let acrescimo = linha.toString().substr(17, 15)
+                     detalhe.acrescimo = parseFloat(
+                        acrescimo.substring(0, 13) +
+                           '.' +
+                           acrescimo.substr(13, 2)
+                     )
+                     let desconto = linha.toString().substr(32, 15)
+                     detalhe.desconto = parseFloat(
+                        desconto.substring(0, 13) + '.' + desconto.substr(13, 2)
+                     )
+                     let abatimento = linha.toString().substr(47, 15)
+                     detalhe.abatimento = parseFloat(
+                        abatimento.substring(0, 13) +
+                           '.' +
+                           abatimento.substr(13, 2)
+                     )
+                     let iof = linha.toString().substr(62, 15)
+                     detalhe.iof = parseFloat(
+                        iof.substring(0, 13) + '.' + iof.substr(13, 2)
+                     )
+                     let valorPago = linha.toString().substr(77, 15)
+                     detalhe.valorPago = parseFloat(
+                        valorPago.substring(0, 13) +
+                           '.' +
+                           valorPago.substr(13, 2)
+                     )
+                     let valorLiquido = linha.toString().substr(92, 15)
+                     detalhe.valorLiquido = parseFloat(
+                        valorLiquido.substring(0, 13) +
+                           '.' +
+                           valorLiquido.substr(13, 2)
+                     )
+                     let outrasDespesas = linha.toString().substr(107, 15)
+                     detalhe.outrasDespesas = parseFloat(
+                        outrasDespesas.substring(0, 13) +
+                           '.' +
+                           outrasDespesas.substr(13, 2)
+                     )
+                     let outrosCreditos = linha.toString().substr(122, 15)
+                     detalhe.outrosCreditos = parseFloat(
+                        outrosCreditos.substring(0, 13) +
+                           '.' +
+                           outrosCreditos.substr(13, 2)
+                     )
+                     detalhe.dataOcorrencia = moment(
+                        linha.toString().substr(137, 8),
+                        'DDMMYYYY'
+                     ).format('YYYY-MM-DD')
+                     let dataCredito = linha.toString().substr(145, 8)
+                     if (parseInt(dataCredito) === 0) {
+                        dataCredito = null
+                     } else {
+                        detalhe.dataCredito = moment(
+                           linha.toString().substr(145, 8),
+                           'DDMMYYYY'
+                        ).format('YYYY-MM-DD')
+                     }
+
+                     /*detalhe.pagador.dataOcorrencia = moment( linha.toString().substr(157, 8),'DDMMYYYY').format('YYYY-MM-DD')
+                  detalhe.pagador.valorOcorrencia = linha
+                     .toString()
+                     .substr(165, 15)*/
+
+                     TU = 0
+
+                     detalhe.header = header
+                     detalhe.grupo_id = grupo_id
+
+                     detalhes.push(detalhe)
+
+                     isLoop = true
+                  }
+
+                  isLoop = false
+               })
+
+               if (isErro) {
+                  reject({ success: false, message: msg, data: detalhes })
+                  return arquivarArquivo()
+               }
+
+               //this.baixarArquivoRetorno(detalhes[3], null)
+
+               /*retorno = headerArquivo
+               retorno.dataGravacao = headerLote.dataGravacao
+               retorno.detalhes = detalhes
+               retorno.grupo_id = grupo_id*/
+
+               resolve({ success, status: 'server', data: detalhes })
+
+               arquivarArquivo()
+            })
+
+            //await Drive.delete(this.pastaRetorno + 'Retorno.ini')
+            //await Drive.delete(this.pastaRetorno + 'retorno_recebido.txt')
+         } catch (e) {
+            reject({ success: false, message: e.message })
+            arquivarArquivo()
+         }
+      })
    }
 
-   async lerArquivoRetornoACBr(request) {
+   async lerArquivoRetornoVersaoACBr(request) {
       try {
          if ((await Redis.get('_gerarFinanceiro')) !== 'livre') {
             throw {
@@ -1227,6 +1366,263 @@ class Cnab {
    }
 
    async baixarArquivoRetorno(registro, auth) {
+      return new Promise(async (resolve, reject) => {
+         let nrErro = null
+         let trx = null
+         let client_id = registro.client_id
+
+         try {
+            trx = await Database.beginTransaction()
+
+            let nossoNumero = parseInt(registro.nossoNumero).toString()
+            let numeroDocumento = parseInt(registro.numeroDocumento).toString()
+
+            let lancamento_id = null
+
+            let cSituacao = 'NÃO LOCALIZADO'
+
+            let oRetorno = {
+               lancamento_id: null,
+               sacado: registro.pagador.nome.trim(),
+               cpfCnpj: registro.pagador.cpfCnpj,
+               dVencimento: registro.dataVencimento,
+               dOcorrencia: registro.dataOcorrencia,
+               dCredito: registro.dataCredito,
+               dProcessamento: registro.header.dataGravacao,
+               dMoraJuros: null,
+               //numeroDocumento: numeroDocumento,
+               nossoNumero: nossoNumero,
+               valorAbatimento: registro.abatimento,
+               valorDesconto: registro.desconto,
+               valorMoraJuros: registro.acrescimo,
+               valorIOF: registro.iof,
+               valorOutrasDespesas: registro.outrasDespesas,
+               valorOutrosCreditos: registro.outrosCreditos,
+               valorRecebido: registro.valorPago,
+
+               codTipoOcorrencia: registro.codigoMovimentoRetorno,
+               descricaoTipoOcorrencia: registro.historico,
+               motivoRejeicao1: '',
+               banco: registro.banco,
+               conta: parseInt(registro.header.empresa.conta).toString(),
+               contaDigito: registro.header.empresa.contaDV,
+               agencia: parseInt(registro.header.empresa.agencia).toString(),
+               agenciaDigito: registro.header.empresa.agenciaDV,
+               cedente: null,
+               grupo_id: registro.grupo_id,
+               situacao: cSituacao,
+            }
+
+            let modelRetorno = null
+            let retorno_id = null
+
+            const modelLancamentoConfig = await ModelLancamentoConfig.pick(1)
+            let arrConfig = modelLancamentoConfig.toJSON()
+            let oConfig = null
+            if (arrConfig.length > 0) {
+               oConfig = arrConfig[0]
+            }
+
+            let modelLancamento = null
+            const codTipoOcorrencia = oRetorno.codTipoOcorrencia
+
+            const modelBoleto = await ModelBoleto.findBy(
+               'nossoNumero',
+               registro.nossoNumero
+            )
+
+            let oLancamento = {
+               forma: 'boleto',
+               //situacao: 'Compensado',
+               documentoNr: 'Arquivo retorno',
+               documento: 'Boleto',
+            }
+
+            let arrLancamentoItems = []
+
+            if (modelBoleto) {
+               //modelLancamento = await modelBoleto.lancamento().fetch()
+               modelLancamento = await ModelLancamento.find(
+                  modelBoleto.lancamento_id
+               )
+
+               oRetorno.lancamento_id = modelLancamento.id
+
+               switch (codTipoOcorrencia) {
+                  case '06':
+                     // Compensado
+
+                     if (modelBoleto.status !== 'Compensado') {
+                        modelBoleto.dCompensacao = oRetorno.dCredito
+                        modelBoleto.status = 'Compensado'
+
+                        cSituacao = 'Compensado'
+                        if (modelLancamento) {
+                           lancamento_id = modelLancamento.id
+                           oLancamento.dRecebimento = oRetorno.dCredito
+                           oLancamento.valorCompensadoAcresc =
+                              oRetorno.valorMoraJuros +
+                              oRetorno.valorOutrosCreditos
+                           oLancamento.valorCompensadoDesc =
+                              oRetorno.valorAbatimento +
+                              oRetorno.valorDesconto +
+                              oRetorno.valorOutrasDespesas
+
+                           oLancamento.valorCompensado = oRetorno.valorRecebido //recebido
+                           oLancamento.situacao = 'Compensado'
+
+                           // Lançamentos de acrescimos e descontos
+                           if (
+                              oRetorno.valorRecebido >
+                              modelLancamento.valorTotal
+                           ) {
+                              oLancamento.valorCompensado =
+                                 oRetorno.valorRecebido
+                              let valor =
+                                 oRetorno.valorRecebido -
+                                 modelLancamento.valorTotal
+                              oLancamento.valorCompensadoAcresc = valor
+                              arrLancamentoItems.push({
+                                 DC: 'C',
+                                 tag: 'QA',
+                                 descricao: 'Acréscimo na compensação boleto',
+                                 planoDeConta_id:
+                                    oConfig.receber_plano_id_acresc,
+                                 valor: valor,
+                              })
+                           }
+                           if (
+                              oRetorno.valorRecebido <
+                              modelLancamento.valorTotal
+                           ) {
+                              let valor =
+                                 modelLancamento.valorTotal -
+                                 oRetorno.valorRecebido
+                              oLancamento.valorCompensadoDesc = valor
+                              oLancamento.valorCompensado =
+                                 modelLancamento.valorTotal - valor
+                              arrLancamentoItems.push({
+                                 DC: 'D',
+                                 tag: 'QD',
+                                 descricao: 'Desconto na compensação boleto',
+                                 planoDeConta_id: oConfig.receber_plano_id_desc,
+                                 valor: valor,
+                              })
+                           }
+
+                           modelLancamento.merge(oLancamento)
+
+                           if (arrLancamentoItems.length > 0) {
+                              await modelLancamento
+                                 .items()
+                                 .createMany(
+                                    arrLancamentoItems,
+                                    trx ? trx : null
+                                 )
+                           }
+
+                           await modelLancamento.save(trx ? trx : null)
+
+                           const status = {
+                              lancamento_id: modelLancamento.id,
+                              user_id: auth.user.id,
+                              motivo: 'Alteração de status',
+                              status: oLancamento.situacao,
+                           }
+                           await ModelLancamentoStatus.create(
+                              status,
+                              trx ? trx : null
+                           )
+                        }
+                     } else {
+                        cSituacao = 'Não liquidado (duplicidade)'
+                     }
+                     break
+
+                  case '09':
+                     if (modelBoleto.status !== 'Cancelado') {
+                        modelBoleto.status = 'Cancelado'
+                        cSituacao = 'Cancelado'
+                     }
+                     break
+
+                  default:
+                     cSituacao = registro.historico
+               }
+
+               await modelBoleto.save(trx ? trx : null)
+            } else {
+               nrErro = -100 /// boleto não localizado
+            }
+
+            oRetorno.lancamento_id = lancamento_id
+
+            const gravarRetorno = async oRetorno => {
+               modelRetorno = await ModelRetorno.create(
+                  oRetorno,
+                  trx ? trx : null
+               )
+               retorno_id = modelRetorno.id
+            }
+
+            oRetorno.situacao = cSituacao
+            await gravarRetorno(oRetorno)
+            //let retorno = modelRetorno.toJSON()
+
+            await trx.commit()
+            //await trx.rollback()
+
+            registro.sucesso = true
+            if (nrErro < 0) {
+               registro.sucesso = false
+            }
+            registro.situacao = cSituacao
+
+            return resolve({
+               success: true,
+               message: 'Processado com sucesso.',
+               data: registro,
+            })
+         } catch (e) {
+            registro.sucesso = false
+            await trx.rollback()
+            reject({ success: false, message: e.message, data: registro })
+         }
+      })
+   }
+
+   retTipoRetorno(codigoMovimentoRetorno) {
+      let historico = ''
+
+      switch (codigoMovimentoRetorno) {
+         case '02':
+            historico = '02-ENTRADA CONFIRMADA'
+            break
+         case '09':
+            historico = '09-BAIXA DE TÍTULO'
+            break
+         case '44':
+            historico = '44-TITULO PAGO COM CHEQUE DEVOLVIDO'
+            break
+         case '45':
+            historico = '45-TITULO PAGO COM CHEQUE COMPENSADO'
+            break
+         case '06':
+            historico = '06-LIQUIDAÇÃO NORMAL'
+            break
+
+         default:
+            historico = codigoMovimentoRetorno
+      }
+
+      if (historico.length > 30) {
+         historico = historico.substring(0, 30)
+      }
+
+      return { codigo: codigoMovimentoRetorno, historico }
+   }
+
+   async baixarArquivoRetornoVersoACBr(registro, auth) {
       return new Promise(async (resolve, reject) => {
          let nrErro = null
          let trx = null
