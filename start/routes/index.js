@@ -23,31 +23,6 @@ Route.group(() => {
 
    Route.get('/web/:token','RateioController.exibirLinkRelatorioBoleto')
 
-   Route.get('converterNossoNumero/:nossoNumero', async ({params}) => {
-      let a=1
-      const montaNossoNumero= use('App/Services/Bank/converterNossoNumero')
-      //let nossoNumero=  montaNossoNumero(params.nossoNumero, params.nossoNumero.lenght)
-
-      //return nossoNumero
-
-
-      const ModelBoleto = use('App/Models/Boleto')
-      const query= await ModelBoleto.query().where('isOpenBank', false).fetch()
-
-
-      let qtd= 0
-      query.rows.forEach(async (e) => {
-         if ( ! e.boleto_nota3) {
-            e.boleto_nota3= e.nossoNumero
-            e.nossoNumero= montaNossoNumero(e.nossoNumero, null)
-            await e.save()
-
-            qtd++
-         }
-      })
-      return qtd
-   })
-
    Route.get('/view/:file/:tipo',async ({params, response}) => {
       try {
          const arquivo= params.file
@@ -550,6 +525,33 @@ Route.group(() => {
 
          const factory= use('App/Services/Bank/Factory')
          let boleto= await factory().Boleto('sicoob')
+         let res= await boleto.prorrogarDataVencimento(config)
+         return res
+
+      } catch (error) {
+         return error
+      }
+
+   })
+
+   Route.post('/segundaVia',async ({response, request}) => {
+      try {
+         let config= request.all()
+
+         const factory= use('App/Services/Bank/Factory')
+         let boleto= await factory().Boleto('sicoob')
+         config= {
+            parametros: {
+               numeroContrato: '2554645',
+               modalidade: 1,
+               nossoNumero: '99757870',
+               //linhaDigitavel: '',
+               //codigoBarras: '',
+               gerarPdf: true
+            },
+            conta_id: 1
+
+         }
          let res= await boleto.prorrogarDataVencimento(config)
          return res
 

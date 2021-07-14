@@ -1304,8 +1304,6 @@ class Cnab {
             size: '5mb',
          })
 
-         console.log('arquivo ', arquivo)
-
          await arquivo.move(this.pastaRetorno, {
             name: 'retorno_recebido.txt',
             overwrite: true,
@@ -1332,14 +1330,11 @@ class Cnab {
                   'O servidor retornou falha no processamento do arquivo de retorno.',
             }
          }
-         console.log('result ', result)
 
          let content = ini.read(this.pastaRetorno + 'Retorno.ini', {
             encoding: 'latin1',
             keep_quotes: true,
          })
-
-         console.log('content ', content)
 
          let nTamanho = Object.keys(content).length
          let arrRetorno = []
@@ -1722,7 +1717,6 @@ class Cnab {
             if (arrConfig.length > 0) {
                oConfig = arrConfig[0]
             }
-            console.log(oConfig)
 
             const gravarRetorno = async oRetorno => {
                modelRetorno = await ModelRetorno.create(oRetorno)

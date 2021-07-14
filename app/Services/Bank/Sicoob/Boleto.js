@@ -31,7 +31,7 @@ function Boleto() {
 
             config.scope = scope
             config.recurso = 'boleto'
-console.log('recebi parametros config ', config)
+            console.log('recebi parametros config ', config)
             let retToken = await getToken(config)
 
             if (lodash.has(retToken, 'erroNr')) {
@@ -46,7 +46,7 @@ console.log('recebi parametros config ', config)
             const para = {
                numeroContrato: config.convenio,
                modalidade: config.modalidade,
-               nossoNumero: config.nossoNumero
+               nossoNumero: config.nossoNumero,
             }
 
             let arr = []
@@ -56,8 +56,8 @@ console.log('recebi parametros config ', config)
             const meta = {
                'Content-Type': 'application/json',
                Authorization: `Bearer ${retToken.token}`,
-               'Client_id': Env.get('SICOOB_CLIENT_ID'),
-               'scope': scope,
+               Client_id: Env.get('SICOOB_CLIENT_ID'),
+               scope: scope,
             }
             const headers = new Headers(meta)
 
@@ -88,15 +88,23 @@ console.log('recebi parametros config ', config)
                }
             }
 
-            let resposta= await response.json()
+            let resposta = await response.json()
 
             if (response.status === 207) {
-               let linha= resposta.resultado[0]
-               if ( linha.status.codigo === 200) {
+               let linha = resposta.resultado[0]
+               if (linha.status.codigo === 200) {
                   console.log('baixa retornou codigo 200..', resposta)
-                  resposta= { success: true, message: "Baixa realizada com sucesso", data: linha.boleto}
+                  resposta = {
+                     success: true,
+                     message: 'Baixa realizada com sucesso',
+                     data: linha.boleto,
+                  }
                } else {
-                  throw { success: false, message: linha.status.mensagem, codigo: linha.status.codigo}
+                  throw {
+                     success: false,
+                     message: linha.status.mensagem,
+                     codigo: linha.status.codigo,
+                  }
                }
             }
 
@@ -184,12 +192,13 @@ console.log('recebi parametros config ', config)
             const meta = {
                'Content-Type': 'application/json',
                Authorization: `Bearer ${retToken.token}`,
-               'Client_id': Env.get('SICOOB_CLIENT_ID'),
-               'scope': scope,
+               Client_id: Env.get('SICOOB_CLIENT_ID'),
+               scope: scope,
             }
             const headers = new Headers(meta)
 
-            const url = Env.get('SICOOB_URL_COBRANCA') + '/prorrogacoes/data-vencimento'
+            const url =
+               Env.get('SICOOB_URL_COBRANCA') + '/prorrogacoes/data-vencimento'
             console.log(url)
             console.log(token)
             console.log(meta)
@@ -391,14 +400,15 @@ console.log('recebi parametros config ', config)
             if (!token)
                throw { success: false, erroNr: 801, message: 'Token inválido.' }
 
-            const para = {
+            /*const para = {
                numeroContrato: '2554645',
                modalidade: 1,
                nossoNumero: '123',
                linhaDigitavel: '',
                codigoBarras: '',
                gerarPdf: true,
-            }
+            }*/
+            const para = config.parametros
 
             let query = Object.keys(para)
                .map(
@@ -481,26 +491,45 @@ console.log('recebi parametros config ', config)
 
       function validarArquiConfiguracao(config) {
          if (!config) config = {}
-         config.tipoJurosMora= lodash.has(config, 'tipoJurosMora') ? config.tipoJurosMora : 2 // 2= taxa mensal 3= isento
-         config.diasJurosMora = lodash.has(config, 'diasJurosMora') ? config.diasJurosMora  : 6
-         config.valorJurosMora = lodash.has(config,'valorJurosMora') ? config.valorJurosMora :  1 //&& 0.0333
+         config.tipoJurosMora = lodash.has(config, 'tipoJurosMora')
+            ? config.tipoJurosMora
+            : 2 // 2= taxa mensal 3= isento
+         config.diasJurosMora = lodash.has(config, 'diasJurosMora')
+            ? config.diasJurosMora
+            : 6
+         config.valorJurosMora = lodash.has(config, 'valorJurosMora')
+            ? config.valorJurosMora
+            : 1 //&& 0.0333
 
-
-         config.tipoMulta= lodash.has(config, 'tipoMulta') ? config.tipoMulta : 2 // 2= percentual
-         config.diasMulta = lodash.has(config, 'diasMulta') ? config.diasMulta : 6
-         config.valorMulta = lodash.has(config, 'valorMulta') ? config.valorMulta : 2
+         config.tipoMulta = lodash.has(config, 'tipoMulta')
+            ? config.tipoMulta
+            : 2 // 2= percentual
+         config.diasMulta = lodash.has(config, 'diasMulta')
+            ? config.diasMulta
+            : 6
+         config.valorMulta = lodash.has(config, 'valorMulta')
+            ? config.valorMulta
+            : 2
          return config
       }
 
       async function localizarBoleto(config = null) {
          try {
             const scope = 'cobranca_boletos_consultar'
-            if ( !config) {
-               config= { conta_id: null}
-               throw { success: false, erroNr: 802, message: 'Não foi informado o arquivo de configuração.' }
+            if (!config) {
+               config = { conta_id: null }
+               throw {
+                  success: false,
+                  erroNr: 802,
+                  message: 'Não foi informado o arquivo de configuração.',
+               }
             }
-            if ( !lodash.has(config, 'conta_id')) {
-               throw { success: false, erroNr: 803, message: 'Não foi informado o id da conta.' }
+            if (!lodash.has(config, 'conta_id')) {
+               throw {
+                  success: false,
+                  erroNr: 803,
+                  message: 'Não foi informado o id da conta.',
+               }
             }
             config.scope = scope
             config.recurso = 'boleto'
@@ -532,7 +561,7 @@ console.log('recebi parametros config ', config)
             const meta = {
                'Content-Type': 'application/json',
                Authorization: `Bearer ${retToken.token}`,
-               'Client_id': Env.get('SICOOB_CLIENT_ID')
+               Client_id: Env.get('SICOOB_CLIENT_ID'),
             }
             const headers = new Headers(meta)
 
@@ -540,7 +569,7 @@ console.log('recebi parametros config ', config)
             const response = await fetch(url, {
                method: 'GET',
                headers: headers,
-               scope: scope
+               scope: scope,
             })
 
             if (response.status === 401) {
@@ -604,7 +633,7 @@ console.log('recebi parametros config ', config)
 
             const oConta = await localizarConta(config.conta_id)
 
-            let dEmissao= moment().format('YYYY-MM-DD') + 'T00:00:00-03:00'
+            let dEmissao = moment().format('YYYY-MM-DD') + 'T00:00:00-03:00'
             let dVencimento = lancamento.dVencimento.toJSON()
             let cVencimento = dVencimento.substr(0, 10) + 'T00:00:00-03:00'
             let dVencMoment = moment(dVencimento, 'YYYY-MM-DD')
@@ -620,7 +649,8 @@ console.log('recebi parametros config ', config)
             let objBoleto = {
                numeroContrato: oConta.convenio,
                modalidade: 1,
-               numeroContaCorrente: oConta.contaCorrente + oConta.contaCorrenteDV,
+               numeroContaCorrente:
+                  oConta.contaCorrente + oConta.contaCorrenteDV,
                especieDocumento: 'DM',
                dataEmissao: dEmissao,
                //nossoNumero: 2588658,
@@ -667,7 +697,7 @@ console.log('recebi parametros config ', config)
                numeroCpfCnpj: '98784978699',
                nome: 'Lucas de Lima',
                },*/
-              /* mensagensInstrucao: {
+               /* mensagensInstrucao: {
                   tipoInstrucao: 1,
                   mensagens: [
                      'Descrição da Instrução 1',
@@ -681,23 +711,23 @@ console.log('recebi parametros config ', config)
             }
 
             // Mensagens
-            let arrMsg= gerarMensagens(objBoleto)
+            let arrMsg = gerarMensagens(objBoleto)
 
-            if (! lodash.isEmpty(lancamento.boleto_nota1)) {
+            if (!lodash.isEmpty(lancamento.boleto_nota1)) {
                arrMsg.push(lancamento.boleto_nota1)
             }
-            if ( !lodash.isEmpty(lancamento.boleto_nota2)) {
+            if (!lodash.isEmpty(lancamento.boleto_nota2)) {
                arrMsg.push(lancamento.boleto_nota2)
             }
-            if ( !lodash.isEmpty(lancamento.boleto_nota3)) {
+            if (!lodash.isEmpty(lancamento.boleto_nota3)) {
                arrMsg.push(lancamento.boleto_nota3)
             }
 
-            const mensagensInstrucao= {
+            const mensagensInstrucao = {
                tipoInstrucao: 1,
                mensagens: arrMsg,
             }
-            objBoleto.mensagensInstrucao= mensagensInstrucao
+            objBoleto.mensagensInstrucao = mensagensInstrucao
             // Fim de mensagens.
 
             let arr = []
@@ -707,15 +737,13 @@ console.log('recebi parametros config ', config)
             const para = new URLSearchParams({
                Client_id: Env.get('SICOOB_CLIENT_ID'),
                scope: scope,
-
             })
 
             const meta = {
                'Content-Type': 'application/json',
-               'Authorization': `Bearer ${token}`,
-               "Client_id": Env.get('SICOOB_CLIENT_ID'),
-               'scope': scope,
-
+               Authorization: `Bearer ${token}`,
+               Client_id: Env.get('SICOOB_CLIENT_ID'),
+               scope: scope,
             }
             const headers = new Headers(meta)
 
@@ -727,7 +755,7 @@ console.log('recebi parametros config ', config)
                method: 'POST',
                //body: arrCompile,
                body: arrCompile,
-               headers: headers
+               headers: headers,
             })
 
             console.log('status ', response.status)
@@ -787,24 +815,26 @@ console.log('recebi parametros config ', config)
       }
 
       function gerarMensagens(o) {
-         let arr= []
-         if ( o.tipoJurosMora == 2) {
-            let cData= moment(o.dataMulta, 'YYYY-MM-DD').format('DD/MM/YYYY')
-            let n= o.valorJurosMora.toFixed(1/30)
-            if ( n.length > 5) {
-               n= n.substr(0,5)
+         let arr = []
+         if (o.tipoJurosMora == 2) {
+            let cData = moment(o.dataMulta, 'YYYY-MM-DD').format('DD/MM/YYYY')
+            let n = o.valorJurosMora.toFixed(1 / 30)
+            if (n.length > 5) {
+               n = n.substr(0, 5)
             }
-            let m= `A partir de ${cData}, juros de ${n}% dia.`
+            let m = `A partir de ${cData}, juros de ${n}% dia.`
             arr.push(m)
          }
 
-         if ( o.tipoMulta == 2) {
-            let cData= moment(o.dataJurosMora, 'YYYY-MM-DD').format('DD/MM/YYYY')
-            let n= o.valorMulta.toFixed(2)
-            if ( n.length > 5) {
-               n= n.substr(0,5)
+         if (o.tipoMulta == 2) {
+            let cData = moment(o.dataJurosMora, 'YYYY-MM-DD').format(
+               'DD/MM/YYYY'
+            )
+            let n = o.valorMulta.toFixed(2)
+            if (n.length > 5) {
+               n = n.substr(0, 5)
             }
-            let m= `A partir de ${cData}, multa de ${n}%.`
+            let m = `A partir de ${cData}, multa de ${n}%.`
             arr.push(m)
          }
          return arr
@@ -816,7 +846,7 @@ console.log('recebi parametros config ', config)
          segundaVia,
          localizarPorPagador,
          prorrogarDataVencimento,
-         baixa
+         baixa,
       }
    } catch (e) {
       console.log('função boleto ', e)
