@@ -534,17 +534,18 @@ Route.group(() => {
 
    })
 
-   Route.post('/segundaVia',async ({response, request}) => {
+   Route.get('/segundaVia/:nossoNumero',async ({response, params, request}) => {
       try {
          let config= request.all()
+         let nossoNumero= params.nossoNumero  //'71122'
 
          const factory= use('App/Services/Bank/Factory')
          let boleto= await factory().Boleto('sicoob')
          config= {
             parametros: {
-               numeroContrato: '2554645',
+               numeroContrato: '464228',
                modalidade: 1,
-               nossoNumero: '99757870',
+               nossoNumero: nossoNumero,
                //linhaDigitavel: '',
                //codigoBarras: '',
                gerarPdf: true
@@ -552,7 +553,7 @@ Route.group(() => {
             conta_id: 1
 
          }
-         let res= await boleto.prorrogarDataVencimento(config)
+         let res= await boleto.segundaVia(config)
          return res
 
       } catch (error) {

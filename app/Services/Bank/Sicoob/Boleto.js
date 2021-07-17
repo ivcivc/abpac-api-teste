@@ -385,11 +385,13 @@ function Boleto() {
 
       async function segundaVia(config = null) {
          try {
-            const scope = 'segunda-via'
+            const scope = 'cobranca_boletos_segunda_via'
             config.scope = scope
             config.recurso = 'boleto'
 
             let retToken = await getToken(config)
+
+            console.log('token retornou ', retToken)
 
             if (lodash.has(retToken, 'erroNr')) {
                throw retToken
@@ -410,23 +412,30 @@ function Boleto() {
             }*/
             const para = config.parametros
 
+            console.log('parametros ', para)
+
             let query = Object.keys(para)
                .map(
                   k => encodeURIComponent(k) + '=' + encodeURIComponent(para[k])
                )
                .join('&')
 
+
             const meta = {
                'Content-Type': 'application/json',
                Authorization: `Bearer ${retToken.token}`,
+               Client_id: Env.get('SICOOB_CLIENT_ID'),
             }
             const headers = new Headers(meta)
 
             const url =
-               Env.get('SICOOB_URL_COBRANCA') + '/' + scope + '?' + query
+               Env.get('SICOOB_URL_COBRANCA') + '/' + 'segunda-via' + '?' + query
+
+
             const response = await fetch(url, {
                method: 'GET',
                headers: headers,
+               scope: scope,
             })
 
             if (response.status === 401) {
@@ -437,11 +446,29 @@ function Boleto() {
                }
             }
 
+            if (response.status === 500) {
+               throw {
+                  success: false,
+                  erroNr: 500,
+                  message: 'O sistema retornou codigo 500 (Erro interno).',
+               }
+            }            
+
+            if (response.status === 204) {
+               throw {
+                  success: false,
+                  erroNr: 204,
+                  message: 'A requisição foi processada com êxito e não está retornando conteúdo.',
+               }
+            }            
+
             let data = await response.json()
+
+            console.log(data)
 
             return data
          } catch (e) {
-            console.log('localizarBoleto ', e)
+            console.log('segundaVia ', e)
             let obj = e
 
             if (lodash.has(e, 'erroNr')) {
@@ -457,9 +484,17 @@ function Boleto() {
                   return e
                }
 
+               if (e.erroNr === 204) {
+                  return e
+               }
+
                if (e.erroNr === 401) {
                   return e
                }
+
+               if (e.erroNr === 500) {
+                  return e
+               }               
 
                if (e.erroNr === 801) {
                   // token inválido
