@@ -1646,7 +1646,7 @@ class Lancamento {
 
          const factory = use('App/Services/Bank/Factory')
          let boleto = await factory().Boleto('sicoob')
-         config = {
+         let config = {
             parametros: {
                numeroContrato: modelConta.convenio,
                modalidade: 1,
