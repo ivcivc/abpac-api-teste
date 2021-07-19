@@ -1657,6 +1657,8 @@ class Lancamento {
          }
          let res = await boleto.segundaVia(config)
 
+         console.log('res= ', res)
+
          if (res.success) {
             if (lodash.has(res.resultado, 'nossoNumero')) {
                nrErro = -351
@@ -1668,6 +1670,8 @@ class Lancamento {
 
             const pastaPDF = Helpers.tmpPath('ACBr/pdf/')
             const arquivo = `boleto_${data.lancamento_id}.pdf`
+
+            console.log('arquivo ', pastaPDF + arquivo)
 
             fs.writeFile(
                pastaPDF + arquivo,
