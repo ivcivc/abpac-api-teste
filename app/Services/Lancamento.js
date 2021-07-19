@@ -25,7 +25,7 @@ const Redis = use('Redis')
 const kue = use('Kue')
 const Job = use('App/Jobs/ACBr')
 
-const Factory= use('App/Services/Bank/Factory')
+const Factory = use('App/Services/Bank/Factory')
 
 //const Mo = use('App/Models/OcorrenciaTerceiro')
 
@@ -1224,33 +1224,67 @@ class Lancamento {
 
          const query = await Model.query()
             .where('ordem_servico_id', ordem_servico_id)
+            .with('boletos')
             .fetch()
 
-         let arrID = []
          let isError = false
+         let isBoleto = false
 
-         for (let i in query.rows) {
-            let e = query.rows[i]
-            let situacao = e.situacao
-            arrID.push(e.id)
-            if (situacao !== 'Aberto' && situacao !== 'Bloqueado') {
+         const queryJSON = query.toJSON()
+
+         for (let i in queryJSON) {
+            let e = queryJSON[i]
+            if (e.boletos.length > 0) {
+               isBoleto = true
+               for (let ii in e.boletos) {
+                  let b = e.boletos[ii]
+                  if (b.status === 'Aberto' || b.status === 'Compensado') {
+                     nrErro = -100
+                     const msg =
+                        b.status === 'Aberto' ? 'em aberto' : 'compensado'
+                     throw {
+                        success: false,
+                        message: `Exclusão não autorizada. Motivo: Boleto ${msg}`,
+                     }
+                  }
+               }
+            }
+            if (e.situacao === 'Compensado') {
                isError = true
+               throw {
+                  success: false,
+                  message: `Exclusão não autorizada. Motivo: Conta compensada.`,
+               }
             }
          }
 
          if (isError) {
             nrErro = -100
-            throw { success: false, message: 'Exclusão não autorizada.' }
+            throw {
+               success: false,
+               message: 'Exclusão não autorizada para contas com movimentação.',
+            }
          }
 
-         const queryDelete = await Model.query()
-            .where('ordem_servico_id', ordem_servico_id)
-            .transacting(trx ? trx : null)
-            .delete()
+         let msg = 'Excluído com sucesso'
+
+         if (isBoleto) {
+            msg = 'Cancelado com sucesso'
+            const updated_at = moment().format('YYYY-MM-DD h:mm:s')
+            await Model.query()
+               .where('ordem_servico_id', ordem_servico_id)
+               .transacting(trx ? trx : null)
+               .update({ situacao: 'Cancelado', updated_at })
+         } else {
+            await Model.query()
+               .where('ordem_servico_id', ordem_servico_id)
+               .transacting(trx ? trx : null)
+               .delete()
+         }
 
          await trx.commit()
 
-         return { success: true, message: 'Excluido com sucesso' }
+         return { success: true, message: msg }
       } catch (e) {
          await trx.rollback()
          if (nrErro) {
@@ -1273,14 +1307,13 @@ class Lancamento {
       let trx = null
 
       try {
-         trx= await Database.beginTransaction()
+         trx = await Database.beginTransaction()
 
          let model = await Model.findOrFail(data.id)
          await model.load('boletos')
          await model.load('pessoa')
          //await model.load('items')
          await model.load('conta')
-
 
          const update_at_db = moment(model.updated_at).format()
          const update_at = moment(data.updated_at).format()
@@ -1294,86 +1327,87 @@ class Lancamento {
             }
          }
 
-         const modelJson= model.toJSON()
-       
-         if ( lodash.has(modelJson, 'boletos')) {
-            modelJson.boletos.forEach( b => {
-               if ( b.status === 'Aberto') {
+         const modelJson = model.toJSON()
+
+         if (lodash.has(modelJson, 'boletos')) {
+            modelJson.boletos.forEach(b => {
+               if (b.status === 'Aberto') {
                   nrErro = -200
                   throw {
                      success: false,
                      nrErro: -200,
                      message:
                         'Não é possivel adicionar boleto. Já existe um boleto ativo.',
-                        data: b
+                     data: b,
                   }
                }
             })
          }
 
-         modelJson.boleto_nota1= data.boleto_nota1
-         modelJson.boleto_nota2= data.boleto_nota2
-         modelJson.boleto_nota3= data.boleto_nota3
+         modelJson.boleto_nota1 = data.boleto_nota1
+         modelJson.boleto_nota2 = data.boleto_nota2
+         modelJson.boleto_nota3 = data.boleto_nota3
 
-         let boleto= await Factory().Boleto('sicoob')
+         let boleto = await Factory().Boleto('sicoob')
 
-         let res= await boleto.novoBoleto(modelJson,{
-            conta_id: data.conta_id
+         let res = await boleto.novoBoleto(modelJson, {
+            conta_id: data.conta_id,
          })
 
-         if ( !res) {
+         if (!res) {
             nrErro = -350
             throw {
                success: false,
-               message:
-                  'Ocorreu uma falha não esperada no módulo open bank.',
+               message: 'Ocorreu uma falha não esperada no módulo open bank.',
             }
          }
 
-         if ( ! lodash.has(res, 'resultado')) {
+         if (!lodash.has(res, 'resultado')) {
             nrErro = -351
             throw {
                success: false,
-               message:
-                  'O Open bank não respondeu um resultado esperado.',
+               message: 'O Open bank não respondeu um resultado esperado.',
             }
          }
-         const oResult= res.resultado[0]
+         const oResult = res.resultado[0]
 
          console.log('Novo boleto - sicoob resposta ', oResult)
 
-         if ( oResult.status) {
-            if ( oResult.status.codigo !== 200) {
+         if (oResult.status) {
+            if (oResult.status.codigo !== 200) {
                nrErro = -352
                throw {
                   success: false,
-                  message: oResult.status.mensagem
+                  message: oResult.status.mensagem,
                }
             }
          }
 
-         const oBoleto= oResult.boleto
+         const oBoleto = oResult.boleto
 
-         const modelBoleto= await ModelBoleto.create({
-            pessoa_id: data.pessoa_id,
-            conta_id: data.conta_id,
-            lancamento_id: data.id,
-            valorTotal: oBoleto.valor,
-            dVencimento: oBoleto.dataVencimento,
-            nossoNumero: oBoleto.nossoNumero,
-            boleto_nota1: data.boleto_nota1,
-            boleto_nota2: data.boleto_nota2,
-            boleto_nota3: data.boleto_nota3,
-            isOpenBank: true,
-            linhaDigitavel: oBoleto.linhaDigitavel,
-            status: "Aberto"
-         },  trx ? trx : null)
+         const modelBoleto = await ModelBoleto.create(
+            {
+               pessoa_id: data.pessoa_id,
+               conta_id: data.conta_id,
+               lancamento_id: data.id,
+               valorTotal: oBoleto.valor,
+               dVencimento: oBoleto.dataVencimento,
+               nossoNumero: oBoleto.nossoNumero,
+               boleto_nota1: data.boleto_nota1,
+               boleto_nota2: data.boleto_nota2,
+               boleto_nota3: data.boleto_nota3,
+               isOpenBank: true,
+               linhaDigitavel: oBoleto.linhaDigitavel,
+               status: 'Aberto',
+            },
+            trx ? trx : null
+         )
 
          //await trx.rollback()
          await trx.commit()
 
          const pastaPDF = Helpers.tmpPath('ACBr/pdf/')
-         const arquivo= `boleto_${model.id}.pdf`
+         const arquivo = `boleto_${model.id}.pdf`
 
          fs.writeFile(
             pastaPDF + arquivo,
@@ -1388,12 +1422,17 @@ class Lancamento {
          )
 
          return modelBoleto
-
       } catch (e) {
          await trx.rollback()
 
          if (nrErro) {
-            if (nrErro === -100 || nrErro === -200 || nrErro === -350 || nrErro === -351 || nrErro === -352) {
+            if (
+               nrErro === -100 ||
+               nrErro === -200 ||
+               nrErro === -350 ||
+               nrErro === -351 ||
+               nrErro === -352
+            ) {
                throw e
             }
          }
@@ -1580,6 +1619,81 @@ class Lancamento {
 
          if (nrErro) {
             if (nrErro === -100) {
+               throw e
+            }
+         }
+         throw {
+            message: e.message,
+            sqlMessage: e.sqlMessage,
+            sqlState: e.sqlState,
+            errno: e.errno,
+            code: e.code,
+         }
+      }
+   }
+
+   async gerarSegundaViaBoleto(data, auth) {
+      let nrErro = null
+      try {
+         const trx = await Database.beginTransaction()
+
+         let nossoNumero = data.nossoNumero
+
+         const modelConta = await ModelConta.findOrFail(data.conta_id)
+
+         //const modelBoleto= await ModelBoleto.findOrFail(data.boleto_id)
+         //const modelLancamento= await Model.findByOrFail(data.lancamento_id)
+
+         const factory = use('App/Services/Bank/Factory')
+         let boleto = await factory().Boleto('sicoob')
+         config = {
+            parametros: {
+               numeroContrato: modelConta.convenio,
+               modalidade: 1,
+               nossoNumero,
+               gerarPdf: true,
+            },
+            conta_id: data.conta_id,
+         }
+         let res = await boleto.segundaVia(config)
+
+         if (res.success) {
+            if (lodash.has(res.resultado, 'nossoNumero')) {
+               nrErro = -351
+               throw {
+                  success: false,
+                  message: 'O Open bank não retornou o arquivo PDF.',
+               }
+            }
+
+            const pastaPDF = Helpers.tmpPath('ACBr/pdf/')
+            const arquivo = `boleto_${data.lancamento_id}.pdf`
+
+            fs.writeFile(
+               pastaPDF + arquivo,
+               res.resultado.pdfBoleto,
+               'base64',
+               async (err, data) => {
+                  if (err) {
+                     console.log('falha na gravação do boleto ' + arquivo)
+                     nrErro = -351
+                     throw {
+                        success: false,
+                        message:
+                           'falha na gravação do arquivo de boleto (PDF).',
+                     }
+                  }
+                  console.log('boleto gravado com sucesso!')
+               }
+            )
+         }
+
+         return res
+      } catch (e) {
+         await trx.rollback()
+
+         if (nrErro) {
+            if (nrErro === -351) {
                throw e
             }
          }

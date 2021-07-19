@@ -13,8 +13,8 @@ const Drive = use('Drive')
 const Helpers = use('Helpers')
 const fs = require('fs')
 const CnabService = use('App/Services/Cnab')
-const factory= use('App/Services/Bank/Factory')
-const lodash= require('lodash')
+const factory = use('App/Services/Bank/Factory')
+const lodash = require('lodash')
 
 class LancamentoController {
    async index({ params, request, response }) {}
@@ -266,14 +266,11 @@ class LancamentoController {
       const data = { arquivo: params.arquivo, metodo: 'pdf-download' } // Data to be passed to job handle
 
       try {
-         const result= await new CnabService().pdfBase64(data.arquivo)
+         const result = await new CnabService().pdfBase64(data.arquivo)
 
-         if ( result.success) {
-
-            return response.send({success: true, pdfBase64: result.arquivo})
-
+         if (result.success) {
+            return response.send({ success: true, pdfBase64: result.arquivo })
          } else {
-
             return response.status(401).send(result)
          }
       } catch (e) {
@@ -286,54 +283,59 @@ class LancamentoController {
       const data = request.all()
 
       try {
-
-         let boleto= await factory().Boleto('sicoob')
-         let res= await boleto.localizarBoleto( {nossoNumero: data.nossoNumero, conta_id: data.conta_id, convenio: data.convenio })
+         let boleto = await factory().Boleto('sicoob')
+         let res = await boleto.localizarBoleto({
+            nossoNumero: data.nossoNumero,
+            conta_id: data.conta_id,
+            convenio: data.convenio,
+         })
 
          return res
-
       } catch (error) {
-
          console.log(error)
          response.status(400).send(error)
       }
-
    }
 
    async baixarBoletoOpenBank({ response, request }) {
       const data = request.all()
 
       try {
+         const modelBoleto = await ModelBoleto.findOrFail(data.boleto_id)
 
-         const modelBoleto= await ModelBoleto.findOrFail(data.boleto_id)
-
-         if ( modelBoleto.status !== 'Aberto') {
-            throw { success: false, message: "Não é possível baixar/cancelar este boleto"}
+         if (modelBoleto.status !== 'Aberto') {
+            throw {
+               success: false,
+               message: 'Não é possível baixar/cancelar este boleto',
+            }
          }
 
-         let boleto= await factory().Boleto('sicoob')
-         let res= await boleto.baixa( {nossoNumero: data.nossoNumero, conta_id: data.conta_id, convenio: data.convenio, modalidade: 1 })
+         let boleto = await factory().Boleto('sicoob')
+         let res = await boleto.baixa({
+            nossoNumero: data.nossoNumero,
+            conta_id: data.conta_id,
+            convenio: data.convenio,
+            modalidade: 1,
+         })
 
-         if ( lodash.has(res, 'success')) {
-            if ( ! res.success) {
-               if ( res.erroNr === 601) {
-                  res.message= "A concessão de autorização fornecida é inválida"
+         if (lodash.has(res, 'success')) {
+            if (!res.success) {
+               if (res.erroNr === 601) {
+                  res.message =
+                     'A concessão de autorização fornecida é inválida'
                }
                throw res
-            } 
+            }
 
-            modelBoleto.status= 'Cancelado'
+            modelBoleto.status = 'Cancelado'
             await modelBoleto.save()
-            res.data= modelBoleto
+            res.data = modelBoleto
          }
          return res
-
       } catch (error) {
-
          console.log('baixa falha= ', error)
          response.status(400).send(error)
       }
-
    }
 
    async espera(tempo = 1000) {
@@ -345,8 +347,7 @@ class LancamentoController {
    }
 
    async logZap(oLog, ID = null) {
-
-      if ( ! ID ) {
+      if (!ID) {
          return await ModelEmailLog.create(oLog)
       } else {
          let log = await ModelEmailLog.find(ID)
@@ -355,84 +356,86 @@ class LancamentoController {
          log.save()
          return log
       }
-
    }
 
-
    async sendZapBoleto({ response, request }) {
-
       return new Promise(async (resolve, reject) => {
          const payload = request.all()
          const ServiceZap = use('App/Services/Zap/MyZap')
 
-         const pessoa_id= payload.pessoa_id ? payload.pessoa_id : null
-         const isAnexarBoleto= payload.isAnexarBoleto ? payload.isAnexarBoleto : false
-         const isAnexarRelEquipamentos= payload.isAnexarRelEquipamentos ? payload.isAnexarRelEquipamentos : false
-         const isAnexarRelOcorrencias= payload.isAnexarRelOcorrencias ? payload.isAnexarRelOcorrencias : false
-         const message= payload.message
-         const boleto_id= payload.boleto_id
+         const pessoa_id = payload.pessoa_id ? payload.pessoa_id : null
+         const isAnexarBoleto = payload.isAnexarBoleto
+            ? payload.isAnexarBoleto
+            : false
+         const isAnexarRelEquipamentos = payload.isAnexarRelEquipamentos
+            ? payload.isAnexarRelEquipamentos
+            : false
+         const isAnexarRelOcorrencias = payload.isAnexarRelOcorrencias
+            ? payload.isAnexarRelOcorrencias
+            : false
+         const message = payload.message
+         const boleto_id = payload.boleto_id
          const rateio_id = payload.rateio_id
-         const lancamento_id= payload.lancamento_id
+         const lancamento_id = payload.lancamento_id
 
-         let process= null
+         let process = null
 
-         let ID_Mensagem= null
-         let ID_Boleto= null
-         let ID_Equipamento= null
-         let ID_Ocorrencia= null
+         let ID_Mensagem = null
+         let ID_Boleto = null
+         let ID_Equipamento = null
+         let ID_Ocorrencia = null
 
          try {
-
             // Log para envio de mensagem
-            let oLog= {
+            let oLog = {
                pessoa_id,
                mensagem: `Nr. ${payload.telSms}. "${message}"`,
                boleto_id: boleto_id,
-               response: "Mensagem enviada. Aguarde resposta!",
-               status: "pendente",
-               tipo: 'zap'
+               response: 'Mensagem enviada. Aguarde resposta!',
+               status: 'pendente',
+               tipo: 'zap',
             }
-            const registro= await this.logZap(oLog)
-            ID_Mensagem=  registro.id
+            const registro = await this.logZap(oLog)
+            ID_Mensagem = registro.id
 
-
-            if ( isAnexarBoleto ) {
-               let oLog= {
+            if (isAnexarBoleto) {
+               let oLog = {
                   pessoa_id,
                   mensagem: `Nr. ${payload.telSms}. Envio de boleto.`,
                   boleto_id: boleto_id,
-                  response: "Boleto enviado. Aguarde resposta!",
-                  status: "pendente",
-                  tipo: 'zap'
+                  response: 'Boleto enviado. Aguarde resposta!',
+                  status: 'pendente',
+                  tipo: 'zap',
                }
-               const registro= await this.logZap(oLog)
-               ID_Boleto= registro.id
+               const registro = await this.logZap(oLog)
+               ID_Boleto = registro.id
             }
 
-            if ( isAnexarRelEquipamentos ) {
-               let oLog= {
+            if (isAnexarRelEquipamentos) {
+               let oLog = {
                   pessoa_id,
                   mensagem: `Nr. ${payload.telSms}. Envio relatório equipamentos`,
                   boleto_id: boleto_id,
-                  response: "Relatório equipamentos enviado. Aguarde resposta!",
-                  status: "pendente",
-                  tipo: 'zap'
+                  response: 'Relatório equipamentos enviado. Aguarde resposta!',
+                  status: 'pendente',
+                  tipo: 'zap',
                }
-               const registro= await this.logZap(oLog)
-               ID_Equipamento= registro.id
+               const registro = await this.logZap(oLog)
+               ID_Equipamento = registro.id
             }
 
-            if ( isAnexarRelOcorrencias ) {
-               let oLog= {
+            if (isAnexarRelOcorrencias) {
+               let oLog = {
                   pessoa_id,
                   mensagem: `Nr. ${payload.telSms}. Envio relatório ocorrências`,
                   boleto_id: boleto_id,
-                  response: "Relatório de ocorrencias enviado. Aguarde resposta!",
-                  status: "pendente",
-                  tipo: 'zap'
+                  response:
+                     'Relatório de ocorrencias enviado. Aguarde resposta!',
+                  status: 'pendente',
+                  tipo: 'zap',
                }
-               const registro= await this.logZap(oLog)
-               ID_Ocorrencia= registro.id
+               const registro = await this.logZap(oLog)
+               ID_Ocorrencia = registro.id
             }
 
             // Retorno antecipado para o cliente....
@@ -440,29 +443,29 @@ class LancamentoController {
                return resolve({ success: true })
             }, 4000)
 
-            process= 1
+            process = 1
 
             let tel = '55' + payload.telSms
             tel = tel.replace(/[^\d]+/g, '')
 
-            const res= await ServiceZap().sendMessage(
-               tel,
-               payload.message
-            )
+            const res = await ServiceZap().sendMessage(tel, payload.message)
 
-            oLog= {
+            oLog = {
                boleto_id: boleto_id,
-               response: res.result === 'success' ? "Mensagem enviada com sucesso!" : `Status: ${res.result}`,
-               status: res.result === 'success' ? "Enviado" : "falha",
-               tipo: 'zap'
+               response:
+                  res.result === 'success'
+                     ? 'Mensagem enviada com sucesso!'
+                     : `Status: ${res.result}`,
+               status: res.result === 'success' ? 'Enviado' : 'falha',
+               tipo: 'zap',
             }
 
             await this.logZap(oLog, ID_Mensagem)
 
             await this.espera(100)
 
-            if ( isAnexarBoleto ) {
-               process= 2
+            if (isAnexarBoleto) {
+               process = 2
                const pastaPDF = Helpers.tmpPath('ACBr/pdf/')
                const filePath =
                   pastaPDF + 'boleto_' + payload.lancamento_id + '.pdf'
@@ -485,12 +488,15 @@ class LancamentoController {
                            data
                         )
 
-                        let oLog= {
-                           response: res.result === 'success' ? "Boleto enviado com sucesso!" : `Status: ${res.result}`,
-                           status: res.result === 'success' ? "Enviado" : "falha"
+                        let oLog = {
+                           response:
+                              res.result === 'success'
+                                 ? 'Boleto enviado com sucesso!'
+                                 : `Status: ${res.result}`,
+                           status:
+                              res.result === 'success' ? 'Enviado' : 'falha',
                         }
                         await this.logZap(oLog, ID_Boleto)
-
                      }
                   )
                } else {
@@ -508,12 +514,12 @@ class LancamentoController {
 
             await this.espera(160)
 
-            if ( isAnexarRelEquipamentos ) {
-               process= 3
+            if (isAnexarRelEquipamentos) {
+               process = 3
                const pasta = Helpers.tmpPath('rateio/equipamentos/')
                const filePath =
-                  pasta + 'equip_' + rateio_id + '_'  + pessoa_id + '.pdf'
-               const fileName = 'equip_' + rateio_id + '_'  + pessoa_id + '.pdf'
+                  pasta + 'equip_' + rateio_id + '_' + pessoa_id + '.pdf'
+               const fileName = 'equip_' + rateio_id + '_' + pessoa_id + '.pdf'
 
                const isExist = await Drive.exists(filePath)
 
@@ -532,10 +538,13 @@ class LancamentoController {
                            data
                         )
 
-                        let oLog= {
-
-                           response: res.result === 'success' ? "Relatório equipamentos enviado com sucesso!" : `Status: ${res.result}`,
-                           status: res.result === 'success' ? "Enviado" : "falha"
+                        let oLog = {
+                           response:
+                              res.result === 'success'
+                                 ? 'Relatório equipamentos enviado com sucesso!'
+                                 : `Status: ${res.result}`,
+                           status:
+                              res.result === 'success' ? 'Enviado' : 'falha',
                         }
                         await this.logZap(oLog, ID_Equipamento)
                      }
@@ -555,8 +564,8 @@ class LancamentoController {
 
             await this.espera(250)
 
-            if ( isAnexarRelOcorrencias ) {
-               process= 4
+            if (isAnexarRelOcorrencias) {
+               process = 4
                const pasta = Helpers.tmpPath('rateio/ocorrencias/')
                const filePath =
                   pasta + 'rateio_ocorrencias_' + rateio_id + '.pdf'
@@ -579,9 +588,13 @@ class LancamentoController {
                            data
                         )
 
-                        let oLog= {
-                           response: res.result === 'success' ? "Relatório ocorrências enviado com sucesso!" : `Status: ${res.result}`,
-                           status: res.result === 'success' ? "Enviado" : "falha"
+                        let oLog = {
+                           response:
+                              res.result === 'success'
+                                 ? 'Relatório ocorrências enviado com sucesso!'
+                                 : `Status: ${res.result}`,
+                           status:
+                              res.result === 'success' ? 'Enviado' : 'falha',
                         }
                         await this.logZap(oLog, ID_Ocorrencia)
                      }
@@ -598,51 +611,48 @@ class LancamentoController {
                   }
                }
             }
-
-
          } catch (e) {
-
             reject(e)
 
-            let oLog= {
+            let oLog = {
                pessoa_id,
                mensagem: `Nr. ${payload.telSms}. "${message}"`,
                boleto_id: boleto_id,
-               response: "Ocorreu falha de comunicação com o servidor",
-               status: "falha",
-               tipo: 'zap'
+               response: 'Ocorreu falha de comunicação com o servidor',
+               status: 'falha',
+               tipo: 'zap',
             }
 
-            if ( process == 1) {
-               let oLog= {}
-               oLog.response= "Ocorreu falha ao tentar enviar uma mensagem."
-               oLog.status= 'falha'
+            if (process == 1) {
+               let oLog = {}
+               oLog.response = 'Ocorreu falha ao tentar enviar uma mensagem.'
+               oLog.status = 'falha'
                await this.logZap(oLog, ID_Mensagem)
             }
-            if ( process == 2) {
-               let oLog= {}
-               oLog.response= "Ocorreu falha ao tentar enviar boleto."
-               oLog.status= 'falha'
+            if (process == 2) {
+               let oLog = {}
+               oLog.response = 'Ocorreu falha ao tentar enviar boleto.'
+               oLog.status = 'falha'
                await this.logZap(oLog, ID_Boleto)
             }
-            if ( process == 3) {
-               let oLog= {}
-               oLog.response= "Ocorreu falha ao tentar enviar relatório equipamentos."
-               oLog.status= 'falha'
+            if (process == 3) {
+               let oLog = {}
+               oLog.response =
+                  'Ocorreu falha ao tentar enviar relatório equipamentos.'
+               oLog.status = 'falha'
                await this.logZap(oLog, ID_Equipamento)
             }
-            if ( process == 4) {
-               let oLog= {}
-               oLog.response= "Ocorreu falha ao tentar enviar relatório ocorrência."
-               oLog.status= 'falha'
+            if (process == 4) {
+               let oLog = {}
+               oLog.response =
+                  'Ocorreu falha ao tentar enviar relatório ocorrência.'
+               oLog.status = 'falha'
                await this.logZap(oLog, ID_Ocorrencia)
             }
 
-            if ( process == 0 ) {
+            if (process == 0) {
                await this.logZap(oLog)
             }
-
-
          }
       })
    }
@@ -651,7 +661,6 @@ class LancamentoController {
       const payload = request.all()
 
       try {
-
          const service = await new LancamentoService().openBank_novoBoleto(
             payload,
             auth
@@ -659,7 +668,22 @@ class LancamentoController {
 
          response.status(200).send({ type: true, data: service })
       } catch (error) {
+         console.log(error)
+         response.status(400).send(error)
+      }
+   }
 
+   async gerarSegundaViaBoleto({ params, response, auth }) {
+      const payload = params.nossoNumero
+
+      try {
+         const service = await new LancamentoService().gerarSegundaViaBoleto(
+            payload,
+            auth
+         )
+
+         response.status(200).send({ type: true, data: service })
+      } catch (error) {
          console.log(error)
          response.status(400).send(error)
       }

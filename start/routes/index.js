@@ -334,6 +334,10 @@ Route.group(() => {
       'auth'
      ])
 
+     Route.post('/lancamentoSegundaViaBoleto', 'LancamentoController.gerarSegundaViaBoleto').middleware([
+      'auth'
+     ])
+
    Route.post('/lancamentoLocBoletoOpenBank', 'LancamentoController.lancamentoLocBoletoOpenBank').middleware([
       'auth'
    ])
