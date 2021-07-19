@@ -673,8 +673,8 @@ class LancamentoController {
       }
    }
 
-   async gerarSegundaViaBoleto({ params, response, auth }) {
-      const payload = params.nossoNumero
+   async gerarSegundaViaBoleto({ request, response, auth }) {
+      const payload = request.all()
 
       try {
          const service = await new LancamentoService().gerarSegundaViaBoleto(
