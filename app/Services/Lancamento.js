@@ -1635,7 +1635,7 @@ class Lancamento {
    async gerarSegundaViaBoleto(data, auth) {
       let nrErro = null
       try {
-         const trx = await Database.beginTransaction()
+         //const trx = await Database.beginTransaction()
 
          let nossoNumero = data.nossoNumero
 
@@ -1688,9 +1688,11 @@ class Lancamento {
             )
          }
 
+         //await trx.rollback()
+
          return res
       } catch (e) {
-         await trx.rollback()
+         //await trx.rollback()
 
          if (nrErro) {
             if (nrErro === -351) {
