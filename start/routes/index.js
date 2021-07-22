@@ -447,13 +447,22 @@ Route.group(() => {
    Route.resource('/planoConta', 'PlanoDeContaController')
 
 
-  Route.get('/cnab/listarArquivosRemessa', 'CnabController.listarArquivosRemessa').middleware([
+   Route.get('/cnab/listarArquivosRemessa', 'CnabController.listarArquivosRemessa').middleware([
       'auth'
       ])
 
    Route.post('/cnab/downloadRemessa', 'CnabController.downloadRemessa').middleware([
          'auth'
          ])
+
+
+   Route.post('/relatorios/ampliacaoProtecao', 'Relatorio/Categoria/AmpliacaoProtecaoController.locEquipaPorCategoriaAno').middleware([
+      'auth'
+      ])
+   Route.post('/relatorios/dispararEmail', 'Relatorio/Categoria/AmpliacaoProtecaoController.dispararEmail').middleware([
+      'auth'
+      ])
+
 
    /*Route.post('/cnab/arquivarArquivoRemessa', 'CnabController.arquivarArquivoRemessa').middleware([
          'auth'

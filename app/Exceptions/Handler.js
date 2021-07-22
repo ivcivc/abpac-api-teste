@@ -98,7 +98,7 @@ class ExceptionHandler extends BaseExceptionHandler {
     * @return {void}
     */
    async report(error, { request }) {
-      console.log('report... ')
+      console.log('report... ', error)
       if (error.code === 'ER_BAD_FIELD_ERROR') {
          // statis= 500
          console.log({

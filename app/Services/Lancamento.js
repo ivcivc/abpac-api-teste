@@ -1659,8 +1659,16 @@ class Lancamento {
 
          console.log('res= ', res)
 
-         if (res.success) {
-            if (lodash.has(res.resultado, 'nossoNumero')) {
+         if (lodash.has(res, 'resultado')) {
+            if (!lodash.has(res.resultado, 'nossoNumero')) {
+               nrErro = -351
+               throw {
+                  success: false,
+                  message: 'O Open bank não retornou o arquivo PDF.',
+               }
+            }
+
+            if (parseInt(res.resultado.nossoNumero) === 0) {
                nrErro = -351
                throw {
                   success: false,
