@@ -5,10 +5,14 @@ const { localeData } = require('moment')
 const ModelEquipamento = use('App/Models/Equipamento')
 const ModelPessoa = use('App/Models/Pessoa')
 
+const ServiceZap = use('App/Services/Zap/MyZap')
+
 const Mail = use('Mail')
 const Env = use('Env')
 const Helpers = use('Helpers')
 const lodash = require('lodash')
+const Drive = use('Drive')
+const fs = require('fs')
 
 class AmpliacaoProtecaoController {
    async locEquipaPorCategoriaAno({ request, response }) {
@@ -53,7 +57,7 @@ class AmpliacaoProtecaoController {
       let pessoa_id = null
       try {
          const { lista } = request.all()
-         console.log('recebi ', lista)
+
          const resposta = []
 
          for (const key in lista) {
@@ -121,6 +125,101 @@ class AmpliacaoProtecaoController {
             }
 
             reject({ success: false, message })
+         }
+      })
+   }
+
+   async dispararZap({ request, response }) {
+      const payload = request.all()
+      try {
+         const pessoa = await ModelPessoa.findOrFail(payload.pessoa_id)
+
+         if (!pessoa.telSms) {
+            throw {
+               success: false,
+               message:
+                  'Telefone não localizado para o associado ' + pessoa.nome,
+            }
+         }
+         payload.tel = '55' + pessoa.telSms
+         payload.nome = pessoa.nome
+         const res = await this.enviarZap(payload)
+         return res
+      } catch (e) {
+         response.status(401).send(e)
+      }
+   }
+
+   async enviarZap(payload) {
+      return new Promise(async (resolve, reject) => {
+         try {
+            let assunto = `*Novidade!!!*` //payload.assunto
+            let tel = '55' + payload.tel
+
+            let file = Helpers.publicPath('images/ampliacao-protecao.jpeg')
+
+            if (Env.get('NODE_ENV') === 'development') {
+               tel = '55' + '31987034132'
+            }
+
+            const isExist = await Drive.exists(file)
+
+            if (isExist) {
+               fs.readFile(file, { encoding: 'base64' }, async (err, data) => {
+                  if (err) {
+                     throw {
+                        success: false,
+                        message: 'Não foi possível abrir a imagem',
+                     }
+                  }
+
+                  let res = await ServiceZap().sendFile(
+                     tel,
+                     assunto,
+                     'protecao.jpeg',
+                     data
+                  )
+
+                  let oLog = {
+                     response:
+                        res.result === 'success'
+                           ? 'Arquivo enviado com sucesso!'
+                           : `Status: ${res.result}`,
+                     status: res.result === 'success' ? 'Enviado' : 'falha',
+                  }
+                  let msg =
+                     res.result === 'success'
+                        ? 'Arquivo enviado com sucesso!'
+                        : 'Resposta do servidor whatsApp: ' + res.result
+                  return resolve({
+                     success: res.result === 'success',
+                     message: msg,
+                     log: oLog,
+                  })
+               })
+            } else {
+               console.log('Arquivo de imagem não localizado ', arquivo)
+               resolve({
+                  success: false,
+                  arquivo: null,
+                  message: 'Arquivo não localizado',
+               })
+            }
+
+            /*console.log('zap retornou ', zap)
+
+            resolve({
+               success: true,
+               message: 'Registered successfully',
+               data: res,
+            })*/
+         } catch (error) {
+            let message = 'Ocorreu uma falha no envio do ZAP'
+            if (lodash.has(error, 'message')) {
+               message = error.message
+            }
+
+            resolve({ success: false, message })
          }
       })
    }

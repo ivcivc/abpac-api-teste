@@ -462,7 +462,9 @@ Route.group(() => {
    Route.post('/relatorios/dispararEmail', 'Relatorio/Categoria/AmpliacaoProtecaoController.dispararEmail').middleware([
       'auth'
       ])
-
+   Route.post('/relatorios/dispararZap', 'Relatorio/Categoria/AmpliacaoProtecaoController.dispararZap').middleware([
+      'auth'
+      ])
 
    /*Route.post('/cnab/arquivarArquivoRemessa', 'CnabController.arquivarArquivoRemessa').middleware([
          'auth'

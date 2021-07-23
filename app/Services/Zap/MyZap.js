@@ -50,11 +50,43 @@ function MyZap() {
                method: 'post',
                url: url,
                data: {
-                  text: message,
                   sessionName: sessionName,
                   number: tel,
                   caption: message,
                   url: link,
+               },
+            })
+               .then(r => {
+                  //console.log('axios retornou ', r.toJSON())
+                  resolve(r.data)
+               })
+               .catch(e => {
+                  reject({ result: 'falha', message: e.message })
+               })
+
+            //console.log('retorno ', data)
+            //return resolve(data)
+         } catch (e) {
+            console.log('factory error ', e)
+            reject(e)
+         }
+      })
+   }
+
+   async function sendImage(tel, message, base64Data, fileName) {
+      return new Promise((resolve, reject) => {
+         try {
+            const url = url_zap + '/sendImageStorie'
+
+            axios({
+               method: 'post',
+               url: url,
+               data: {
+                  sessionName: sessionName,
+                  //number: tel,
+                  base64Data,
+                  caption: message,
+                  fileName: fileName,
                },
             })
                .then(r => {
@@ -253,6 +285,7 @@ function MyZap() {
       sendMessage,
       sendLink,
       sendFile,
+      sendImage,
       start,
       close,
       status,
