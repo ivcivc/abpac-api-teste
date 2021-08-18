@@ -1,12 +1,13 @@
 'use strict'
 
 const Model = use('App/Models/Pessoa')
+const ModelPreCadastro = use('App/Models/PreCadastro')
 const PessoaStatus = use('App/Models/PessoaStatus')
 const Equipamento = use('App/Models/Equipamento')
 const PendenciaServices = use('App/Services/Pendencia')
 const Galeria = use('App/Models/File')
 const FileConfig = use('App/Models/FileConfig')
-const lodash= use('lodash')
+const lodash = use('lodash')
 const Database = use('Database')
 
 class Pessoa {
@@ -19,6 +20,7 @@ class Pessoa {
 
          //let pendencias= data.pendencias
          delete data['pendencias']
+         delete data['preCadastro']
 
          pessoa.merge(data)
 
@@ -37,6 +39,7 @@ class Pessoa {
    }
 
    async add(data, trx, auth) {
+      let isPreCadastro = null
       try {
          if (!trx) {
             trx = await Database.beginTransaction()
@@ -52,6 +55,13 @@ class Pessoa {
             data.tipo = 'Associado'
          }
 
+         if (lodash.has(data, 'isPreCadastro')) {
+            if (data.isPreCadastro) {
+               isPreCadastro = true
+            }
+            delete data['isPreCadastro']
+         }
+
          let pendencias = data.pendencias
          delete data['pendencias']
 
@@ -64,6 +74,14 @@ class Pessoa {
             status: 'Ativo',
          }
          await PessoaStatus.create(status, trx ? trx : null)
+
+         const pre = await ModelPreCadastro.create(
+            {
+               pessoa_id: pessoa.id,
+               status: 'Pendente',
+            },
+            trx ? trx : null
+         )
 
          /*if ( pendencias) {
         for (let i= 0; i < pendencias.length; i++) {
@@ -91,21 +109,27 @@ class Pessoa {
 
          await trx.commit()
 
-         return pessoa
+         const json = pessoa.toJSON()
+
+         if (isPreCadastro) {
+            json.preCadastro = pre.toJSON()
+         }
+
+         return json
       } catch (e) {
          await trx.rollback()
          throw e
       }
    }
 
-   async isCpfCnpj(doc, tipo = null, id= null) {
+   async isCpfCnpj(doc, tipo = null, id = null) {
       tipo = tipo === 'Fornecedor' ? 'Fornecedor' : 'Associado'
-      if ( tipo === 'Fornecedor' ) {
-         if ( lodash.isEmpty(doc)) {
-            return { isCpfCnpj:false }
+      if (tipo === 'Fornecedor') {
+         if (lodash.isEmpty(doc)) {
+            return { isCpfCnpj: false }
          }
       }
-      if ( id ) {
+      if (id) {
          id = parseInt(id)
       }
       try {
@@ -114,34 +138,33 @@ class Pessoa {
             .where('cpfCnpj', doc)
             .fetch()
 
-         const recno= pessoa.rows.length
+         const recno = pessoa.rows.length
 
-         if ( tipo === 'Associado' && !id && recno === 0) {
+         if (tipo === 'Associado' && !id && recno === 0) {
             return { isCpfCnpj: false }
          }
-         if ( tipo === 'Associado' && id && recno === 0) {
+         if (tipo === 'Associado' && id && recno === 0) {
             return { isCpfCnpj: false }
          }
-         if ( tipo === 'Associado' && !id && recno > 0) {
+         if (tipo === 'Associado' && !id && recno > 0) {
             return { isCpfCnpj: true }
          }
-         if ( tipo === 'Associado' && id && recno > 0) {
+         if (tipo === 'Associado' && id && recno > 0) {
             return { isCpfCnpj: pessoa.rows[0].id === id ? false : true }
          }
 
-         if ( tipo === 'Fornecedor' && !id && recno === 0) {
+         if (tipo === 'Fornecedor' && !id && recno === 0) {
             return { isCpfCnpj: false }
          }
-         if ( tipo === 'Fornecedor' && id && recno === 0) {
+         if (tipo === 'Fornecedor' && id && recno === 0) {
             return { isCpfCnpj: false }
          }
-         if ( tipo === 'Fornecedor' && !id && recno > 0) {
+         if (tipo === 'Fornecedor' && !id && recno > 0) {
             return { isCpfCnpj: true }
          }
-         if ( tipo === 'Fornecedor' && id && recno > 0) {
-            return { isCpfCnpj: pessoa.rows[0].id === id ? false : true}
+         if (tipo === 'Fornecedor' && id && recno > 0) {
+            return { isCpfCnpj: pessoa.rows[0].id === id ? false : true }
          }
-
 
          return { isCpfCnpj: true }
       } catch (e) {

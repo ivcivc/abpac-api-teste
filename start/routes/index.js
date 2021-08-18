@@ -724,6 +724,20 @@ Route.group(() => {
        'auth'
     ])
 
+    Route.get('/gerenciador/:id', '/Pasta/PastaController.getPessoa')
+
+   Route.get('/gerenciador_parte/:id', async ({request, response, params}) => {
+
+      try {
+
+         let o= { parent: params.id, data: [{id:new Date().getTime(), "$level": 2, value: 'child ' + params.id, state: 'finalized'}]}
+         return response.send(o)
+      } catch(e) {
+         return response.status(400).send(end)
+      }
+   })
+
+
    /*Route.get('/filemanager/folders', 'GerenciadorArquivoController.folders')
    Route.get('/filemanager/files', 'GerenciadorArquivoController.files')
    Route.get('/filemanager/info', 'GerenciadorArquivoController.info')

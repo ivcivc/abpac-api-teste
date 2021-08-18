@@ -15,3 +15,5 @@ equipamentos campo de controle
 a) ratear ( Sim, Não, Rateado)
 b) baixa (Sim, Não)
 
+3) Alterar tabela de equipamentos
+-> status => add 'Pre-cadastro

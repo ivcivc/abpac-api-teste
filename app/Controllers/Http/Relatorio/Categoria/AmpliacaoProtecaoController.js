@@ -74,6 +74,7 @@ class AmpliacaoProtecaoController {
                   element.status_disparo = 'ENVIADO'
                   element.log = enviar
                }
+
                resposta.push(element)
             }
          }
@@ -105,17 +106,23 @@ class AmpliacaoProtecaoController {
                email = 'ivan.a.oliveira@terra.com.br'
             }
 
-            await Mail.send('emails.ampliar_protecao', payload, message => {
-               message
-                  .to(email)
-                  .from(Env.get('MAIL_EMPRESA'))
-                  .subject(assunto)
+            const resEmail = await Mail.send(
+               'emails.ampliar_protecao',
+               payload,
+               message => {
+                  message
+                     .to(email)
+                     .from(Env.get('MAIL_EMPRESA'))
+                     .subject(assunto)
 
-                  .embed(
-                     Helpers.publicPath('images/ampliacao-protecao.jpeg'),
-                     'logo'
-                  )
-            })
+                     .embed(
+                        Helpers.publicPath('images/ampliacao-protecao.jpeg'),
+                        'logo'
+                     )
+               }
+            )
+
+            console.log('email ', resEmail)
 
             resolve({ success: true, message: 'Registered successfully' })
          } catch (error) {

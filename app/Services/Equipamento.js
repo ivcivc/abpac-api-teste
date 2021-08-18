@@ -161,7 +161,7 @@ class Equipamento {
             throw { message: 'Placa em duplicidade.', code: '666' }
          }
 
-         data.status = 'Ativo'
+         //data.status = 'Ativo'
          data.placas = gerarPlacas(data)
 
          const equipamento = await Model.create(data, trx ? trx : null)
@@ -171,7 +171,7 @@ class Equipamento {
             equipamento_id: equipamento.id,
             user_id: auth.user.id,
             motivo: 'Inclusão de Equipamento gerado pelo sistema.',
-            status: 'Ativo',
+            status: data.status,
          }
          await EquipamentoStatus.create(status, trx ? trx : null)
 
