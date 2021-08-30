@@ -20,6 +20,10 @@ class Equipamento extends Model {
       return this.hasOne('App/Models/Categoria', 'categoria_id', 'id')
    }
 
+   signs() {
+      return this.hasMany('App/Models/EquipamentoSign')
+   }
+
    equipamentoProtecoes() {
       return this.hasMany('App/Models/EquipamentoProtecao')
    }

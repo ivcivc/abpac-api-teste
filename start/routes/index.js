@@ -724,7 +724,7 @@ Route.group(() => {
        'auth'
     ])
 
-    Route.get('/gerenciador/:id', '/Pasta/PastaController.getPessoa')
+   Route.get('/gerenciador/:id', '/Pasta/PastaController.getPessoa')
 
    Route.get('/gerenciador_parte/:id', async ({request, response, params}) => {
 
@@ -737,6 +737,16 @@ Route.group(() => {
       }
    })
 
+
+   Route.post('/sign/solicitarAssinatura', 'PreCadastroController.solicitarAssinatura').middleware([
+      'auth'
+   ])
+   Route.post('/sign/fichaInscricao', 'PreCadastroController.fichaInscricao').middleware([
+      'auth'
+   ])
+   Route.get('/sign/fichaInscricaoPDF', 'PreCadastroController.fichaInscricaoPDF').middleware([
+      'auth'
+   ])
 
    /*Route.get('/filemanager/folders', 'GerenciadorArquivoController.folders')
    Route.get('/filemanager/files', 'GerenciadorArquivoController.files')

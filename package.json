@@ -36,6 +36,7 @@
     "adonis-acl": "^1.1.1",
     "adonis-kue": "^5.0.1",
     "axios": "^0.21.1",
+    "br-masks": "^0.5.0",
     "client-oauth2": "^4.3.3",
     "dropbox": "^4.0.30",
     "dropbox-v2-api": "^2.4.5",

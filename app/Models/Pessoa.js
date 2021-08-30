@@ -25,8 +25,8 @@ class Pessoa extends Model {
       return this.hasMany('App/Models/Pendencia')
    }
 
-   preCadastro() {
-      return this.hasOne('App/Models/PreCadastro')
+   pessoaSigns() {
+      return this.hasMany('App/Models/PessoaSign')
    }
 }
 

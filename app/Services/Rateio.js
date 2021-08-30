@@ -42,6 +42,7 @@ const kue = use('Kue')
 const Job = use('App/Jobs/ACBr')
 
 const fs = require('fs')
+const { request } = require('http')
 
 const Antl = use('Antl')
 
@@ -2270,6 +2271,7 @@ class Rateio {
    PDF_RateioRelatorioOcorrencias(rateio_id, retornarPDF = true) {
       return new Promise(async (resolve, reject) => {
          try {
+            console.log(request)
             const pasta = Helpers.tmpPath('rateio/ocorrencias/')
             const arquivo = `rateio_ocorrencias_${rateio_id}.pdf`
 
