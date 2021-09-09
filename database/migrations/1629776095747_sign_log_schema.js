@@ -21,9 +21,9 @@ class SignLogSchema extends Schema {
          table.varchar('ip', 20)
          table.text('hostname')
 
-         table.dateTime('dataLog')
+         //table.dateTime('dataLog')
 
-         table.varchar('tipo', 30)
+         //table.varchar('tipo', 30)
          table.varchar('token', 6)
 
          table.boolean('isLog').default(false)

@@ -52,6 +52,7 @@ class Equipamento {
          delete data['protecoes']
          delete data['categoria']
          delete data['equipamentoRestricaos']
+         delete data['equipamentoSigns']
 
          if (
             lodash.has(data, 'placa1') &&
@@ -252,7 +253,7 @@ class Equipamento {
             .with('equipamentoStatuses')
             .with('pessoa')
             .with('categoria')
-            .with('signs')
+            .with('equipamentoSigns')
             .with('equipamentoProtecoes')
             .with('equipamentoBeneficios')
             .with('equipamentoBeneficios.beneficio')
@@ -1263,7 +1264,7 @@ class Equipamento {
          await equipamento.load('pessoa')
          await equipamento.load('categoria')
          await equipamento.load('equipamentoProtecoes')
-         await equipamento.load('signs')
+         await equipamento.load('equipamentoSigns.signs')
          //await equipamento.load('equipamentoBeneficios')
          await equipamento.load('equipamentoBeneficios.beneficio')
          await equipamento.load('equipamentoRestricaos')

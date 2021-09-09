@@ -21,10 +21,12 @@ class Pessoa {
          //let pendencias= data.pendencias
          delete data['pendencias']
          delete data['preCadastro']
+         delete data['pessoaSigns']
 
          pessoa.merge(data)
 
          await pessoa.save(trx ? trx : null)
+         await pessoa.load('pessoaSigns.signs')
 
          return pessoa
       } catch (e) {

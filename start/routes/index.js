@@ -738,16 +738,41 @@ Route.group(() => {
    })
 
 
+   Route.post('/sign/equipa/contratoAdesao', 'EquipamentoSignController.contratoAdesao').middleware([
+      'auth'
+   ])
+   Route.post('/sign/equipa/updateSign', 'EquipamentoSignController.updateSign').middleware([
+      'auth'
+   ])
+   Route.post('/sign/equipa/solicitarAssinatura', 'EquipamentoSignController.solicitarAssinatura').middleware([
+      'auth'
+   ])
+   Route.get('/sign/equipa/token/:sign_id', 'EquipamentoSignController.tokenSign')
+   Route.post('/sign/equipa/cancelSign', 'EquipamentoSignController.cancelSign').middleware([
+      'auth'
+   ])
+   Route.post('/sign/equipa/pdf', 'EquipamentoSignController.pdf')
+   Route.post('/sign/equipa/toSign', 'EquipamentoSignController.contratoAdesao')
+
+
+   Route.post('/sign/toSign', 'PreCadastroController.fichaInscricao')
+   Route.get('/sign/token/:sign_id', 'PreCadastroController.tokenSign')
+   Route.post('/sign/cancelSign', 'PreCadastroController.cancelSign').middleware([
+      'auth'
+   ])
+   Route.post('/sign/updateSign', 'PreCadastroController.updateSign').middleware([
+      'auth'
+   ])
    Route.post('/sign/solicitarAssinatura', 'PreCadastroController.solicitarAssinatura').middleware([
       'auth'
    ])
    Route.post('/sign/fichaInscricao', 'PreCadastroController.fichaInscricao').middleware([
       'auth'
    ])
-   Route.get('/sign/fichaInscricaoPDF', 'PreCadastroController.fichaInscricaoPDF').middleware([
-      'auth'
-   ])
+   Route.post('/sign/fichaInscricaoPDF', 'PreCadastroController.fichaInscricaoPDF')
 
+   Route.get('/preCadastro/localizarPorID/:id', 'PreCadastroController.localizarPorID')
+   Route.post('/preCadastro/localizarPor', 'PreCadastroController.localizarPor')
    /*Route.get('/filemanager/folders', 'GerenciadorArquivoController.folders')
    Route.get('/filemanager/files', 'GerenciadorArquivoController.files')
    Route.get('/filemanager/info', 'GerenciadorArquivoController.info')

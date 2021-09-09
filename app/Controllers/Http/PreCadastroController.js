@@ -8,25 +8,346 @@ const ModelPessoa = use('App/Models/Pessoa')
 const ModelPessoaSign = use('App/Models/PessoaSign')
 const ModelSign = use('App/Models/Sign')
 const ModelSignLog = use('App/Models/SignLog')
+const ModelPreCadastro = use('App/Models/PreCadastro')
+const ModelEquipamento = use('App/Models/Equipamento')
 const BrM = require('br-masks')
 const crypto = require('crypto')
-const uuid = require('uuid')
+//const uuid = require('uuid')
 const Mail = use('Mail')
 const Env = use('Env')
 const lodash = use('lodash')
+const Database = use('Database')
 
 class PreCadastroController {
-   async solicitarAssinatura({ request, response, auth }) {
+   async localizarPorID({ params, response }) {
+      const preCadastro_id = params.id
+      try {
+         const modelPreCadastro = await ModelPreCadastro.findOrFail(
+            preCadastro_id
+         )
+         const modelPessoaSign = await ModelPessoaSign.findBy(
+            'preCadastro_id',
+            preCadastro_id
+         )
+         const modelPessoa = await ModelPessoa.findOrFail(
+            modelPessoaSign.pessoa_id
+         )
+         await modelPessoa.load('pessoaSigns.signs')
+         const queryEquipamento = await ModelEquipamento.query()
+            .where('preCadastro_id', preCadastro_id)
+            .with('equipamentoStatuses')
+            .with('pessoa')
+            .with('categoria')
+            .with('equipamentoProtecoes')
+            .with('equipamentoSigns.signs')
+            .with('equipamentoBeneficios.beneficio')
+            .with('equipamentoRestricaos')
+            .fetch()
+
+         return {
+            pessoa: modelPessoa,
+            preCadastro: modelPreCadastro,
+            equipamentos: queryEquipamento.rows,
+         }
+      } catch (error) {
+         console.log('falhou ', error)
+         return error
+      }
+   }
+
+   async localizarPor({ request, response }) {
+      const data = request.all()
+      const por = data.por
+
+      let busca = []
+
+      try {
+         busca = await Database.from('pre_cadastros')
+            .select([
+               'pre_cadastros.id as preCadastro_id',
+               'pre_cadastros.status',
+               'pre_cadastros.created_at',
+               'pre_cadastros.dAutorizacao',
+               'pre_cadastros.nota',
+               'pre_cadastros.id',
+               'pessoas.id as pessoa_id',
+               'pessoas.nome as pessoa_nome',
+            ])
+            .innerJoin('pessoas', 'pre_cadastros.pessoa_id', 'pessoas.id')
+            .where(por.field_name, por.field_op, por.field_value)
+
+         return busca
+      } catch (error) {
+         let msg = 'Ocorreu uma falha na busca'
+         if (!lodash.has(error, 'message')) {
+            msg = error.message
+         }
+         console.log('falhou ', error)
+         response.status(400).send({ message: msg, success: false })
+      }
+   }
+
+   async toSign({ request, response }) {
+      const data = request.all()
+      const sign_id_encrypt = data.id
+      const token = data.token
+      let sign_id = null
+      let digito = null
+
+      try {
+         let oDecrypt = this.decrypt(`${sign_id_encrypt}`) // Encryption.decrypt(sign_id)
+         sign_id = oDecrypt.id
+         digito = oDecrypt.cpf
+
+         modelSign = await ModelSign.find(sign_id)
+
+         if (modelSign.status !== 'Enviado para assinatura') {
+            throw {
+               mensagem: 'Documento não disponível para assinatura.',
+            }
+         }
+         if (modelSign.token !== token) {
+            throw {
+               mensagem: 'Token inválido.',
+            }
+         }
+
+         modelSign.merge({
+            status: 'Documento assinado',
+         })
+         const modelPessoaSign = await ModelPessoaSign.findBy(
+            'sign_id',
+            modelSign.id
+         )
+         await modelSign.save()
+
+         //const URL_SERVIDOR_WEB = Env.get('URL_SERVIDOR_SIGN')
+         const signJSON = modelSign.toJSON()
+
+         const assunto = 'Token: Token de verificação de assinatura'
+
+         emailError = true
+
+         mail = await Mail.send(
+            'emails.sign_token_assinatura',
+            signJSON,
+            message => {
+               message
+                  .to(modelSign.signatarioEmail)
+                  .from('investimentos@abpac.com.br')
+                  .subject(assunto)
+               //.attach(Helpers.tmpPath('ACBr/pdf/boleto_50173.pdf'))
+               //.embed(Helpers.publicPath('images/logo-abpac.png'), 'logo')
+            }
+         )
+
+         emailError = false
+
+         await ModelSignLog.create({
+            sign_id: signJSON.id,
+            tipoEnvio: 'email',
+            isLog: true,
+            hostname: signJSON.link,
+            descricao: `Token de verificação enviado para ${signJSON.signatarioNome} (${signJSON.signatarioEmail})`,
+         })
+
+         response.status(200).send({ message: 'Token enviado com sucesso!' })
+      } catch (e) {
+         let mensagem = 'Ocorreu uma falha de transação'
+         if (lodash.has(e, 'message')) {
+            mensagem = e.message
+         }
+         if (lodash.has(e, 'mensagem')) {
+            mensagem = e.mensagem
+         }
+
+         response.status(400).send({ message: mensagem })
+      }
+   }
+
+   async tokenSign({ params, response }) {
+      const sign_id_encrypt = params.sign_id
+      let sign_id = null
+      let modelSign = null
+      let token = null
+      let emailError = false
+      let mail = null
+      let digito = null
+
+      try {
+         let oDecrypt = this.decrypt(`${sign_id_encrypt}`) // Encryption.decrypt(sign_id)
+         sign_id = oDecrypt.id
+         digito = oDecrypt.cpf
+
+         modelSign = await ModelSign.find(sign_id)
+
+         if (modelSign.status !== 'Enviado para assinatura') {
+            throw {
+               mensagem: 'Não foi possível gerar o token.',
+            }
+         }
+         token = await crypto.randomBytes(2).toString('hex')
+
+         modelSign.merge({
+            token,
+         })
+         const modelPessoaSign = await ModelPessoaSign.findBy(
+            'sign_id',
+            modelSign.id
+         )
+         await modelSign.save()
+
+         //const URL_SERVIDOR_WEB = Env.get('URL_SERVIDOR_SIGN')
+         const signJSON = modelSign.toJSON()
+
+         const assunto = 'Token: Token de verificação de assinatura'
+
+         emailError = true
+
+         mail = await Mail.send(
+            'emails.sign_token_assinatura',
+            signJSON,
+            message => {
+               message
+                  .to(modelSign.signatarioEmail)
+                  .from('investimentos@abpac.com.br')
+                  .subject(assunto)
+               //.attach(Helpers.tmpPath('ACBr/pdf/boleto_50173.pdf'))
+               //.embed(Helpers.publicPath('images/logo-abpac.png'), 'logo')
+            }
+         )
+
+         emailError = false
+
+         await ModelSignLog.create({
+            sign_id: signJSON.id,
+            tipoEnvio: 'email',
+            isLog: true,
+            hostname: signJSON.link,
+            descricao: `Token de verificação enviado para ${signJSON.signatarioNome} (${signJSON.signatarioEmail})`,
+         })
+
+         response.status(200).send({ message: 'Token enviado com sucesso!' })
+      } catch (e) {
+         let mensagem = 'Ocorreu uma falha de transação'
+         if (lodash.has(e, 'message')) {
+            mensagem = e.message
+         }
+         if (lodash.has(e, 'mensagem')) {
+            mensagem = e.mensagem
+         }
+
+         response.status(400).send({ message: mensagem })
+      }
+   }
+
+   async cancelSign({ request, response, auth }) {
       const data = request.all()
       let emailError = true
       let modelSign = null
+
+      try {
+         modelSign = await ModelSign.find(data.id)
+         if (modelSign.status === 'Documento assinado') {
+            throw {
+               mensagem: 'Não é permitido cancelar um documento assinado.',
+            }
+         }
+         const modelPessoaSign = await ModelPessoaSign.findBy(
+            'sign_id',
+            modelSign.id
+         )
+
+         modelSign.merge({
+            status: 'Cancelado',
+         })
+         await modelSign.save()
+
+         const pessoa = await ModelPessoa.findOrFail(modelPessoaSign.pessoa_id)
+
+         await pessoa.load('pessoaSigns.signs')
+
+         response.status(200).send(pessoa)
+      } catch (e) {
+         let mensagem = 'Ocorreu uma falha de transação'
+         if (lodash.has(e, 'message')) {
+            mensagem = e.message
+         }
+         if (lodash.has(e, 'mensagem')) {
+            mensagem = e.message
+         }
+
+         response.status(400).send({ message: mensagem })
+      }
+   }
+
+   async updateSign({ request, response, auth }) {
+      const data = request.all()
+      let emailError = true
+      let modelSign = null
+
+      try {
+         modelSign = await ModelSign.find(data.id)
+         if (modelSign.status !== 'Pendente' && modelSign.status !== 'Manual') {
+            throw { mensagem: 'Não é permitido alterar esse documento.' }
+         }
+         const modelPessoaSign = await ModelPessoaSign.findBy(
+            'sign_id',
+            modelSign.id
+         )
+
+         modelSign.merge({
+            signatarioCpf: data.signatarioCpf,
+            signatarioDNasc: data.signatarioDNasc,
+            signatarioEmail: data.signatarioEmail,
+            signatarioNome: data.signatarioNome,
+            assinatura: data.assinatura,
+            dataDoc: data.dataDoc,
+            status: data.status,
+            validate: moment(data.validate).add(5, 'day').format(),
+         })
+         await modelSign.save()
+
+         const pessoa = await ModelPessoa.findOrFail(modelPessoaSign.pessoa_id)
+
+         await pessoa.load('pessoaSigns.signs')
+
+         response.status(200).send(pessoa)
+      } catch (e) {
+         let mensagem = 'Ocorreu uma falha de transação'
+         if (lodash.has(e, 'message')) {
+            mensagem = e.message
+         }
+         if (lodash.has(e, 'mensagem')) {
+            mensagem = e.mensagem
+         }
+
+         response.status(400).send({ message: mensagem })
+      }
+   }
+
+   async solicitarAssinatura({ request, response, auth }) {
+      const data = request.all()
+      let emailError = false
+      let modelSign = null
       let mail = false
       let pessoa_id = data.pessoa_id
+      let erroStatus = false
 
       try {
          //const pessoa_id = data.pessoa_id
          //const modelPessoa= await ModelPessoa.find()
          modelSign = await ModelSign.find(data.sign_id)
+         if (
+            modelSign.status !== 'Pendente' &&
+            modelSign.status !== 'Enviado para assinatura'
+         ) {
+            erroStatus = true
+            throw {
+               message:
+                  'Não foi possível solicitar a assinatura. Status incompativel.',
+            }
+         }
          modelSign.merge({
             signatarioCpf: data.signatarioCpf,
             signatarioDNasc: data.signatarioDNasc,
@@ -40,7 +361,8 @@ class PreCadastroController {
 
          const URL_SERVIDOR_WEB = Env.get('URL_SERVIDOR_SIGN')
          const signJSON = modelSign.toJSON()
-         signJSON.link = `${URL_SERVIDOR_WEB}/${signJSON.id}`
+         const crypto_sign_id = this.encrypt(signJSON) //Encryption.encrypt(signJSON.id)
+         signJSON.link = `${URL_SERVIDOR_WEB}/${crypto_sign_id}`
 
          const assunto = 'Assinar documento: Ficha de Inscrição'
 
@@ -61,13 +383,15 @@ class PreCadastroController {
 
          emailError = false
 
+         const dNasc = moment(signJSON.signatarioDNasc, 'YYYY-MM-DD').format(
+            'DD/MM/YYYY'
+         )
          await ModelSignLog.create({
             sign_id: signJSON.id,
             tipoEnvio: 'email',
-            tipo: '',
             isLog: true,
             hostname: signJSON.link,
-            descricao: `Enviado para assinatura de ${signJSON.signatarioNome} (${signJSON.signatarioEmail})`,
+            descricao: `Enviado para assinatura de ${signJSON.signatarioNome} (${signJSON.signatarioEmail}) CPF: ${signJSON.signatarioCpf} DATA NASC.: ${dNasc}`,
          })
 
          modelSign.merge({ status: 'Enviado para assinatura' })
@@ -81,6 +405,9 @@ class PreCadastroController {
       } catch (e) {
          let mensagem = 'Ocorreu uma falha de transação'
          if (lodash.has(e, 'mensagem')) {
+            mensagem = e.mensagem
+         }
+         if (lodash.has(e, 'message')) {
             mensagem = e.message
          }
          if (emailError) {
@@ -88,7 +415,6 @@ class PreCadastroController {
             await ModelSignLog.create({
                sign_id: signJSON.id,
                tipoEnvio: 'email',
-               tipo: '',
                isLog: false,
                hostname: signJSON.link,
                descricao: `Enviado para assinatura de ${signJSON.signatarioNome} (${signJSON.signatarioEmail})`,
@@ -103,15 +429,80 @@ class PreCadastroController {
    async fichaInscricao({ request, response, auth }) {
       try {
          const data = request.all()
-         const pessoa_id = data.pessoa_id
+         let pessoa_id = data.pessoa_id
          const assinar = data.assinar ? data.assinar : false
-         const dataDoc = data.dataDoc ? data.dataDoc : null
-         const assinatura = data.assinatura ? data.assinatura : null
-         const preCadastro_id = data.preCadastro_id
+         let dataDoc = data.dataDoc ? data.dataDoc : null
+         let assinatura = data.assinatura ? data.assinatura : null
+         let preCadastro_id = data.preCadastro_id
+         const ip = request.ip()
+         let token = data.token
+         const sign_id_encrypt = data.id
 
          let hash = ''
-         const user_id = auth.user.id
+         const user_id = assinar ? null : auth.user.id
          let sign_id = data.sign_id
+
+         let docID = await crypto.randomBytes(20).toString('hex')
+
+         const pasta = Helpers.tmpPath('pre_cadastro/inscricao/')
+         let arquivo = null
+
+         let modelSign = null
+         let signatarioNome = null
+         let arquivoOriginal = null
+         let digito = null
+
+         if (assinar) {
+            let oDecrypt = this.decrypt(`${sign_id_encrypt}`) // Encryption.decrypt(sign_id)
+            sign_id = oDecrypt.id
+            digito = oDecrypt.cpf
+
+            const modelSign = await ModelSign.findOrFail(sign_id)
+
+            if (modelSign.status !== 'Enviado para assinatura') {
+               throw {
+                  mensagem: 'Documento não disponível para assinatura.',
+               }
+            }
+            if (modelSign.token !== token) {
+               throw {
+                  mensagem: 'Token inválido.',
+               }
+            }
+            modelSign.merge({
+               status: 'Documento assinado',
+            })
+
+            sign_id = modelSign.id
+            arquivo = 'a_' + modelSign.arquivo
+            arquivoOriginal = modelSign.arquivo
+            docID = modelSign.doc_id
+            dataDoc = modelSign.dataDoc
+            assinatura = modelSign.assinatura
+            signatarioNome = modelSign.signatarioNome
+
+            const modelPessoaSign = await ModelPessoaSign.findBy(
+               'sign_id',
+               modelSign.id
+            )
+            pessoa_id = modelPessoaSign.pessoa_id
+            preCadastro_id = modelPessoaSign.preCadastro_id
+
+            const fileBuffer = fs.readFileSync(pasta + modelSign.arquivo)
+            const oHash = crypto.createHash('sha256')
+            hash = oHash.update(fileBuffer).digest('hex')
+            modelSign.hash = hash
+            modelSign.save()
+
+            await ModelSignLog.create({
+               sign_id: modelSign.id,
+               tipoEnvio: '',
+               ip,
+               isLog: true,
+               hostname: null,
+               descricao: `Assinado por ${modelSign.signatarioNome} (${modelSign.signatarioEmail}) IP: ${ip}`,
+            })
+         }
 
          const pessoa = await ModelPessoa.findOrFail(pessoa_id)
          pessoa.cpfCnpj =
@@ -142,14 +533,9 @@ class PreCadastroController {
          let matricula = `${pessoa.id}`
          matricula = matricula.padStart(10, '0')
 
-         const docID = await crypto.randomBytes(20).toString('hex')
-
-         const pasta = Helpers.tmpPath('pre_cadastro/inscricao/')
-         let arquivo = null
-
          if (!assinar) {
             arquivo = new Date().getTime() + '.pdf'
-            const modelSign = await ModelSign.create({
+            modelSign = await ModelSign.create({
                doc_id: docID,
                signatarioNome: data.signatarioNome,
                signatarioDNasc: data.signatarioDNasc,
@@ -171,11 +557,6 @@ class PreCadastroController {
                preCadastro_id,
             })
             sign_id = modelSign.id
-         }
-
-         if (assinar) {
-            const modelSign = await ModelSign.findOrFail(sign_id)
-            arquivo = 'a_' + modelSign.arquivo
          }
 
          const tels = {
@@ -806,7 +1187,7 @@ class PreCadastroController {
                            bold: false,
                            alignment: 'justify',
                            fontSize: 14,
-                           text: `Arquivo: ${arquivo}`,
+                           text: `Arquivo: ${arquivoOriginal}`,
                         },
                      ],
                      [
@@ -830,7 +1211,7 @@ class PreCadastroController {
                   text: `Assinatura do contratante`,
                },
                {
-                  text: 'Ivan Carlos Araujo de Oliveira',
+                  text: signatarioNome,
                   bold: false,
                   fontSize: 10,
                },
@@ -845,7 +1226,7 @@ class PreCadastroController {
                },
             ])
 
-            const logs = [
+            /*const logs = [
                {
                   createdAt: '02 dez 2020, 15:10:45',
                   descricao:
@@ -866,14 +1247,24 @@ class PreCadastroController {
                   descricao:
                      'Operador com email delta@testedeemail.com.br na conta 4569899a333080984 criou este documento numero 34509908add9908009das3. Data limite para assinatura do documento: 12 de dezembro de 2020 (15:30). Finalização automática após a ultima assinatua habilidada.',
                },
-            ]
+            ]*/
+
+            let modelLog = await ModelSignLog.query()
+               .where('sign_id', sign_id)
+               .where('isLog', true)
+               .orderBy('created_at', 'asc')
+               .fetch()
+            const logs = modelLog.rows
 
             logs.forEach((e, i) => {
                content.push({
                   columns: [
                      {
                         width: 100,
-                        text: e.createdAt,
+                        text: moment(
+                           e.created_at,
+                           'YYYY-MM-DD HH:mm:ss'
+                        ).format('DD/MM/YYYY hh:mm:ss'),
                         bold: false,
                         fontSize: 10,
                         margin: [0, i === 0 ? 10 : 10, 0, 0],
@@ -939,7 +1330,7 @@ class PreCadastroController {
          console.log('=> ', pasta + arquivo)
 
          pdfDoc.on('end', t => {
-            console.log('terminou.', t)
+            //console.log('terminou.', t)
             /*response
                .header('Content-type', 'application/pdf')
                .download(pasta + arquivo)*/
@@ -957,35 +1348,113 @@ class PreCadastroController {
             })
             .fetch()*/
 
-         response.status(200).send(pessoa)
+         if (assinar) {
+            return pessoa
+         } else {
+            response.status(200).send(pessoa)
+         }
       } catch (e) {
-         response.status(400).send({ message: 'falhou' })
+         let mensagem = 'Ocorreu uma falha de transação'
+         if (lodash.has(e, 'message')) {
+            mensagem = e.message
+         }
+         if (lodash.has(e, 'mensagem')) {
+            mensagem = e.mensagem
+         }
+
+         response.status(400).send({ message: mensagem })
       }
    }
 
    async fichaInscricaoPDF({ request, response }) {
+      const data = request.all()
+      const controle = data.controle // sign_id= sem encrypt  id= encrypt
+      const doc = data.doc // "arquivo-original" / "arquivo-assinado"
+      let sign_id = data.id
+      let isLink = data.isLink //? data.isLink : true
+      if (isLink === undefined) isLink = true
+
       const pasta = Helpers.tmpPath('pre_cadastro/inscricao/')
-      let arquivo = `arq.pdf`
-      arquivo = arquivo.trim()
-      console.log('reques ', request)
+      let arquivoOriginal = null
+      let arquivoAssinado = null
+      let arquivo = null
+      let digito = null
 
-      const fileBuffer = fs.readFileSync(pasta + arquivo)
-      const hash = crypto.createHash('sha256')
-      const finalHex = hash.update(fileBuffer).digest('hex')
+      try {
+         if (controle === 'id') {
+            let oDecrypt = this.decrypt(`${sign_id}`) // Encryption.decrypt(sign_id)
+            sign_id = oDecrypt.id
+            digito = oDecrypt.cpf
+         }
 
-      //const stat = await fs.stat(pasta + arquivo)
-      console.log(finalHex)
+         const modelSign = await ModelSign.find(sign_id)
 
-      /*const Encryption = use('Encryption')
-      const encrypted = Encryption.encrypt(100)
+         sign_id = modelSign.id
+         if (!modelSign.arquivo) {
+            throw {
+               message: 'Ainda não foi gerado um documento para assinatura.',
+            }
+         } else {
+            arquivoOriginal = modelSign.arquivo
+         }
+         if (modelSign.status === 'Documento assinado') {
+            arquivoAssinado = 'a_' + modelSign.arquivo
+         }
+         if (doc === 'arquivo-assinado' && !arquivoAssinado) {
+            throw { message: 'Este documento ainda não foi assinado' }
+         } else {
+            arquivo = arquivoAssinado
+         }
+         if (doc === 'arquivo-original') {
+            arquivo = arquivoOriginal
+         }
 
-      console.log('encryption= ', encrypted)
-      console.log('description= ', Encryption.decrypt(encrypted))*/
+         if (isLink) {
+            /*fs.readFile(
+               pasta + arquivo,
+               { encoding: 'base64' },
+               async (err, data) => {
+                  if (err) {
+                     throw err
+                  }
 
-      console.log('=> ', pasta + arquivo)
-      response
-         .header('Content-type', 'application/pdf')
-         .download(pasta + arquivo)
+                  response.status(200).send(data)
+               }
+            )*/
+            const dt = fs.readFileSync(pasta + arquivo, {
+               encoding: 'base64',
+               flag: 'r',
+            })
+            response.status(200).send(dt)
+            //response.status(200).send({ success: true, arquivo:  })
+         } else {
+            response
+               .header('Content-type', 'application/pdf')
+               .download(pasta + arquivo)
+         }
+      } catch (e) {
+         let mensagem = 'Ocorreu uma falha de transação'
+         if (lodash.has(e, 'message')) {
+            mensagem = e.message
+         }
+         if (lodash.has(e, 'mensagem')) {
+            mensagem = e.mensagem
+         }
+
+         response.status(400).send({ message: mensagem })
+      }
+   }
+
+   encrypt(o) {
+      const cpf = o.signatarioCpf.substring(0, 4)
+
+      return `${cpf}${o.id}`
+   }
+
+   decrypt(hash) {
+      if (!hash) return { id: null, cpf: '' }
+      if (hash.lenght < 5) return { id: null, cpf: '' }
+      return { id: hash.substr(4), cpf: hash.substring(0, 4) }
    }
 }
 

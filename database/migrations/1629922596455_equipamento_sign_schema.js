@@ -26,6 +26,8 @@ class EquipamentoSignSchema extends Schema {
             .onUpdate('CASCADE')
             .onDelete('CASCADE')
 
+         table.integer('preCadastro_id', 15).notNullable().index()
+
          table.timestamps()
       })
    }
