@@ -1,6 +1,7 @@
 'use strict'
 const lodash = require('lodash')
 const moment = require('moment')
+const Beneficio = require('../Models/Beneficio')
 
 const Model = use('App/Models/Equipamento')
 const EquipamentoStatus = use('App/Models/EquipamentoStatus')
@@ -16,6 +17,7 @@ const FileConfig = use('App/Models/FileConfig')
 const Galeria = use('App/Models/File')
 const LancamentoService = use('App/Services/Lancamento')
 const ModelCategoria = use('App/Models/Categoria')
+const ModelBeneficio = use('App/Models/Beneficio')
 
 const Env = use('Env')
 
@@ -1716,6 +1718,15 @@ class Equipamento {
          let field_value = payload.field_value
          let beneficio_id = payload.beneficio_id
 
+         /*let beneficios = await ModelBeneficio.query() //.select('id')
+            .select('id')
+            .where('modelo', 'Assistencia 24h')
+            .fetch()
+         let arrBeneficios = []
+         beneficios.rows.forEach(e => {
+            arrBeneficios.push(e.id)
+         })*/
+
          let where = ''
 
          if (field_name === 'placa') {
@@ -1773,14 +1784,14 @@ class Equipamento {
                ${DB_DATABASE}.pessoas on equipamentos.pessoa_id = pessoas.id
          WHERE
 
-               equipamento_beneficios.beneficio_id = ? and ${where}
+               beneficios.modelo = 'Assistencia 24h' and ${where}
 
          ${limit}
 
 
          `
 
-         const query = await Database.raw(sql, [beneficio_id, field_value])
+         const query = await Database.raw(sql, [field_value])
 
          return query
       } catch (e) {

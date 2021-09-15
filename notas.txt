@@ -17,3 +17,8 @@ b) baixa (Sim, Não)
 
 3) Alterar tabela de equipamentos
 -> status => add 'Pre-cadastro
+
+4) Alterar na tabela pessoas
+-> status => ENUM('Ativo', 'Inativo', 'Bloqueado', 'Pre-cadastro')
+-> alterar tambem na tabela pessoa e equipamentoStatuses
+

@@ -15,6 +15,8 @@ const ModelEquipamentoSign = use('App/Models/EquipamentoSign')
 const ModelSignLog = use('App/Models/SignLog')
 const ModelEquipamento = use('App/Models/Equipamento')
 
+const URL_SERVIDOR_SIGN_EMAIL = Env.get('URL_SERVIDOR_SIGN_EMAIL')
+
 class EquipamentoSignController {
    moeda(n) {
       let c = new Intl.NumberFormat('de-DE').format(n)
@@ -884,6 +886,8 @@ class EquipamentoSignController {
             arquivo = arquivoOriginal
          }
 
+         console.log('arquivo= ', pasta + arquivo)
+
          if (isLink) {
             /*fs.readFile(
                pasta + arquivo,
@@ -918,18 +922,6 @@ class EquipamentoSignController {
 
          response.status(400).send({ message: mensagem })
       }
-   }
-
-   encrypt(o) {
-      const cpf = o.signatarioCpf.substring(0, 4)
-
-      return `${cpf}${o.id}`
-   }
-
-   decrypt(hash) {
-      if (!hash) return { id: null, cpf: '' }
-      if (hash.lenght < 5) return { id: null, cpf: '' }
-      return { id: hash.substr(4), cpf: hash.substring(0, 4) }
    }
 
    async tokenSign({ params, response }) {
@@ -1145,7 +1137,7 @@ class EquipamentoSignController {
          const URL_SERVIDOR_WEB = Env.get('URL_SERVIDOR_SIGN')
          const signJSON = modelSign.toJSON()
          const crypto_sign_id = this.encrypt(signJSON) //Encryption.encrypt(signJSON.id)
-         signJSON.link = `${URL_SERVIDOR_WEB}/equipa/${crypto_sign_id}`
+         signJSON.link = `${URL_SERVIDOR_WEB}/doc?token=${crypto_sign_id}`
 
          const assunto = 'Assinar documento: Requerimento de Adesão'
 
@@ -1157,7 +1149,7 @@ class EquipamentoSignController {
             message => {
                message
                   .to(modelSign.signatarioEmail)
-                  .from('investimentos@abpac.com.br')
+                  .from(URL_SERVIDOR_SIGN_EMAIL)
                   .subject(assunto)
                //.attach(Helpers.tmpPath('ACBr/pdf/boleto_50173.pdf'))
                //.embed(Helpers.publicPath('images/logo-abpac.png'), 'logo')
@@ -1219,6 +1211,18 @@ class EquipamentoSignController {
 
          response.status(400).send({ message: mensagem })
       }
+   }
+
+   encrypt(o) {
+      const cpf = o.signatarioCpf.substring(0, 4)
+
+      return `${cpf}${o.id}`
+   }
+
+   decrypt(hash) {
+      if (!hash) return { id: null, cpf: '' }
+      if (hash.lenght < 5) return { id: null, cpf: '' }
+      return { id: hash.substr(4), cpf: hash.substring(0, 4) }
    }
 }
 

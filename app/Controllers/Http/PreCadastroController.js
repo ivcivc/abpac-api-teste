@@ -10,6 +10,11 @@ const ModelSign = use('App/Models/Sign')
 const ModelSignLog = use('App/Models/SignLog')
 const ModelPreCadastro = use('App/Models/PreCadastro')
 const ModelEquipamento = use('App/Models/Equipamento')
+const ModelOsConfig = use('App/Models/ordem_servico/OsConfig')
+//const ModelOrdemServico= use('App/Models/ordem_servico/OrdemServico')
+const OrdemServicoServices = use('App/Services/OrdemServico')
+const Drive = use('Drive')
+
 const BrM = require('br-masks')
 const crypto = require('crypto')
 //const uuid = require('uuid')
@@ -18,8 +23,241 @@ const Env = use('Env')
 const lodash = use('lodash')
 const Database = use('Database')
 
+const URL_SERVIDOR_SIGN_EMAIL = Env.get('URL_SERVIDOR_SIGN_EMAIL')
+
 class PreCadastroController {
-   async localizarPorID({ params, response }) {
+   async pdf_link({ params, response }) {
+      try {
+         console.log('pdf link ', params.sign_id)
+         const sign_id_encrypt = params.sign_id
+
+         let oDecrypt = this.decrypt(`${sign_id_encrypt}`) // Encryption.decrypt(sign_id)
+         const sign_id = oDecrypt.id
+         const digito = oDecrypt.cpf
+
+         const modelSign = await ModelSign.find(sign_id)
+
+         if (!modelSign) {
+            throw { success: false, message: 'Documento não reconhecido.' }
+         }
+
+         if (modelSign.status !== 'Enviado para assinatura') {
+            let st = 'status-invalido'
+            if (modelSign.status === 'Documento assinado') {
+               st = 'status-assinado'
+            }
+            return response
+               .status(200)
+               .send({ success: false, link: null, status: st })
+         }
+
+         let pastaTipo = ''
+
+         if (modelSign.tipo === 'Requerimento de Inscrição') {
+            pastaTipo = `inscricao`
+         }
+         if (modelSign.tipo === 'Requerimento de Adesão') {
+            pastaTipo = `adesao`
+         }
+
+         let file = Helpers.tmpPath(
+            `pre_cadastro/${pastaTipo}/${modelSign.arquivo}`
+         )
+         console.log('pdf_link arquivo= ', file)
+         let existe = await Drive.exists(file)
+
+         if (!existe) {
+            return response.status(200).send({
+               signatarioEmail: modelSign.signatarioEmail,
+               signatarioNome: modelSign.signatarioNome,
+               signatarioCpf: BrM.cpf(modelSign.signatarioCpf),
+               signatarioDNasc: moment(
+                  modelSign.signatarioDNasc,
+                  'YYYY-MM-DD'
+               ).format('DD/MM/YYYY'),
+               tipo: pastaTipo,
+               doc: modelSign.arquivo,
+               success: false,
+               message: 'Documento não localizado.',
+            })
+         }
+
+         //const URL_SERVIDOR_WEB = Env.get('URL_SERVIDOR_SIGN')
+
+         return response.status(200).send({
+            signatarioEmail: modelSign.signatarioEmail,
+            signatarioNome: modelSign.signatarioNome,
+            signatarioCpf: BrM.cpf(modelSign.signatarioCpf),
+            signatarioDNasc: moment(
+               modelSign.signatarioDNasc,
+               'YYYY-MM-DD'
+            ).format('DD/MM/YYYY'),
+            tipo: pastaTipo,
+            doc: modelSign.arquivo,
+            success: true,
+         })
+
+         /*return response
+            .header('Content-type', 'application/pdf')
+            .download(file)*/
+      } catch (e) {
+         console.log(e)
+         response
+            .status(400)
+            .send({ success: false, message: 'Documento não localizado ' })
+      }
+   }
+
+   async pdf({ params, response }) {
+      try {
+         const arquivo = params.arquivo
+         const tipo = params.tipo
+         let pasta = ''
+         if (tipo === 'inscricao') {
+            pasta = Helpers.tmpPath(`pre_cadastro/inscricao/${arquivo}`)
+         }
+         if (tipo === 'adesao') {
+            pasta = Helpers.tmpPath(`pre_cadastro/adesao/${arquivo}`)
+         }
+         console.log(arquivo)
+         console.log('>>>>>>>>>>>>>>>>>>>> ', pasta)
+         if (arquivo) {
+            let existe = await Drive.exists(pasta)
+
+            return response
+               .header('Content-type', 'application/pdf')
+               .download(pasta)
+         }
+         return response.status(501)
+      } catch (e) {
+         console.log('PRINCIPAL ', e)
+         response
+            .status(200)
+            .send({ success: false, message: 'modulo principal ' + e.message })
+      }
+   }
+
+   async update({ request, response, auth }) {
+      const data = request.all()
+      let trx = null
+      console.log('persistir ', data)
+      try {
+         if (!trx) {
+            trx = await Database.beginTransaction()
+         }
+
+         const model = await ModelPreCadastro.findOrFail(data.id)
+
+         const o = {
+            //pessoa_id: model.pessoa_id,
+            valorAdesao: data.valorAdesao,
+            nota: data.nota,
+            dAutorizacao: !lodash.isEmpty(data.dAutorizacao)
+               ? moment(data.dAutorizacao, 'YYYY-MM-DD').format('YYYY-MM-DD')
+               : null,
+            status: data.status,
+         }
+         console.log('o= ', o)
+
+         if (data.status === 'Autorizado' && model.status !== 'Autorizado') {
+            await ModelPessoa.query()
+               .where('id', model.pessoa_id)
+               .where('status', 'Pre-cadastro')
+               .transacting(trx ? trx : null)
+               .update({ status: 'Ativo', updated_at: moment() })
+
+            await ModelEquipamento.query()
+               .where('preCadastro_id', model.id)
+               .where('status', 'Pre-cadastro')
+               .transacting(trx ? trx : null)
+               .update({ status: 'Ativo', updated_at: moment() })
+         }
+         if (data.status !== 'Autorizado' && model.status === 'Autorizado') {
+            await ModelPessoa.query()
+               .where('id', model.pessoa_id)
+               .where('status', 'Ativo')
+               .transacting(trx ? trx : null)
+               .update({ status: 'Pre-cadastro', updated_at: moment() })
+
+            await ModelEquipamento.query()
+               .where('preCadastro_id', model.id)
+               .where('status', 'Ativo')
+               .transacting(trx ? trx : null)
+               .update({ status: 'Pre-cadastro', updated_at: moment() })
+         }
+
+         model.merge(o)
+         await model.save(trx)
+
+         await trx.commit()
+
+         return await this.localizarPorID({ params: { id: model.id } })
+      } catch (e) {
+         await trx.rollback()
+         throw e
+      }
+   }
+
+   async gerarOsAdesao({ request, response, auth }) {
+      const data = request.all()
+      let trx = null
+
+      try {
+         if (!trx) {
+            trx = await Database.beginTransaction()
+         }
+         const modelOsConfig = await ModelOsConfig.findByOrFail(
+            'modelo',
+            'Adesão'
+         )
+
+         const os = {
+            pessoa_id: data.pessoa_id,
+            config_id: modelOsConfig.id,
+            user_id: auth.user.id,
+            dCompetencia: moment(data.dAdesao, 'YYYY-MM-DD').format(
+               'YYYY-MM-DD'
+            ),
+            status: 'Em espera',
+            valorSubtotal: data.valorAdesao,
+            valorTotal: data.valorAdesao,
+            isPagar: false,
+            isReceber: true,
+            isRatear: false,
+            preCadastro_id: data.preCadastro_id,
+            equipamento_id: data.equipamento_id,
+            //planoDeConta_id: modelOsConfig.planoDeConta_id,
+
+            items: [
+               {
+                  quantidade: 1,
+                  descricao: 'Adesão',
+                  valorBase: data.valorAdesao,
+                  subtotal: data.valorAdesao,
+                  total: data.valorAdesao,
+               },
+            ],
+         }
+
+         const modelPreCadastro = await ModelPreCadastro.findOrFail(
+            data.preCadastro_id
+         )
+         modelPreCadastro.merge({ valorAdesao: data.valorAdesao })
+         modelPreCadastro.save(trx)
+
+         const serviceOS = await new OrdemServicoServices().add(os, trx, auth)
+
+         await trx.commit()
+
+         //const modelOrdemServico = await ModelOrdemServico.create()
+         return serviceOS
+      } catch (e) {
+         await trx.rollback()
+         throw e
+      }
+   }
+
+   async localizarPorID({ params }) {
       const preCadastro_id = params.id
       try {
          const modelPreCadastro = await ModelPreCadastro.findOrFail(
@@ -30,7 +268,7 @@ class PreCadastroController {
             preCadastro_id
          )
          const modelPessoa = await ModelPessoa.findOrFail(
-            modelPessoaSign.pessoa_id
+            modelPreCadastro.pessoa_id
          )
          await modelPessoa.load('pessoaSigns.signs')
          const queryEquipamento = await ModelEquipamento.query()
@@ -44,11 +282,20 @@ class PreCadastroController {
             .with('equipamentoRestricaos')
             .fetch()
 
-         return {
+         const ordemServicoServices =
+            await new OrdemServicoServices().getPreCadastro(modelPreCadastro.id)
+
+         let retorno = {
             pessoa: modelPessoa,
             preCadastro: modelPreCadastro,
             equipamentos: queryEquipamento.rows,
          }
+
+         if (ordemServicoServices) {
+            retorno.os = ordemServicoServices
+         }
+
+         return retorno
       } catch (error) {
          console.log('falhou ', error)
          return error
@@ -87,7 +334,7 @@ class PreCadastroController {
       }
    }
 
-   async toSign({ request, response }) {
+   async DELETAR____toSign({ request, response }) {
       const data = request.all()
       const sign_id_encrypt = data.id
       const token = data.token
@@ -134,7 +381,7 @@ class PreCadastroController {
             message => {
                message
                   .to(modelSign.signatarioEmail)
-                  .from('investimentos@abpac.com.br')
+                  .from(URL_SERVIDOR_SIGN_EMAIL)
                   .subject(assunto)
                //.attach(Helpers.tmpPath('ACBr/pdf/boleto_50173.pdf'))
                //.embed(Helpers.publicPath('images/logo-abpac.png'), 'logo')
@@ -165,7 +412,127 @@ class PreCadastroController {
       }
    }
 
-   async tokenSign({ params, response }) {
+   async validarTokenSign({ request, response }) {
+      const data = request.all()
+      const sign_id_encrypt = data.sign_id
+      let sign_id = null
+      let token = data.token
+      let success = true
+      let digito = null
+
+      try {
+         let oDecrypt = this.decrypt(`${sign_id_encrypt}`) // Encryption.decrypt(sign_id)
+         sign_id = oDecrypt.id
+         digito = oDecrypt.cpf
+
+         const modelSign = await ModelSign.find(sign_id)
+         if (modelSign.token !== token) {
+            success = false
+         }
+         response.status(200).send({ success })
+      } catch (e) {
+         response.status(400).send({
+            success: false,
+            message: 'Não foi possível validar o token.',
+         })
+      }
+   }
+
+   async reEnviarTokenSign({ params, response }) {
+      const sign_id_encrypt = params.sign_id
+      let sign_id = null
+      let modelSign = null
+      let token = null
+      let emailError = false
+      let mail = null
+      let digito = null
+
+      try {
+         let oDecrypt = this.decrypt(`${sign_id_encrypt}`) // Encryption.decrypt(sign_id)
+         sign_id = oDecrypt.id
+         digito = oDecrypt.cpf
+
+         modelSign = await ModelSign.find(sign_id)
+
+         if (!modelSign) {
+            throw { message: 'Assinatura não encontrada.' }
+         }
+
+         if (modelSign.status !== 'Enviado para assinatura') {
+            throw {
+               mensagem: 'Não foi possível gerar o token.',
+            }
+         }
+
+         if (!modelSign.token) {
+            token = await crypto.randomBytes(2).toString('hex')
+
+            modelSign.merge({
+               token,
+            })
+            const modelPessoaSign = await ModelPessoaSign.findBy(
+               'sign_id',
+               modelSign.id
+            )
+            await modelSign.save()
+         }
+
+         const modelPessoaSign = await ModelPessoaSign.findBy(
+            'sign_id',
+            modelSign.id
+         )
+         await modelSign.save()
+
+         //const URL_SERVIDOR_WEB = Env.get('URL_SERVIDOR_SIGN')
+         const signJSON = modelSign.toJSON()
+
+         const assunto = 'Token: Token de verificação de assinatura'
+
+         emailError = true
+
+         mail = await Mail.send(
+            'emails.sign_token_assinatura',
+            signJSON,
+            message => {
+               message
+                  .to(modelSign.signatarioEmail)
+                  .from(URL_SERVIDOR_SIGN_EMAIL)
+                  .subject(assunto)
+               //.attach(Helpers.tmpPath('ACBr/pdf/boleto_50173.pdf'))
+               //.embed(Helpers.publicPath('images/logo-abpac.png'), 'logo')
+            }
+         )
+
+         emailError = false
+
+         await ModelSignLog.create({
+            sign_id: signJSON.id,
+            tipoEnvio: 'email',
+            isLog: false,
+            hostname: signJSON.link,
+            descricao: `Token de verificação enviado para ${signJSON.signatarioNome} (${signJSON.signatarioEmail})`,
+         })
+
+         response
+            .status(200)
+            .send({ success: true, message: 'Token enviado com sucesso!' })
+      } catch (e) {
+         let mensagem = 'Ocorreu uma falha de transação'
+         if (lodash.has(e, 'message')) {
+            mensagem = e.message
+         }
+         if (lodash.has(e, 'mensagem')) {
+            mensagem = e.mensagem
+         }
+         if (emailError) {
+            message = 'Ocorreu uma falha no envio do email.'
+         }
+
+         response.status(400).send({ success: false, message: mensagem })
+      }
+   }
+
+   async enviarTokenSign({ params, response }) {
       const sign_id_encrypt = params.sign_id
       let sign_id = null
       let modelSign = null
@@ -210,7 +577,7 @@ class PreCadastroController {
             message => {
                message
                   .to(modelSign.signatarioEmail)
-                  .from('investimentos@abpac.com.br')
+                  .from(URL_SERVIDOR_SIGN_EMAIL)
                   .subject(assunto)
                //.attach(Helpers.tmpPath('ACBr/pdf/boleto_50173.pdf'))
                //.embed(Helpers.publicPath('images/logo-abpac.png'), 'logo')
@@ -227,7 +594,10 @@ class PreCadastroController {
             descricao: `Token de verificação enviado para ${signJSON.signatarioNome} (${signJSON.signatarioEmail})`,
          })
 
-         response.status(200).send({ message: 'Token enviado com sucesso!' })
+         response.status(200).send({
+            success: true,
+            message: 'Token enviado com sucesso! Confira o seu e-mail',
+         })
       } catch (e) {
          let mensagem = 'Ocorreu uma falha de transação'
          if (lodash.has(e, 'message')) {
@@ -236,8 +606,11 @@ class PreCadastroController {
          if (lodash.has(e, 'mensagem')) {
             mensagem = e.mensagem
          }
+         if (emailError) {
+            message = 'Ocorreu uma falha no envio do email.'
+         }
 
-         response.status(400).send({ message: mensagem })
+         response.status(400).send({ success: false, message: mensagem })
       }
    }
 
@@ -362,7 +735,7 @@ class PreCadastroController {
          const URL_SERVIDOR_WEB = Env.get('URL_SERVIDOR_SIGN')
          const signJSON = modelSign.toJSON()
          const crypto_sign_id = this.encrypt(signJSON) //Encryption.encrypt(signJSON.id)
-         signJSON.link = `${URL_SERVIDOR_WEB}/${crypto_sign_id}`
+         signJSON.link = `${URL_SERVIDOR_WEB}/#!/doc?token=${crypto_sign_id}`
 
          const assunto = 'Assinar documento: Ficha de Inscrição'
 
@@ -374,7 +747,7 @@ class PreCadastroController {
             message => {
                message
                   .to(modelSign.signatarioEmail)
-                  .from('investimentos@abpac.com.br')
+                  .from(URL_SERVIDOR_SIGN_EMAIL)
                   .subject(assunto)
                //.attach(Helpers.tmpPath('ACBr/pdf/boleto_50173.pdf'))
                //.embed(Helpers.publicPath('images/logo-abpac.png'), 'logo')
@@ -1409,6 +1782,8 @@ class PreCadastroController {
             arquivo = arquivoOriginal
          }
 
+         console.log('arquivo= ', pasta + arquivo)
+
          if (isLink) {
             /*fs.readFile(
                pasta + arquivo,
@@ -1453,6 +1828,7 @@ class PreCadastroController {
 
    decrypt(hash) {
       if (!hash) return { id: null, cpf: '' }
+      hash = hash.replace(/([^\d])+/gim, '')
       if (hash.lenght < 5) return { id: null, cpf: '' }
       return { id: hash.substr(4), cpf: hash.substring(0, 4) }
    }

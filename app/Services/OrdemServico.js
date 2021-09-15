@@ -18,6 +18,91 @@ const Database = use('Database')
 //const Mo = use('App/Models/OcorrenciaTerceiro')
 
 class OrdemServico {
+   async getPreCadastro(PRECADASTRO_ID) {
+      try {
+         const model = await Model.findBy('preCadastro_id', PRECADASTRO_ID)
+         await model.load('pessoa')
+         await model.load('items')
+         //await model.load('ocorrencia')
+         //await model.load('ocorrencia.terceiros')
+         //await model.load('ocorrencia.causa')
+         //await model.load('ocorrencia')
+         //await model.load('terceiro')
+         await model.load('user')
+         await model.load('config')
+         await model.load('lancamentos')
+
+         let json = model.toJSON()
+
+         if (json.ocorrencia_id) {
+            let ocorrenciaModel = await ModelOcorrencia.findOrFail(
+               json.ocorrencia_id
+            )
+
+            await ocorrenciaModel.load('terceiros')
+
+            json.ocorrencia = ocorrenciaModel.toJSON()
+
+            let pessoaModel = await ModelPessoa.findOrFail(
+               json.ocorrencia.pessoa_id
+            )
+
+            let oPessoa = pessoaModel.toJSON()
+            json.ocorrencia.pessoa = {
+               id: oPessoa.id,
+               nome: oPessoa.nome,
+               cpfCnpj: oPessoa.cpfCnpj,
+            }
+
+            let equipamentoModel = await ModelEquipamento.findOrFail(
+               json.ocorrencia.equipamento_id
+            )
+            let equipaTmp = equipamentoModel.toJSON()
+            equipaTmp.placa =
+               equipaTmp[`${'placa' + json.ocorrencia.qualPlaca}`]
+            equipaTmp.marca =
+               equipaTmp[`${'marca' + json.ocorrencia.qualPlaca}`]
+            equipaTmp.modelo =
+               equipaTmp[`${'modelo' + json.ocorrencia.qualPlaca}`]
+            equipaTmp.anoF = equipaTmp[`${'anoF' + json.ocorrencia.qualPlaca}`]
+            equipaTmp.modeloF =
+               equipaTmp[`${'modeloF' + json.ocorrencia.qualPlaca}`]
+            equipaTmp.chassi =
+               equipaTmp[`${'chassi' + json.ocorrencia.qualPlaca}`]
+
+            json.ocorrencia.equipamento = equipaTmp
+         }
+
+         if (json.ocorrencia_terceiro_id) {
+            if (json.ocorrencia) {
+               if (json.ocorrencia.terceiros) {
+                  let terceiro = null
+                  json.ocorrencia.terceiros.forEach(e => {
+                     if (e.id === json.ocorrencia_terceiro_id) {
+                        terceiro = e
+                     }
+                  })
+                  if (terceiro) {
+                     json.terceiro = terceiro
+                  }
+               }
+            }
+         }
+
+         if (json.equipamento_id) {
+            let equipamentoModel = await ModelEquipamento.findOrFail(
+               json.equipamento_id
+            )
+            await equipamentoModel.load('pessoa')
+            json.equipamento = equipamentoModel.toJSON()
+         }
+
+         return json
+      } catch (e) {
+         return null
+      }
+   }
+
    async get(ID) {
       try {
          const model = await Model.findOrFail(ID)
@@ -104,7 +189,7 @@ class OrdemServico {
    }
 
    async add(data, trx, auth) {
-      console.log('ADD ======================================================')
+      console.log('ADD <======================================================')
       try {
          if (!trx) {
             trx = await Database.beginTransaction()
@@ -170,7 +255,9 @@ class OrdemServico {
    }
 
    async update(ID, data, trx, auth) {
-      console.log('update ======================================================')
+      console.log(
+         'update ======================================================'
+      )
       let nrErro = null
       if (!trx) {
          trx = await Database.beginTransaction()
@@ -198,7 +285,6 @@ class OrdemServico {
                updated_at: moment(),
             })
             .transacting(trx ? trx : null)
-
 
          /**if (data.status !== os.status) {
             if (os.status !== 'Finalizado' && data.status === 'Finalizado') {
@@ -381,25 +467,23 @@ class OrdemServico {
 
    async localizarPor(payload, parametros) {
       return new Promise(async (resolve, reject) => {
-
-         let continuar= parametros.continue
-         let start= parametros.start
-         let count= parametros.count
-         let pagina= parametros.pagina
+         let continuar = parametros.continue
+         let start = parametros.start
+         let count = parametros.count
+         let pagina = parametros.pagina
 
          let field_name = payload.field_name
-         let field_value= payload.field_value
-         let field_value_status= payload.field_value_status
+         let field_value = payload.field_value
+         let field_value_status = payload.field_value_status
          let inicio = null
          let fim = null
          if (payload.field_value_periodo) {
             inicio = payload.field_value_periodo.start
             fim = payload.field_value_periodo.end
          }
-         let ordenar= payload.ordenar ? payload.ordenar : field_name // "id"
+         let ordenar = payload.ordenar ? payload.ordenar : field_name // "id"
 
-
-         let operador= '='
+         let operador = '='
 
          try {
             const query = Database.select([
@@ -451,124 +535,156 @@ class OrdemServico {
                'os_configs.descricao as descricao',
                'os_configs.modelo as modelo',
             ])
-               .from('ordem_servicos').distinct('ordem_servicos.id')
+               .from('ordem_servicos')
+               .distinct('ordem_servicos.id')
             query.leftOuterJoin(
-                  'ocorrencias',
-                  'ordem_servicos.ocorrencia_id',
-                  'ocorrencias.id'
-               )
+               'ocorrencias',
+               'ordem_servicos.ocorrencia_id',
+               'ocorrencias.id'
+            )
             query.leftOuterJoin(
-                  'equipamentos',
-                  'ocorrencias.equipamento_id',
-                  'equipamentos.id'
-               )
+               'equipamentos',
+               'ocorrencias.equipamento_id',
+               'equipamentos.id'
+            )
             query.leftOuterJoin(
-                  'pessoas as ocorrencia_pessoa',
-                  'ocorrencias.pessoa_id',
-                  'ocorrencia_pessoa.id'
-               )
+               'pessoas as ocorrencia_pessoa',
+               'ocorrencias.pessoa_id',
+               'ocorrencia_pessoa.id'
+            )
             query.leftOuterJoin(
-                  'equipamentos as equipamento',
-                  'ordem_servicos.equipamento_id',
-                  'equipamento.id'
-               )
+               'equipamentos as equipamento',
+               'ordem_servicos.equipamento_id',
+               'equipamento.id'
+            )
             query.leftOuterJoin(
-                  'pessoas',
-                  'ordem_servicos.pessoa_id',
-                  'pessoas.id'
-               )
+               'pessoas',
+               'ordem_servicos.pessoa_id',
+               'pessoas.id'
+            )
             query.leftOuterJoin(
                'ocorrencia_terceiros',
                'ordem_servicos.ocorrencia_terceiro_id',
                'ocorrencia_terceiros.id'
             )
             query.leftOuterJoin(
-                  'os_configs',
-                  'ordem_servicos.config_id',
-                  'os_configs.id'
-               )
+               'os_configs',
+               'ordem_servicos.config_id',
+               'os_configs.id'
+            )
 
-            if ( field_value_status) {
-               if ( field_value_status !== 'todos' && field_value_status !== 'em aberto') {
+            if (field_value_status) {
+               if (
+                  field_value_status !== 'todos' &&
+                  field_value_status !== 'em aberto'
+               ) {
                   console.log('status ', field_value_status)
-                  query.andWhere("ordem_servicos.status",  field_value_status)
+                  query.andWhere('ordem_servicos.status', field_value_status)
                }
-               if ( field_value_status === 'em aberto') {
-                  query.whereIn("ordem_servicos.status",  ['Em espera', 'Em execução'])
+               if (field_value_status === 'em aberto') {
+                  query.whereIn('ordem_servicos.status', [
+                     'Em espera',
+                     'Em execução',
+                  ])
                }
-
             }
 
-
             switch (field_name) {
-               case "id_os" :
+               case 'id_os':
                   console.log('os_id ', field_value)
-                  query.where("ordem_servicos.id", field_value)
+                  query.where('ordem_servicos.id', field_value)
                   break
 
-               case "ocorrencia_id" :
-                  query.where("ordem_servicos.ocorrencia_id", field_value)
+               case 'ocorrencia_id':
+                  query.where('ordem_servicos.ocorrencia_id', field_value)
                   break
 
-               case "nome" :
-                  query.where((builder) => {
-                     builder.orWhere('ocorrencia_pessoa.nome', 'like', '%' + field_value + '%')
-                     builder.orWhere('ocorrencia_terceiros.nome', 'like', '%' + field_value + '%')
-                     builder.orWhere('pessoas.nome', 'like', '%' + field_value + '%')
+               case 'nome':
+                  query.where(builder => {
+                     builder.orWhere(
+                        'ocorrencia_pessoa.nome',
+                        'like',
+                        '%' + field_value + '%'
+                     )
+                     builder.orWhere(
+                        'ocorrencia_terceiros.nome',
+                        'like',
+                        '%' + field_value + '%'
+                     )
+                     builder.orWhere(
+                        'pessoas.nome',
+                        'like',
+                        '%' + field_value + '%'
+                     )
                   })
                   /*query.orWhere('ocorrencia_pessoa.nome', 'like', '%' + field_value + '%')
                   query.orWhere('ocorrencia_terceiros.nome', 'like', '%' + field_value + '%')
                   query.orWhere('pessoas.nome', 'like', '%' + field_value + '%')*/
                   break
 
-               case "terceiro" :
-                  query.where('ocorrencia_terceiros.nome', 'like', '%' + field_value + '%')
+               case 'terceiro':
+                  query.where(
+                     'ocorrencia_terceiros.nome',
+                     'like',
+                     '%' + field_value + '%'
+                  )
                   break
 
-               case "fornecedor" :
+               case 'fornecedor':
                   query.where('pessoas.nome', 'like', '%' + field_value + '%')
                   break
 
-               case "placa" :
-                  query.where((builder) => {
-                     builder.orWhere('equipamentos.placa1', 'like', '%' + field_value + '%')
-                     builder.orWhere('equipamento.placa1', 'like', '%' + field_value + '%')
-                     builder.orWhere('ocorrencia_terceiros.placa', 'like', '%' + field_value + '%')
+               case 'placa':
+                  query.where(builder => {
+                     builder.orWhere(
+                        'equipamentos.placa1',
+                        'like',
+                        '%' + field_value + '%'
+                     )
+                     builder.orWhere(
+                        'equipamento.placa1',
+                        'like',
+                        '%' + field_value + '%'
+                     )
+                     builder.orWhere(
+                        'ocorrencia_terceiros.placa',
+                        'like',
+                        '%' + field_value + '%'
+                     )
                   })
                   break
 
-               case "rateio_id" :
-                  query.where("ordem_servicos.rateio_id", '=', field_value)
+               case 'rateio_id':
+                  query.where('ordem_servicos.rateio_id', '=', field_value)
                   break
 
-               case "competencia" :
+               case 'competencia':
                   query.whereBetween('dCompetencia', [inicio, fim])
                   break
-
             }
 
             switch (ordenar) {
-               case "id_os" :
+               case 'id_os':
                   query.orderBy('ordem_servicos.id', 'desc')
                   break
-               case "dCompetencia" :
+               case 'dCompetencia':
                   query.orderBy('ordem_servicos.dCompetencia', 'desc')
                   break
-               case "tipo" :
+               case 'tipo':
                   query.orderBy('os_configs.descricao', 'asc')
                   break
-               case "fornecedor" :
-                  query.orderBy('ordem_servicos.id','desc')
+               case 'fornecedor':
+                  query.orderBy('ordem_servicos.id', 'desc')
                   break
-               case "associado" :
+               case 'associado':
                   query.orderBy('ocorrencia_pessoa.nome', 'asc')
                   break
-               case "terceiro" :
+               case 'terceiro':
                   query.orderBy('ocorrencia_terceiros.nome', 'asc')
                   break
-               case "nome" :
+               case 'nome':
                   query.orderBy('ocorrencia_pessoa.nome', 'asc')
-                  query.orderBy('ordem_servicos.id','desc')
+                  query.orderBy('ordem_servicos.id', 'desc')
 
                   //query.orderBy([{ column: 'ocorrencia_terceiros.nome'}, { column: 'ordem_servicos.id', order: "desc"])
                   break
@@ -576,16 +692,15 @@ class OrdemServico {
 
             const res = await query.paginate(pagina, count)
 
-            res.data.forEach(e => e.field_name= field_name)
+            res.data.forEach(e => (e.field_name = field_name))
 
-            const retorno= {
+            const retorno = {
                pos: continuar ? start : 0,
                total_count: res.total,
-               data: res.data
+               data: res.data,
             }
 
             resolve(retorno)
-
          } catch (e) {
             reject(e)
          }
@@ -1063,7 +1178,6 @@ class OrdemServico {
          }
       })
    }
-
 }
 
 module.exports = OrdemServico

@@ -747,16 +747,21 @@ Route.group(() => {
    Route.post('/sign/equipa/solicitarAssinatura', 'EquipamentoSignController.solicitarAssinatura').middleware([
       'auth'
    ])
-   Route.get('/sign/equipa/token/:sign_id', 'EquipamentoSignController.tokenSign')
+   //Route.get('/sign/equipa/token/:sign_id', 'EquipamentoSignController.tokenSign')
    Route.post('/sign/equipa/cancelSign', 'EquipamentoSignController.cancelSign').middleware([
       'auth'
    ])
-   Route.post('/sign/equipa/pdf', 'EquipamentoSignController.pdf')
-   Route.post('/sign/equipa/toSign', 'EquipamentoSignController.contratoAdesao')
+   Route.post('/sign/adesao/pdf', 'EquipamentoSignController.pdf')
+   Route.post('/sign/adesao/toSign', 'EquipamentoSignController.contratoAdesao')
+
+   Route.get('/sign/pdf_link/:sign_id', 'PreCadastroController.pdf_link')
+   Route.get('/sign/pdf/:tipo/:arquivo', 'PreCadastroController.pdf')
 
 
-   Route.post('/sign/toSign', 'PreCadastroController.fichaInscricao')
-   Route.get('/sign/token/:sign_id', 'PreCadastroController.tokenSign')
+   Route.post('/sign/inscricao/toSign', 'PreCadastroController.fichaInscricao')
+   Route.get('/sign/token/:sign_id', 'PreCadastroController.enviarTokenSign')
+   Route.get('/sign/retoken/:sign_id', 'PreCadastroController.reEnviarTokenSign')
+   Route.post('/sign/validarTokenSign', 'PreCadastroController.validarTokenSign')
    Route.post('/sign/cancelSign', 'PreCadastroController.cancelSign').middleware([
       'auth'
    ])
@@ -773,6 +778,12 @@ Route.group(() => {
 
    Route.get('/preCadastro/localizarPorID/:id', 'PreCadastroController.localizarPorID')
    Route.post('/preCadastro/localizarPor', 'PreCadastroController.localizarPor')
+   Route.post('/preCadastro/gerarOsAdesao', 'PreCadastroController.gerarOsAdesao').middleware([
+      'auth'
+   ])
+   Route.post('/preCadastro/update', 'PreCadastroController.update').middleware([
+      'auth'
+   ])
    /*Route.get('/filemanager/folders', 'GerenciadorArquivoController.folders')
    Route.get('/filemanager/files', 'GerenciadorArquivoController.files')
    Route.get('/filemanager/info', 'GerenciadorArquivoController.info')

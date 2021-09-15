@@ -14,7 +14,7 @@ class CategoriaSchema extends Schema {
    down() {
       this.table('categorias', table => {
          // reverse alternations
-         this.drop('valorAdesao')
+         table.dropColumn('valorAdesao')
       })
    }
 }

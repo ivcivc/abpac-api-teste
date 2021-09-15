@@ -17,6 +17,8 @@ class PreCadastroSchema extends Schema {
             .onDelete('CASCADE')
             .defaultTo(null)
 
+         table.decimal('valorAdesao', 11, 2).defaultTo(0.0)
+
          table.text('nota')
          table.date('dAutorizacao').defaultTo(null)
 

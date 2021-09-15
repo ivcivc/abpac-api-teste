@@ -115,7 +115,7 @@ class Pessoa {
 
          if (isPreCadastro) {
             json.preCadastro = pre.toJSON()
-            json.signs = []
+            json.pessoaSigns = []
          }
 
          return json
