@@ -1137,7 +1137,7 @@ class EquipamentoSignController {
          const URL_SERVIDOR_WEB = Env.get('URL_SERVIDOR_SIGN')
          const signJSON = modelSign.toJSON()
          const crypto_sign_id = this.encrypt(signJSON) //Encryption.encrypt(signJSON.id)
-         signJSON.link = `${URL_SERVIDOR_WEB}/doc?token=${crypto_sign_id}`
+         signJSON.link = `${URL_SERVIDOR_WEB}/#!/doc?token=${crypto_sign_id}`
 
          const assunto = 'Assinar documento: Requerimento de Adesão'
 
