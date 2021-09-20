@@ -22,3 +22,13 @@ b) baixa (Sim, Não)
 -> status => ENUM('Ativo', 'Inativo', 'Bloqueado', 'Pre-cadastro')
 -> alterar tambem na tabela pessoa e equipamentoStatuses
 
+API_URL=http://localhost:3333/api
+URL_SERVIDOR_WEB=https://abpac-app.com.br/web
+
+URL_SERVIDOR_SIGN=https://www.abpac-app.com.br/sign
+URL_SERVIDOR_SIGN_EMAIL=investimentos@abpac.com.br
+URL_SERVIDOR=https://abpac-app.com.br/api
+
+ZAP_URL=http://localhost:3332
+ZAP_SESSION=my
+************************** /// 16-09-2021

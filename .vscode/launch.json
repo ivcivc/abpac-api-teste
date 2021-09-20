@@ -18,10 +18,20 @@
          "runtimeExecutable": "npm",
          "runtimeArgs": ["run", "dev"],
          "port": 9229,
-         "internalConsoleOptions": "neverOpen",
-         //"console": "internalConsole",
+         "internalConsoleOptions":"openOnSessionStart"  ,
+         //"console": "internalConsole" "neverOpen",
       },
       {
+         "type": "node",
+         "request": "launch",
+         "name": "Debug Tests",
+         "program": "${workspaceFolder}/ace.js",
+         "args": [
+           "test"
+         ],
+         "internalConsoleOptions": "openOnSessionStart"
+       }
+      /*{
          "type": "node",
          "request": "launch",
          "name": "Debug Kue",
@@ -38,6 +48,6 @@
          "program": "${workspaceFolder}/ace.js",
          "args": ["test"],
          "internalConsoleOptions": "openOnSessionStart"
-      }
+      }*/
    ]
 }

@@ -11,81 +11,81 @@ const lodash = use('lodash')
 const Database = use('Database')
 
 class Pessoa {
-   async update(ID, data, trx) {
-      try {
-         let pessoa = await Model.findOrFail(ID)
+	async update(ID, data, trx) {
+		try {
+			let pessoa = await Model.findOrFail(ID)
 
-         delete data['status']
-         delete data['cpfCnpj']
+			delete data['status']
+			delete data['cpfCnpj']
 
-         //let pendencias= data.pendencias
-         delete data['pendencias']
-         delete data['preCadastro']
-         delete data['pessoaSigns']
+			//let pendencias= data.pendencias
+			delete data['pendencias']
+			delete data['preCadastro']
+			delete data['pessoaSigns']
 
-         pessoa.merge(data)
+			pessoa.merge(data)
 
-         await pessoa.save(trx ? trx : null)
-         await pessoa.load('pessoaSigns.signs')
+			await pessoa.save(trx ? trx : null)
+			await pessoa.load('pessoaSigns.signs')
 
-         return pessoa
-      } catch (e) {
-         throw {
-            message: e.message,
-            sqlMessage: e.sqlMessage,
-            sqlState: e.sqlState,
-            errno: e.errno,
-            code: e.code,
-         }
-      }
-   }
+			return pessoa
+		} catch (e) {
+			throw {
+				message: e.message,
+				sqlMessage: e.sqlMessage,
+				sqlState: e.sqlState,
+				errno: e.errno,
+				code: e.code,
+			}
+		}
+	}
 
-   async add(data, trx, auth) {
-      let isPreCadastro = null
-      try {
-         if (!trx) {
-            trx = await Database.beginTransaction()
-         }
+	async add(data, trx, auth) {
+		let isPreCadastro = null
+		try {
+			if (!trx) {
+				trx = await Database.beginTransaction()
+			}
 
-         if (!data.tipo) {
-            data.tipo = 'Associado'
-         }
+			if (!data.tipo) {
+				data.tipo = 'Associado'
+			}
 
-         if (data.tipo === 'Fornecedor') {
-            data.tipo = 'Fornecedor'
-         } else {
-            data.tipo = 'Associado'
-         }
+			if (data.tipo === 'Fornecedor') {
+				data.tipo = 'Fornecedor'
+			} else {
+				data.tipo = 'Associado'
+			}
 
-         if (lodash.has(data, 'isPreCadastro')) {
-            if (data.isPreCadastro) {
-               isPreCadastro = true
-            }
-            delete data['isPreCadastro']
-         }
+			if (lodash.has(data, 'isPreCadastro')) {
+				if (data.isPreCadastro) {
+					isPreCadastro = true
+				}
+				delete data['isPreCadastro']
+			}
 
-         let pendencias = data.pendencias
-         delete data['pendencias']
+			let pendencias = data.pendencias
+			delete data['pendencias']
 
-         const pessoa = await Model.create(data, trx ? trx : null)
+			const pessoa = await Model.create(data, trx ? trx : null)
 
-         const status = {
-            pessoa_id: pessoa.id,
-            user_id: auth.user.id,
-            motivo: 'Inclusão de Associado gerado pelo sistema.',
-            status: 'Ativo',
-         }
-         await PessoaStatus.create(status, trx ? trx : null)
+			const status = {
+				pessoa_id: pessoa.id,
+				user_id: auth.user.id,
+				motivo: 'Inclusão de Associado gerado pelo sistema.',
+				status: 'Ativo',
+			}
+			await PessoaStatus.create(status, trx ? trx : null)
 
-         const pre = await ModelPreCadastro.create(
-            {
-               pessoa_id: pessoa.id,
-               status: 'Pendente',
-            },
-            trx ? trx : null
-         )
+			const pre = await ModelPreCadastro.create(
+				{
+					pessoa_id: pessoa.id,
+					status: 'Pendente',
+				},
+				trx ? trx : null
+			)
 
-         /*if ( pendencias) {
+			/*if ( pendencias) {
         for (let i= 0; i < pendencias.length; i++) {
             pendencias[i].pessoa_id= pessoa.id
           console.log('e= ', pendencias[i])
@@ -94,117 +94,207 @@ class Pessoa {
 
       }*/
 
-         const fileConfig = await FileConfig.query()
-            .where('modulo', 'like', 'Associado')
-            .fetch()
+			const fileConfig = await FileConfig.query()
+				.where('modulo', 'like', 'Associado')
+				.fetch()
 
-         for (const i in fileConfig.rows) {
-            const payload = {
-               descricao: fileConfig.rows[i].descricao,
-               modulo: fileConfig.rows[i].modulo,
-               idParent: pessoa.id,
-               pessoa_id: pessoa.id,
-               status: 'Pendente',
-            }
-            const model = await Galeria.create(payload, trx)
-         }
+			for (const i in fileConfig.rows) {
+				const payload = {
+					descricao: fileConfig.rows[i].descricao,
+					modulo: fileConfig.rows[i].modulo,
+					idParent: pessoa.id,
+					pessoa_id: pessoa.id,
+					status: 'Pendente',
+				}
+				const model = await Galeria.create(payload, trx)
+			}
 
-         await trx.commit()
+			await trx.commit()
 
-         const json = pessoa.toJSON()
+			const json = pessoa.toJSON()
 
-         if (isPreCadastro) {
-            json.preCadastro = pre.toJSON()
-            json.pessoaSigns = []
-         }
+			if (isPreCadastro) {
+				json.preCadastro = pre.toJSON()
+				json.pessoaSigns = []
+			}
 
-         return json
-      } catch (e) {
-         await trx.rollback()
-         throw e
-      }
-   }
+			return json
+		} catch (e) {
+			await trx.rollback()
+			throw e
+		}
+	}
 
-   async isCpfCnpj(doc, tipo = null, id = null) {
-      tipo = tipo === 'Fornecedor' ? 'Fornecedor' : 'Associado'
-      if (tipo === 'Fornecedor') {
-         if (lodash.isEmpty(doc)) {
-            return { isCpfCnpj: false }
-         }
-      }
-      if (id) {
-         id = parseInt(id)
-      }
-      try {
-         const pessoa = await Model.query()
-            .where('tipo', tipo)
-            .where('cpfCnpj', doc)
-            .fetch()
+	async isCpfCnpj(doc, tipo = null, id = null) {
+		tipo = tipo === 'Fornecedor' ? 'Fornecedor' : 'Associado'
+		if (tipo === 'Fornecedor') {
+			if (lodash.isEmpty(doc)) {
+				return { isCpfCnpj: false }
+			}
+		}
+		if (id) {
+			id = parseInt(id)
+		}
+		try {
+			const pessoa = await Model.query()
+				.where('tipo', tipo)
+				.where('cpfCnpj', doc)
+				.fetch()
 
-         const recno = pessoa.rows.length
+			const recno = pessoa.rows.length
 
-         if (tipo === 'Associado' && !id && recno === 0) {
-            return { isCpfCnpj: false }
-         }
-         if (tipo === 'Associado' && id && recno === 0) {
-            return { isCpfCnpj: false }
-         }
-         if (tipo === 'Associado' && !id && recno > 0) {
-            return { isCpfCnpj: true }
-         }
-         if (tipo === 'Associado' && id && recno > 0) {
-            return { isCpfCnpj: pessoa.rows[0].id === id ? false : true }
-         }
+			if (tipo === 'Associado' && !id && recno === 0) {
+				return { isCpfCnpj: false }
+			}
+			if (tipo === 'Associado' && id && recno === 0) {
+				return { isCpfCnpj: false }
+			}
+			if (tipo === 'Associado' && !id && recno > 0) {
+				return { isCpfCnpj: true }
+			}
+			if (tipo === 'Associado' && id && recno > 0) {
+				return { isCpfCnpj: pessoa.rows[0].id === id ? false : true }
+			}
 
-         if (tipo === 'Fornecedor' && !id && recno === 0) {
-            return { isCpfCnpj: false }
-         }
-         if (tipo === 'Fornecedor' && id && recno === 0) {
-            return { isCpfCnpj: false }
-         }
-         if (tipo === 'Fornecedor' && !id && recno > 0) {
-            return { isCpfCnpj: true }
-         }
-         if (tipo === 'Fornecedor' && id && recno > 0) {
-            return { isCpfCnpj: pessoa.rows[0].id === id ? false : true }
-         }
+			if (tipo === 'Fornecedor' && !id && recno === 0) {
+				return { isCpfCnpj: false }
+			}
+			if (tipo === 'Fornecedor' && id && recno === 0) {
+				return { isCpfCnpj: false }
+			}
+			if (tipo === 'Fornecedor' && !id && recno > 0) {
+				return { isCpfCnpj: true }
+			}
+			if (tipo === 'Fornecedor' && id && recno > 0) {
+				return { isCpfCnpj: pessoa.rows[0].id === id ? false : true }
+			}
 
-         return { isCpfCnpj: true }
-      } catch (e) {
-         throw e
-      }
-   }
+			return { isCpfCnpj: true }
+		} catch (e) {
+			throw e
+		}
+	}
 
-   async get(ID) {
-      try {
-         const pessoa = await Model.findOrFail(ID)
+	async get(ID) {
+		try {
+			const pessoa = await Model.findOrFail(ID)
 
-         await pessoa.load('pessoaStatuses')
+			await pessoa.load('pessoaStatuses')
 
-         return pessoa
-      } catch (e) {
-         throw e
-      }
-   }
+			return pessoa
+		} catch (e) {
+			throw e
+		}
+	}
 
-   async getPasta(ID) {
-      try {
-         const pessoa = await Model.findOrFail(ID)
+	async getPasta(ID) {
+		try {
+			const pessoa = await Model.findOrFail(ID)
 
-         await pessoa.loadMany(['equipamentos'])
+			await pessoa.loadMany([
+				'equipamentos',
+				'equipamentos.ocorrencias',
+				'equipamentos.equipamentoStatuses',
+				'equipamentos.equipamentoSigns',
+				'equipamentos.equipamentoSigns.signs',
+				'equipamentos.equipamentoBeneficios.beneficio',
+				'equipamentos.equipamentoProtecoes',
+			])
 
-         const users = await Model.query()
-            .select('id', 'nome')
-            //.with('pessoaStatuses')
-            //.with('equipamentos')
-            .with('equipamentos.ocorrencias')
-            .with('equipamentos.categoria')
-            .with('equipamentos.equipamentoStatuses')
-            .fetch()
+			const oPessoa = {
+				id: 'pessoa',
+				_tipo: 'root',
+				value: 'Pessoa',
+				open: true,
+			}
 
-         return users
+			const equipaAtivo = {
+				id: 'equipamento-ativo',
+				_tipo: 'root',
+				value: 'Equipamentos',
+				open: true,
+				data: [],
+			}
 
-         /*
+			const equipaInativo = {
+				id: 'equipamento-inativo',
+				value: 'Equipamentos inativos',
+				open: false,
+				data: [],
+			}
+			console.log(pessoa)
+			const json = pessoa.toJSON()
+
+			oPessoa._id = json.id
+			oPessoa.value = json.nome
+
+			json.equipamentos.forEach(e => {
+				let o = {
+					_tipo: 'equipamento-ativo',
+					value: `${e.placa1}`,
+					open: true,
+					data: [],
+				}
+
+				// Beneficios
+				let oBene = {
+					_tipo: 'beneficio',
+					value: 'Beneficios',
+					data: [],
+				}
+				e.equipamentoBeneficios.forEach(bene => {
+					let ob = {
+						value: bene.descricao,
+						_tipo: 'beneficio',
+					}
+					if (bene.status === 'Ativo') {
+						oBene.data.push(ob)
+					}
+				})
+				o.data.push(oBene)
+
+				// Proteções
+				let oProt = {
+					_tipo: 'protecao',
+					value: 'Proteções',
+					data: [],
+				}
+				e.equipamentoProtecoes.forEach(prot => {
+					let op = {
+						value: prot.tipo,
+						_tipo: prot.tipo,
+					}
+
+					oProt.data.push(op)
+				})
+				o.data.push(oProt)
+
+				// Equipamento add
+				if (e.status === 'Ativo') {
+					equipaAtivo.data.push(o)
+				} else {
+					equipaInativo.data.push(o)
+				}
+			})
+
+			return {
+				pessoa: oPessoa,
+				equipamentosAtivos: equipaAtivo,
+				equipamentosInativos: equipaInativo,
+			}
+
+			const users = await Model.query()
+				.select('id', 'nome')
+				//.with('pessoaStatuses')
+				//.with('equipamentos')
+				.with('equipamentos.ocorrencias')
+				.with('equipamentos.categoria')
+				.with('equipamentos.equipamentoStatuses')
+				.fetch()
+			console.log('ret ', users)
+			return users
+
+			/*
      const users = await Equipamento
          .query().where('id', '=', 3)
          .select('id', 'placa1','pessoa_id','categoria_id')
@@ -219,7 +309,7 @@ class Pessoa {
          return users
 */
 
-         /*const users = await Model
+			/*const users = await Model
          .query()
          .select('id', 'nome')
          //.with('pessoaStatuses')
@@ -230,13 +320,13 @@ class Pessoa {
          .fetch()
 
          return users*/
-         const equipamentos = await Equipamento.query()
-            .where('id', '=', 8)
-            .with('ocorrencias')
-            .fetch()
-         //await equipamentos.load('ocorrencias')
-         return equipamentos
-         /*let ee= pessoa.getRelated('equipamentos')
+			const equipamentos = await Equipamento.query()
+				.where('id', '=', 8)
+				.with('ocorrencias')
+				.fetch()
+			//await equipamentos.load('ocorrencias')
+			return equipamentos
+			/*let ee= pessoa.getRelated('equipamentos')
 
      let equipa= await pessoa.equipamentos().fetch()
 
@@ -251,71 +341,71 @@ class Pessoa {
         console.log(r)
      }*/
 
-         /*let equipamentos= pessoa.equipamentos()
+			/*let equipamentos= pessoa.equipamentos()
      let y= await equipamentos.load('ocorrencias')*/
 
-         return pessoa
-      } catch (e) {
-         throw e
-      }
-   }
+			return pessoa
+		} catch (e) {
+			throw e
+		}
+	}
 
-   async index(payload) {
-      try {
-         const pessoa = Model.query()
-         pessoa.where('tipo', 'like', 'Associado')
-         //pessoa.where('status', 'like', 'Ativo')
-         pessoa.orderBy('nome', 'asc')
-         pessoa.select('id', 'nome', 'status')
+	async index(payload) {
+		try {
+			const pessoa = Model.query()
+			pessoa.where('tipo', 'like', 'Associado')
+			//pessoa.where('status', 'like', 'Ativo')
+			pessoa.orderBy('nome', 'asc')
+			pessoa.select('id', 'nome', 'status')
 
-         if (payload.where) {
-            pessoa.andWhere(
-               payload.where[0],
-               payload.where[1],
-               payload.where[2]
-            )
-         }
+			if (payload.where) {
+				pessoa.andWhere(
+					payload.where[0],
+					payload.where[1],
+					payload.where[2]
+				)
+			}
 
-         if (payload.whereStatus) {
-            pessoa.andWhere(
-               payload.whereStatus[0],
-               payload.whereStatus[1],
-               payload.whereStatus[2]
-            )
-         }
+			if (payload.whereStatus) {
+				pessoa.andWhere(
+					payload.whereStatus[0],
+					payload.whereStatus[1],
+					payload.whereStatus[2]
+				)
+			}
 
-         let res = await pessoa.paginate(payload.page, payload.limit)
+			let res = await pessoa.paginate(payload.page, payload.limit)
 
-         return res
-      } catch (e) {
-         let r = 1
-         throw e
-      }
-   }
+			return res
+		} catch (e) {
+			let r = 1
+			throw e
+		}
+	}
 
-   async addStatus(data, trx, auth) {
-      try {
-         if (!trx) {
-            trx = await Database.beginTransaction()
-         }
+	async addStatus(data, trx, auth) {
+		try {
+			if (!trx) {
+				trx = await Database.beginTransaction()
+			}
 
-         data.user_id = auth.user.id
+			data.user_id = auth.user.id
 
-         const pessoa = await Model.findOrFail(data.pessoa_id)
-         pessoa.status = data.status
-         pessoa.save(trx ? trx : null)
+			const pessoa = await Model.findOrFail(data.pessoa_id)
+			pessoa.status = data.status
+			pessoa.save(trx ? trx : null)
 
-         const status = data
-         await PessoaStatus.create(status, trx ? trx : null)
+			const status = data
+			await PessoaStatus.create(status, trx ? trx : null)
 
-         trx.commit()
+			trx.commit()
 
-         return pessoa
-      } catch (e) {
-         await trx.rollback()
-         throw e
-      }
-   }
+			return pessoa
+		} catch (e) {
+			await trx.rollback()
+			throw e
+		}
+	}
 }
 
 module.exports = Pessoa
