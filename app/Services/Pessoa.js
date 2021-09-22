@@ -1,5 +1,7 @@
 'use strict'
 
+const moment = require('moment')
+
 const Model = use('App/Models/Pessoa')
 const ModelPreCadastro = use('App/Models/PreCadastro')
 const PessoaStatus = use('App/Models/PessoaStatus')
@@ -199,6 +201,7 @@ class Pessoa {
 				'equipamentos.equipamentoSigns.signs',
 				'equipamentos.equipamentoBeneficios.beneficio',
 				'equipamentos.equipamentoProtecoes',
+				'equipamentos.categoria',
 			])
 
 			const oPessoa = {
@@ -222,16 +225,21 @@ class Pessoa {
 				open: false,
 				data: [],
 			}
-			console.log(pessoa)
+
 			const json = pessoa.toJSON()
 
 			oPessoa._id = json.id
 			oPessoa.value = json.nome
+			oPessoa.cpfCnpj = json.cpfCnpj
+			oPessoa.status = json.status
 
 			json.equipamentos.forEach(e => {
 				let o = {
 					_tipo: 'equipamento-ativo',
-					value: `${e.placa1}`,
+					value: `${e.categoria.abreviado}-${e.marca1} ${e.modelo1}`,
+					_id: e.id,
+					placa: e.placa1,
+					status: e.status,
 					open: true,
 					data: [],
 				}
@@ -244,8 +252,9 @@ class Pessoa {
 				}
 				e.equipamentoBeneficios.forEach(bene => {
 					let ob = {
-						value: bene.descricao,
+						value: bene.beneficio.descricao,
 						_tipo: 'beneficio',
+						_id: bene.id,
 					}
 					if (bene.status === 'Ativo') {
 						oBene.data.push(ob)
@@ -257,17 +266,45 @@ class Pessoa {
 				let oProt = {
 					_tipo: 'protecao',
 					value: 'Proteções',
+					open: true,
 					data: [],
 				}
 				e.equipamentoProtecoes.forEach(prot => {
 					let op = {
 						value: prot.tipo,
 						_tipo: prot.tipo,
+						_id: prot.id,
+						open: true,
 					}
 
 					oProt.data.push(op)
 				})
 				o.data.push(oProt)
+
+				// Ocorrencias
+				let oOcorr = {
+					_tipo: 'ocorrencia',
+					value: 'Ocorrencias',
+					open: true,
+					data: [],
+				}
+				e.ocorrencias.forEach(oc => {
+					let c = oc.tipoAcidente
+					if (oc.dEvento) {
+						c =
+							c +
+							` - ` +
+							moment(oc.dEvento, 'YYYY-MM-DD').format('DD/MM/YYYY')
+					}
+					let op = {
+						value: c,
+						_tipo: oc.tipo,
+						_id: oc.id,
+					}
+
+					oOcorr.data.push(op)
+				})
+				o.data.push(oOcorr)
 
 				// Equipamento add
 				if (e.status === 'Ativo') {
