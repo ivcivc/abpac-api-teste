@@ -79,13 +79,17 @@ class Pessoa {
 			}
 			await PessoaStatus.create(status, trx ? trx : null)
 
-			const pre = await ModelPreCadastro.create(
-				{
-					pessoa_id: pessoa.id,
-					status: 'Pendente',
-				},
-				trx ? trx : null
-			)
+			let pre = null
+
+			if (pessoa.tipo === 'associado') {
+				pre = await ModelPreCadastro.create(
+					{
+						pessoa_id: pessoa.id,
+						status: 'Pendente',
+					},
+					trx ? trx : null
+				)
+			}
 
 			/*if ( pendencias) {
         for (let i= 0; i < pendencias.length; i++) {
