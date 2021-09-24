@@ -784,6 +784,9 @@ Route.group(() => {
    Route.post('/preCadastro/update', 'PreCadastroController.update').middleware([
       'auth'
    ])
+   Route.get('/preCadastro/getPessoaAddPreCadastro/:cpfCnpj', 'PreCadastroController.getPessoaAddPreCadastro').middleware([
+      'auth'
+   ])
    /*Route.get('/filemanager/folders', 'GerenciadorArquivoController.folders')
    Route.get('/filemanager/files', 'GerenciadorArquivoController.files')
    Route.get('/filemanager/info', 'GerenciadorArquivoController.info')

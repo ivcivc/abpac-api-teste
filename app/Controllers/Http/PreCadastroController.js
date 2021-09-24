@@ -26,6 +26,48 @@ const Database = use('Database')
 const URL_SERVIDOR_SIGN_EMAIL = Env.get('URL_SERVIDOR_SIGN_EMAIL')
 
 class PreCadastroController {
+	async getPessoaAddPreCadastro({ params, response }) {
+		const cpfCpnj = params.cpfCnpj
+		const tipo = 'Associado'
+		let trx = null
+
+		try {
+			if (!trx) {
+				trx = await Database.beginTransaction()
+			}
+			const pessoa = await ModelPessoa.query()
+				.where('tipo', tipo)
+				.where('cpfCnpj', cpfCpnj)
+				.fetch()
+
+			const recno = pessoa.rows.length
+
+			if (recno === 0) {
+				throw { success: false, message: 'CPF não localizado' }
+			}
+
+			let registro = pessoa.rows[0]
+
+			const pre = await ModelPreCadastro.create(
+				{
+					pessoa_id: registro.id,
+					status: 'Pendente',
+				},
+				trx ? trx : null
+			)
+
+			registro.preCadastro = pre.toJSON()
+			registro.pessoaSigns = []
+
+			await trx.commit()
+
+			return response.status(200).send(registro)
+		} catch (e) {
+			await trx.rollback()
+			return response.status(200).send(e.message)
+		}
+	}
+
 	async pdf_link({ params, response }) {
 		try {
 			console.log('pdf link ', params.sign_id)

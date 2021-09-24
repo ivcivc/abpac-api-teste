@@ -81,7 +81,7 @@ class Pessoa {
 
 			let pre = null
 
-			if (pessoa.tipo === 'associado') {
+			if (pessoa.tipo === 'Associado') {
 				pre = await ModelPreCadastro.create(
 					{
 						pessoa_id: pessoa.id,
