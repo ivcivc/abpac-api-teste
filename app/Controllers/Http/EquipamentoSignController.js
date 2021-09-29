@@ -15,6 +15,8 @@ const ModelEquipamentoSign = use('App/Models/EquipamentoSign')
 const ModelSignLog = use('App/Models/SignLog')
 const ModelEquipamento = use('App/Models/Equipamento')
 
+const factory = use('App/Services/SMS/Factory')
+
 const URL_SERVIDOR_SIGN_EMAIL = Env.get('URL_SERVIDOR_SIGN_EMAIL')
 
 class EquipamentoSignController {
@@ -47,6 +49,8 @@ class EquipamentoSignController {
 		const sign_id_encrypt = data.id
 		const token = data.token
 		const ip = request.ip()
+		let dispositivo = data.dispositivo
+		let signatarioTel = data.signatarioTel
 
 		try {
 			let docID = await crypto.randomBytes(20).toString('hex')
@@ -74,6 +78,8 @@ class EquipamentoSignController {
 					signatarioDNasc: data.signatarioDNasc,
 					signatarioCpf: data.signatarioCpf,
 					signatarioEmail: data.signatarioEmail,
+					signatarioTel: data.signatarioTel,
+					dispositivo: data.dispositivo,
 					validate: moment().add(5, 'day').format(),
 					tipo: 'Requerimento de Adesão',
 					token: null,
@@ -120,6 +126,8 @@ class EquipamentoSignController {
 				dataDoc = modelSign.dataDoc
 				assinatura = modelSign.assinatura
 				signatarioNome = modelSign.signatarioNome
+				dispositivo = modelSign.dispositivo
+				signatarioTel = modelSign.signatarioTel
 
 				const modelEquipamentoSign = await ModelEquipamentoSign.findBy(
 					'sign_id',
@@ -146,13 +154,18 @@ class EquipamentoSignController {
 				modelSign.save()
 				//modelEquipamentoSign.save()
 
+				let disp = ''
+				if (modelSign.dispositivo === 'sms') {
+					disp = `SMS NR ${modelSign.signatarioTel}`
+				}
+
 				await ModelSignLog.create({
 					sign_id: modelSign.id,
 					tipoEnvio: '',
 					ip,
 					isLog: true,
 					hostname: null,
-					descricao: `Assinado por ${modelSign.signatarioNome} (${modelSign.signatarioEmail}) IP: ${ip}`,
+					descricao: `Assinado por ${modelSign.signatarioNome} ${disp} (${modelSign.signatarioEmail}) IP: ${ip}`,
 				})
 			}
 
@@ -416,10 +429,10 @@ class EquipamentoSignController {
 			})
 
 			const oBeneficio = {
-				b1: null,
-				b2: null,
-				b3: null,
-				b4: null,
+				b1: { descricaoPlano: 'NÃO CONTRATADO' },
+				b2: { descricaoPlano: 'NÃO CONTRATADO' },
+				b3: { descricaoPlano: 'NÃO CONTRATADO' },
+				b4: { descricaoPlano: 'NÃO CONTRATADO' },
 			}
 			let contador = 0
 			equipa.equipamentoBeneficios.forEach(e => {
@@ -961,32 +974,70 @@ class EquipamentoSignController {
 			//const URL_SERVIDOR_WEB = Env.get('URL_SERVIDOR_SIGN')
 			const signJSON = modelSign.toJSON()
 
-			const assunto = 'Token: Token de verificação de assinatura'
+			const assunto = 'Token: Token de confirmação de assinatura'
 
-			emailError = true
+			if (dispositivo === 'email') {
+				emailError = true
 
-			mail = await Mail.send(
-				'emails.sign_token_assinatura',
-				signJSON,
-				message => {
-					message
-						.to(modelSign.signatarioEmail)
-						.from('investimentos@abpac.com.br')
-						.subject(assunto)
-					//.attach(Helpers.tmpPath('ACBr/pdf/boleto_50173.pdf'))
-					//.embed(Helpers.publicPath('images/logo-abpac.png'), 'logo')
+				mail = await Mail.send(
+					'emails.sign_token_assinatura',
+					signJSON,
+					message => {
+						message
+							.to(modelSign.signatarioEmail)
+							.from('investimentos@abpac.com.br')
+							.subject(assunto)
+						//.attach(Helpers.tmpPath('ACBr/pdf/boleto_50173.pdf'))
+						//.embed(Helpers.publicPath('images/logo-abpac.png'), 'logo')
+					}
+				)
+
+				emailError = false
+
+				await ModelSignLog.create({
+					sign_id: signJSON.id,
+					tipoEnvio: 'email',
+					isLog: true,
+					hostname: signJSON.link,
+					descricao: `Token de confirmação de assinatura enviado para ${signJSON.signatarioNome} (${signJSON.signatarioEmail})`,
+				})
+			}
+
+			if (dispositivo === 'sms') {
+				emailError = true
+
+				let tel = modelSign.signatarioTel.replace(/\D/g, '')
+				let msg = `<ABPAC> Token ${token} para confirmação assinatura de documento.`
+
+				let sms = await factory().Servico(Env.get('SMS_SERVICO'))
+				const result = await sms.enviar({
+					numero: tel,
+					mensagem: msg,
+					identificador: modelSign.id,
+					flash: true,
+				})
+
+				if (result.status === '0') {
+					throw {
+						message: result.msg,
+						success: false,
+					}
 				}
-			)
 
-			emailError = false
+				emailError = false
 
-			await ModelSignLog.create({
-				sign_id: signJSON.id,
-				tipoEnvio: 'email',
-				isLog: true,
-				hostname: signJSON.link,
-				descricao: `Token de verificação enviado para ${signJSON.signatarioNome} (${signJSON.signatarioEmail})`,
-			})
+				const dNasc = moment(signJSON.signatarioDNasc, 'YYYY-MM-DD').format(
+					'DD/MM/YYYY'
+				)
+
+				await ModelSignLog.create({
+					sign_id: signJSON.id,
+					tipoEnvio: 'sms',
+					isLog: true,
+					hostname: signJSON.link,
+					descricao: `Token de confirmação de assinatura de documento enviado para o dispositivo ${signJSON.signatarioTel} - ${signJSON.signatarioNome}`,
+				})
+			}
 
 			response.status(200).send({ message: 'Token enviado com sucesso!' })
 		} catch (e) {
@@ -1073,6 +1124,8 @@ class EquipamentoSignController {
 				dataDoc: data.dataDoc,
 				status: data.status,
 				validate: moment(data.validate).add(5, 'day').format(),
+				dispositivo: data.dispositivo,
+				signatarioTel: data.signatarioTel,
 			})
 			await modelSign.save()
 
@@ -1108,6 +1161,7 @@ class EquipamentoSignController {
 		let mail = false
 		let equipamento_id = data.equipamento_id
 		let erroStatus = false
+		let dispositivo = data.dispositivo
 
 		try {
 			//const equipamento_id = data.equipamento_id
@@ -1138,38 +1192,77 @@ class EquipamentoSignController {
 				dataDoc: data.dataDoc,
 				validate: moment(data.validate).add(5, 'day').format(),
 				link: signJSON.link,
+				dispositivo: data.dispositivo,
 			})
 			await modelSign.save()
 
 			const assunto = 'Assinar documento: Requerimento de Adesão'
 
-			emailError = true
+			if (dispositivo === 'email') {
+				emailError = true
 
-			mail = await Mail.send(
-				'emails.sign_requerimento_adesao',
-				signJSON,
-				message => {
-					message
-						.to(modelSign.signatarioEmail)
-						.from(URL_SERVIDOR_SIGN_EMAIL)
-						.subject(assunto)
-					//.attach(Helpers.tmpPath('ACBr/pdf/boleto_50173.pdf'))
-					//.embed(Helpers.publicPath('images/logo-abpac.png'), 'logo')
+				mail = await Mail.send(
+					'emails.sign_requerimento_adesao',
+					signJSON,
+					message => {
+						message
+							.to(modelSign.signatarioEmail)
+							.from(URL_SERVIDOR_SIGN_EMAIL)
+							.subject(assunto)
+						//.attach(Helpers.tmpPath('ACBr/pdf/boleto_50173.pdf'))
+						//.embed(Helpers.publicPath('images/logo-abpac.png'), 'logo')
+					}
+				)
+
+				emailError = false
+
+				const dNasc = moment(signJSON.signatarioDNasc, 'YYYY-MM-DD').format(
+					'DD/MM/YYYY'
+				)
+				await ModelSignLog.create({
+					sign_id: signJSON.id,
+					tipoEnvio: 'email',
+					isLog: true,
+					hostname: signJSON.link,
+					descricao: `Enviado para assinatura de ${signJSON.signatarioNome} (${signJSON.signatarioEmail}) CPF: ${signJSON.signatarioCpf} DATA NASC.: ${dNasc}`,
+				})
+			}
+
+			if (dispositivo === 'sms') {
+				emailError = true
+
+				let tel = modelSign.signatarioTel.replace(/\D/g, '')
+				let msg = `A ABPAC enviou um documento (${modelSign.tipo}) para você assinar. Acesse o link ${signJSON.link}`
+
+				let sms = await factory().Servico(Env.get('SMS_SERVICO'))
+				const result = await sms.enviar({
+					numero: tel,
+					mensagem: msg,
+					identificador: crypto_sign_id,
+					flash: false,
+				})
+
+				if (result.status === '0') {
+					throw {
+						message: result.msg,
+						success: false,
+					}
 				}
-			)
 
-			emailError = false
+				emailError = false
 
-			const dNasc = moment(signJSON.signatarioDNasc, 'YYYY-MM-DD').format(
-				'DD/MM/YYYY'
-			)
-			await ModelSignLog.create({
-				sign_id: signJSON.id,
-				tipoEnvio: 'email',
-				isLog: true,
-				hostname: signJSON.link,
-				descricao: `Enviado para assinatura de ${signJSON.signatarioNome} (${signJSON.signatarioEmail}) CPF: ${signJSON.signatarioCpf} DATA NASC.: ${dNasc}`,
-			})
+				const dNasc = moment(signJSON.signatarioDNasc, 'YYYY-MM-DD').format(
+					'DD/MM/YYYY'
+				)
+
+				await ModelSignLog.create({
+					sign_id: signJSON.id,
+					tipoEnvio: 'sms',
+					isLog: true,
+					hostname: signJSON.link,
+					descricao: `Enviado para assinatura de ${signJSON.signatarioNome}, CPF: ${signJSON.signatarioCpf}, DATA NASC.: ${dNasc}, Dispositivo: ${signJSON.signatarioTel}`,
+				})
+			}
 
 			modelSign.merge({ status: 'Enviado para assinatura' })
 			await modelSign.save()
@@ -1199,16 +1292,34 @@ class EquipamentoSignController {
 			if (lodash.has(e, 'message')) {
 				mensagem = e.message
 			}
+
 			if (emailError) {
 				const signJSON = modelSign.toJSON()
-				await ModelSignLog.create({
-					sign_id: signJSON.id,
-					tipoEnvio: 'email',
-					isLog: false,
-					hostname: signJSON.link,
-					descricao: `Enviado para assinatura de ${signJSON.signatarioNome} (${signJSON.signatarioEmail})`,
-				})
-				mensagem = 'Ocorreu uma falha no envio do email.'
+				if (dispositivo === 'email') {
+					await ModelSignLog.create({
+						sign_id: signJSON.id,
+						tipoEnvio: 'email',
+						isLog: false,
+						hostname: signJSON.link,
+						descricao: `Enviado para assinatura de ${signJSON.signatarioNome} (${signJSON.signatarioEmail})`,
+					})
+					mensagem = 'Ocorreu uma falha no envio do email.'
+				}
+			}
+			if (emailError) {
+				const signJSON = modelSign.toJSON()
+				if (dispositivo === 'sms') {
+					await ModelSignLog.create({
+						sign_id: signJSON.id,
+						tipoEnvio: 'sms',
+						isLog: false,
+						hostname: signJSON.link,
+						descricao: `Enviado para assinatura de ${signJSON.signatarioNome} (Dispositivo: ${signJSON.signatarioTel})`,
+					})
+					mensagem = e.message
+						? e.message
+						: 'Ocorreu uma falha no envio do SMS.'
+				}
 			}
 
 			response.status(400).send({ message: mensagem })

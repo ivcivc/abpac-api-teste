@@ -23,6 +23,8 @@ const Env = use('Env')
 const lodash = use('lodash')
 const Database = use('Database')
 
+const factory = use('App/Services/SMS/Factory')
+
 const URL_SERVIDOR_SIGN_EMAIL = Env.get('URL_SERVIDOR_SIGN_EMAIL')
 
 class PreCadastroController {
@@ -113,10 +115,12 @@ class PreCadastroController {
 					signatarioEmail: modelSign.signatarioEmail,
 					signatarioNome: modelSign.signatarioNome,
 					signatarioCpf: BrM.cpf(modelSign.signatarioCpf),
+					signatarioTel: modelSign.signatarioTel,
 					signatarioDNasc: moment(
 						modelSign.signatarioDNasc,
 						'YYYY-MM-DD'
 					).format('DD/MM/YYYY'),
+					dispositivo: modelSign.dispositivo,
 					tipo: pastaTipo,
 					doc: modelSign.arquivo,
 					success: false,
@@ -130,10 +134,12 @@ class PreCadastroController {
 				signatarioEmail: modelSign.signatarioEmail,
 				signatarioNome: modelSign.signatarioNome,
 				signatarioCpf: BrM.cpf(modelSign.signatarioCpf),
+				signatarioTel: modelSign.signatarioTel,
 				signatarioDNasc: moment(
 					modelSign.signatarioDNasc,
 					'YYYY-MM-DD'
 				).format('DD/MM/YYYY'),
+				dispositivo: modelSign.dispositivo,
 				tipo: pastaTipo,
 				doc: modelSign.arquivo,
 				success: true,
@@ -529,31 +535,68 @@ class PreCadastroController {
 			const signJSON = modelSign.toJSON()
 
 			const assunto = 'Token: Token de verificação de assinatura'
+			if (dispositivo === 'email') {
+				emailError = true
 
-			emailError = true
+				mail = await Mail.send(
+					'emails.sign_token_assinatura',
+					signJSON,
+					message => {
+						message
+							.to(modelSign.signatarioEmail)
+							.from(URL_SERVIDOR_SIGN_EMAIL)
+							.subject(assunto)
+						//.attach(Helpers.tmpPath('ACBr/pdf/boleto_50173.pdf'))
+						//.embed(Helpers.publicPath('images/logo-abpac.png'), 'logo')
+					}
+				)
 
-			mail = await Mail.send(
-				'emails.sign_token_assinatura',
-				signJSON,
-				message => {
-					message
-						.to(modelSign.signatarioEmail)
-						.from(URL_SERVIDOR_SIGN_EMAIL)
-						.subject(assunto)
-					//.attach(Helpers.tmpPath('ACBr/pdf/boleto_50173.pdf'))
-					//.embed(Helpers.publicPath('images/logo-abpac.png'), 'logo')
+				emailError = false
+
+				await ModelSignLog.create({
+					sign_id: signJSON.id,
+					tipoEnvio: 'email',
+					isLog: true,
+					hostname: signJSON.link,
+					descricao: `Token de confirmação de assinatura de documento enviado para ${signJSON.signatarioNome} (${signJSON.signatarioEmail})`,
+				})
+			}
+
+			if (dispositivo === 'sms') {
+				emailError = true
+
+				let tel = modelSign.signatarioTel.replace(/\D/g, '')
+				let msg = `<ABPAC> Token ${token} para confirmação assinatura de documento.`
+
+				let sms = await factory().Servico(Env.get('SMS_SERVICO'))
+				const result = await sms.enviar({
+					numero: tel,
+					mensagem: msg,
+					identificador: modelSign.id,
+					flash: true,
+				})
+
+				if (result.status === '0') {
+					throw {
+						message: result.msg,
+						success: false,
+					}
 				}
-			)
 
-			emailError = false
+				emailError = false
 
-			await ModelSignLog.create({
-				sign_id: signJSON.id,
-				tipoEnvio: 'email',
-				isLog: false,
-				hostname: signJSON.link,
-				descricao: `Token de verificação enviado para ${signJSON.signatarioNome} (${signJSON.signatarioEmail})`,
-			})
+				const dNasc = moment(signJSON.signatarioDNasc, 'YYYY-MM-DD').format(
+					'DD/MM/YYYY'
+				)
+
+				await ModelSignLog.create({
+					sign_id: signJSON.id,
+					tipoEnvio: 'sms',
+					isLog: true,
+					hostname: signJSON.link,
+					descricao: `Token de confirmação de assinatura de documento enviado para o dispositivo ${signJSON.signatarioTel} - ${signJSON.signatarioNome}`,
+				})
+			}
 
 			response
 				.status(200)
@@ -582,6 +625,7 @@ class PreCadastroController {
 		let emailError = false
 		let mail = null
 		let digito = null
+		let dispositivo = null
 
 		try {
 			let oDecrypt = this.decrypt(`${sign_id_encrypt}`) // Encryption.decrypt(sign_id)
@@ -606,35 +650,75 @@ class PreCadastroController {
 			)
 			await modelSign.save()
 
+			dispositivo = modelSign.dispositivo
+
 			//const URL_SERVIDOR_WEB = Env.get('URL_SERVIDOR_SIGN')
-			const signJSON = modelSign.toJSON()
+			let signJSON = modelSign.toJSON()
 
-			const assunto = 'Token: Token de verificação de assinatura'
+			const assunto = `Token: Token de confirmação de assinatura de documento (${modelSign.tipo})`
 
-			emailError = true
+			if (dispositivo === 'email') {
+				emailError = true
 
-			mail = await Mail.send(
-				'emails.sign_token_assinatura',
-				signJSON,
-				message => {
-					message
-						.to(modelSign.signatarioEmail)
-						.from(URL_SERVIDOR_SIGN_EMAIL)
-						.subject(assunto)
-					//.attach(Helpers.tmpPath('ACBr/pdf/boleto_50173.pdf'))
-					//.embed(Helpers.publicPath('images/logo-abpac.png'), 'logo')
+				mail = await Mail.send(
+					'emails.sign_token_assinatura',
+					signJSON,
+					message => {
+						message
+							.to(modelSign.signatarioEmail)
+							.from(URL_SERVIDOR_SIGN_EMAIL)
+							.subject(assunto)
+						//.attach(Helpers.tmpPath('ACBr/pdf/boleto_50173.pdf'))
+						//.embed(Helpers.publicPath('images/logo-abpac.png'), 'logo')
+					}
+				)
+
+				emailError = false
+
+				await ModelSignLog.create({
+					sign_id: signJSON.id,
+					tipoEnvio: 'email',
+					isLog: true,
+					hostname: signJSON.link,
+					descricao: `Token de confirmação de assinatura de documento enviado para ${signJSON.signatarioNome} (${signJSON.signatarioEmail})`,
+				})
+			}
+
+			if (dispositivo === 'sms') {
+				emailError = true
+
+				let tel = modelSign.signatarioTel.replace(/\D/g, '')
+				let msg = `<ABPAC> Token ${token} para confirmação assinatura de documento.`
+
+				let sms = await factory().Servico(Env.get('SMS_SERVICO'))
+				const result = await sms.enviar({
+					numero: tel,
+					mensagem: msg,
+					identificador: modelSign.id,
+					flash: true,
+				})
+
+				if (result.status === '0') {
+					throw {
+						message: result.msg,
+						success: false,
+					}
 				}
-			)
 
-			emailError = false
+				emailError = false
 
-			await ModelSignLog.create({
-				sign_id: signJSON.id,
-				tipoEnvio: 'email',
-				isLog: true,
-				hostname: signJSON.link,
-				descricao: `Token de verificação enviado para ${signJSON.signatarioNome} (${signJSON.signatarioEmail})`,
-			})
+				const dNasc = moment(signJSON.signatarioDNasc, 'YYYY-MM-DD').format(
+					'DD/MM/YYYY'
+				)
+
+				await ModelSignLog.create({
+					sign_id: signJSON.id,
+					tipoEnvio: 'sms',
+					isLog: true,
+					hostname: signJSON.link,
+					descricao: `Token de confirmação de assinatura de documento enviado para o dispositivo ${signJSON.signatarioTel} - ${signJSON.signatarioNome}`,
+				})
+			}
 
 			response.status(200).send({
 				success: true,
@@ -720,6 +804,8 @@ class PreCadastroController {
 				dataDoc: data.dataDoc,
 				status: data.status,
 				validate: moment(data.validate).add(5, 'day').format(),
+				dispositivo: data.dispositivo,
+				signatarioTel: data.signatarioTel,
 			})
 			await modelSign.save()
 
@@ -748,6 +834,7 @@ class PreCadastroController {
 		let mail = false
 		let pessoa_id = data.pessoa_id
 		let erroStatus = false
+		let dispositivo = data.dispositivo ? data.dispositivo : 'email'
 
 		try {
 			//const pessoa_id = data.pessoa_id
@@ -774,43 +861,83 @@ class PreCadastroController {
 				signatarioDNasc: data.signatarioDNasc,
 				signatarioEmail: data.signatarioEmail,
 				signatarioNome: data.signatarioNome,
+				signatarioTel: data.signatarioTel,
 				assinatura: data.assinatura,
 				dataDoc: data.dataDoc,
 				validate: moment(data.validate).add(5, 'day').format(),
 				link: signJSON.link,
+				dispositivo,
 			})
 
 			await modelSign.save()
 
 			const assunto = 'Assinar documento: Ficha de Inscrição'
 
-			emailError = true
+			if (dispositivo === 'email') {
+				emailError = true
 
-			mail = await Mail.send(
-				'emails.sign_ficha_inscricao',
-				signJSON,
-				message => {
-					message
-						.to(modelSign.signatarioEmail)
-						.from(URL_SERVIDOR_SIGN_EMAIL)
-						.subject(assunto)
-					//.attach(Helpers.tmpPath('ACBr/pdf/boleto_50173.pdf'))
-					//.embed(Helpers.publicPath('images/logo-abpac.png'), 'logo')
+				mail = await Mail.send(
+					'emails.sign_ficha_inscricao',
+					signJSON,
+					message => {
+						message
+							.to(modelSign.signatarioEmail)
+							.from(URL_SERVIDOR_SIGN_EMAIL)
+							.subject(assunto)
+						//.attach(Helpers.tmpPath('ACBr/pdf/boleto_50173.pdf'))
+						//.embed(Helpers.publicPath('images/logo-abpac.png'), 'logo')
+					}
+				)
+
+				emailError = false
+
+				const dNasc = moment(signJSON.signatarioDNasc, 'YYYY-MM-DD').format(
+					'DD/MM/YYYY'
+				)
+				await ModelSignLog.create({
+					sign_id: signJSON.id,
+					tipoEnvio: 'email',
+					isLog: true,
+					hostname: signJSON.link,
+					descricao: `Enviado para assinatura de ${signJSON.signatarioNome} (${signJSON.signatarioEmail}) CPF: ${signJSON.signatarioCpf} DATA NASC.: ${dNasc}`,
+				})
+			}
+
+			if (dispositivo === 'sms') {
+				emailError = true
+
+				let tel = modelSign.signatarioTel.replace(/\D/g, '')
+				let msg = `A ABPAC enviou um documento (${modelSign.tipo}) para você assinar. Acesse o link ${signJSON.link}`
+
+				let sms = await factory().Servico(Env.get('SMS_SERVICO'))
+				const result = await sms.enviar({
+					numero: tel,
+					mensagem: msg,
+					identificador: crypto_sign_id,
+					flash: false,
+				})
+
+				if (result.status === '0') {
+					throw {
+						message: result.msg,
+						success: false,
+					}
 				}
-			)
 
-			emailError = false
+				emailError = false
 
-			const dNasc = moment(signJSON.signatarioDNasc, 'YYYY-MM-DD').format(
-				'DD/MM/YYYY'
-			)
-			await ModelSignLog.create({
-				sign_id: signJSON.id,
-				tipoEnvio: 'email',
-				isLog: true,
-				hostname: signJSON.link,
-				descricao: `Enviado para assinatura de ${signJSON.signatarioNome} (${signJSON.signatarioEmail}) CPF: ${signJSON.signatarioCpf} DATA NASC.: ${dNasc}`,
-			})
+				const dNasc = moment(signJSON.signatarioDNasc, 'YYYY-MM-DD').format(
+					'DD/MM/YYYY'
+				)
+
+				await ModelSignLog.create({
+					sign_id: signJSON.id,
+					tipoEnvio: 'sms',
+					isLog: true,
+					hostname: signJSON.link,
+					descricao: `Enviado para assinatura de ${signJSON.signatarioNome}, CPF: ${signJSON.signatarioCpf}, DATA NASC.: ${dNasc}, Dispositivo: ${signJSON.signatarioTel}`,
+				})
+			}
 
 			modelSign.merge({ status: 'Enviado para assinatura' })
 			await modelSign.save()
@@ -830,16 +957,32 @@ class PreCadastroController {
 			}
 			if (emailError) {
 				const signJSON = modelSign.toJSON()
-				await ModelSignLog.create({
-					sign_id: signJSON.id,
-					tipoEnvio: 'email',
-					isLog: false,
-					hostname: signJSON.link,
-					descricao: `Enviado para assinatura de ${signJSON.signatarioNome} (${signJSON.signatarioEmail})`,
-				})
-				mensagem = 'Ocorreu uma falha no envio do email.'
+				if (dispositivo === 'email') {
+					await ModelSignLog.create({
+						sign_id: signJSON.id,
+						tipoEnvio: 'email',
+						isLog: false,
+						hostname: signJSON.link,
+						descricao: `Enviado para assinatura de ${signJSON.signatarioNome} (${signJSON.signatarioEmail})`,
+					})
+					mensagem = 'Ocorreu uma falha no envio do email.'
+				}
 			}
-
+			if (emailError) {
+				const signJSON = modelSign.toJSON()
+				if (dispositivo === 'sms') {
+					await ModelSignLog.create({
+						sign_id: signJSON.id,
+						tipoEnvio: 'sms',
+						isLog: false,
+						hostname: signJSON.link,
+						descricao: `Enviado para assinatura de ${signJSON.signatarioNome} (Dispositivo: ${signJSON.signatarioTel})`,
+					})
+					mensagem = e.message
+						? e.message
+						: 'Ocorreu uma falha no envio do SMS.'
+				}
+			}
 			response.status(400).send({ message: mensagem })
 		}
 	}
@@ -869,6 +1012,8 @@ class PreCadastroController {
 			let signatarioNome = null
 			let arquivoOriginal = null
 			let digito = null
+			let dispositivo = null
+			let signatarioTel = null
 
 			if (assinar) {
 				let oDecrypt = this.decrypt(`${sign_id_encrypt}`) // Encryption.decrypt(sign_id)
@@ -898,6 +1043,8 @@ class PreCadastroController {
 				dataDoc = modelSign.dataDoc
 				assinatura = modelSign.assinatura
 				signatarioNome = modelSign.signatarioNome
+				dispositivo = modelSign.dispositivo
+				signatarioTel = modelSign.signatarioTel
 
 				const modelPessoaSign = await ModelPessoaSign.findBy(
 					'sign_id',
@@ -912,13 +1059,19 @@ class PreCadastroController {
 				modelSign.hash = hash
 				modelSign.save()
 
+				let disp = `(${modelSign.signatarioEmail})`
+
+				if (modelSign.dispositivo === 'sms') {
+					disp = 'SMS NR ' + modelSign.signatarioTel
+				}
+
 				await ModelSignLog.create({
 					sign_id: modelSign.id,
 					tipoEnvio: '',
 					ip,
 					isLog: true,
-					hostname: null,
-					descricao: `Assinado por ${modelSign.signatarioNome} (${modelSign.signatarioEmail}) IP: ${ip}`,
+					hostname: modelSign.link,
+					descricao: `Assinado por ${modelSign.signatarioNome} ${disp} IP: ${ip}`,
 				})
 			}
 
@@ -967,6 +1120,8 @@ class PreCadastroController {
 					status: 'Pendente',
 					user_id,
 					arquivo,
+					dispositivo: data.dispositivo,
+					signatarioTel: data.signatarioTel,
 				})
 
 				const modelPessoaSign = await ModelPessoaSign.create({

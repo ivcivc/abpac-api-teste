@@ -1,0 +1,22 @@
+endpoint post: http://corporativo.allcancesms.com.br/app/modulo/api/index_lote.php?action=send-sms
+
+{
+  "usuario": "SEUUSUARIO",
+  "senha": "SUASENHA",
+  "mensagens":[
+                {
+                        "numero": "19900001111",
+                        "mensagem": "1 message",
+                        "identificador": "",
+                        "flash": "false"
+                },
+                {
+                        "numero": "19900001111",
+                        "mensagem": "2 message",
+                        "identificador": "",
+                        "flash": "false",
+                        "jobdata: "24/12/2020",
+                        "jobtime: "15:15"
+                }
+        ]
+}

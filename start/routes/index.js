@@ -787,6 +787,57 @@ Route.group(() => {
    Route.get('/preCadastro/getPessoaAddPreCadastro/:cpfCnpj', 'PreCadastroController.getPessoaAddPreCadastro').middleware([
       'auth'
    ])
+
+   /*Route.get('/sms/saldo',async ({response}) => {
+      try {
+         const Env = use('Env')
+         const factory= use('App/Services/SMS/Factory')
+         let sms= await factory().Servico(Env.get('SMS_SERVICO'))
+         return sms.saldo()
+      } catch(e) {
+         return e.message
+      }
+   })
+
+   Route.get('/sms/caixa_entrada',async ({response}) => {
+      try {
+         const Env = use('Env')
+         const factory= use('App/Services/SMS/Factory')
+         let sms= await factory().Servico(Env.get('SMS_SERVICO'))
+         return sms.caixa_entrada()
+      } catch(e) {
+         return e.message
+      }
+   })*/
+   /*Route.post('/sms/enviar',async ({request}) => {
+      try {
+         const data= request.all()
+         let tel= data.tel
+         let msg= data.msg
+
+         const Env = use('Env')
+         const factory= use('App/Services/SMS/Factory')
+         let sms= await factory().Servico(Env.get('SMS_SERVICO'))
+         return await sms.enviar(tel, msg)
+      } catch(e) {
+         return e.message
+      }
+   })*/
+   Route.post('/sms/enviar',async ({request}) => {
+      try {
+         const data= request.all()
+         let tel= data.tel
+         let msg= data.msg
+
+         const Env = use('Env')
+         const factory= use('App/Services/SMS/Factory')
+         let sms= await factory().Servico(Env.get('SMS_SERVICO'))
+         return await sms.enviar(data)
+      } catch(e) {
+         return e.message
+      }
+   })
+
    /*Route.get('/filemanager/folders', 'GerenciadorArquivoController.folders')
    Route.get('/filemanager/files', 'GerenciadorArquivoController.files')
    Route.get('/filemanager/info', 'GerenciadorArquivoController.info')
