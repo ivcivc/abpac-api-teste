@@ -280,7 +280,7 @@ class EquipamentoSignController {
 							},
 							{ text: '' },
 							{
-								text: 'MATRICULA',
+								text: 'CPF',
 								bold: true,
 								alignment: 'left',
 							},
@@ -293,7 +293,7 @@ class EquipamentoSignController {
 							},
 							{ text: '' },
 							{
-								text: matricula,
+								text: equipa.pessoa.cpfCnpj,
 								bold: false,
 								alignment: 'left',
 								fillColor: cor.cinzaClaro,
