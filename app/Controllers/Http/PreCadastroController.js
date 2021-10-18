@@ -205,9 +205,9 @@ class PreCadastroController {
 					: null,
 				status: data.status,
 			}
-			console.log('o= ', o)
 
-			if (data.status === 'Autorizado' && model.status !== 'Autorizado') {
+			if (data.status === 'Autorizado') {
+				// && model.status !== 'Autorizado'
 				await ModelPessoa.query()
 					.where('id', model.pessoa_id)
 					.where('status', 'Pre-cadastro')
@@ -871,7 +871,7 @@ class PreCadastroController {
 
 			await modelSign.save()
 
-			const assunto = 'Assinar documento: Ficha de Inscrição'
+			const assunto = 'Assinar documento: Requerimento de Inscrição'
 
 			if (dispositivo === 'email') {
 				emailError = true
@@ -988,6 +988,22 @@ class PreCadastroController {
 	}
 
 	async fichaInscricao({ request, response, auth }) {
+		try {
+			const data = request.all()
+		} catch (e) {
+			let mensagem = 'Ocorreu uma falha de transação'
+			if (lodash.has(e, 'message')) {
+				mensagem = e.message
+			}
+			if (lodash.has(e, 'mensagem')) {
+				mensagem = e.mensagem
+			}
+
+			response.status(400).send({ message: mensagem })
+		}
+	}
+
+	async fichaInscricao_DELETAR({ request, response, auth }) {
 		try {
 			const data = request.all()
 			let pessoa_id = data.pessoa_id

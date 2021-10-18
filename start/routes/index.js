@@ -1,6 +1,7 @@
 'use strict'
 
 const { RouteResource } = require('@adonisjs/framework/src/Route/Manager')
+const SignController = require('../../app/Controllers/Http/SignController')
 
 /** @type {typeof import('@adonisjs/framework/src/Route/Manager')} */
 
@@ -755,7 +756,7 @@ Route.group(() => {
    Route.post('/sign/adesao/toSign', 'EquipamentoSignController.contratoAdesao')
 
    Route.get('/sign/pdf_link/:sign_id', 'PreCadastroController.pdf_link')
-   Route.get('/sign/pdf/:tipo/:arquivo', 'PreCadastroController.pdf')
+   //Route.get('/sign/pdf/:tipo/:arquivo', 'PreCadastroController.pdf')
 
 
    Route.post('/sign/inscricao/toSign', 'PreCadastroController.fichaInscricao')
@@ -768,9 +769,9 @@ Route.group(() => {
    Route.post('/sign/updateSign', 'PreCadastroController.updateSign').middleware([
       'auth'
    ])
-   Route.post('/sign/solicitarAssinatura', 'PreCadastroController.solicitarAssinatura').middleware([
+ /*Route.post('/sign/solicitarAssinatura', 'PreCadastroController.solicitarAssinatura').middleware([
       'auth'
-   ])
+   ])*/
    Route.post('/sign/fichaInscricao', 'PreCadastroController.fichaInscricao').middleware([
       'auth'
    ])
@@ -787,6 +788,30 @@ Route.group(() => {
    Route.get('/preCadastro/getPessoaAddPreCadastro/:cpfCnpj', 'PreCadastroController.getPessoaAddPreCadastro').middleware([
       'auth'
    ])
+
+   /// Testes SIGN
+   Route.post('/sign/add', "SignController.add").middleware([
+      'auth'
+   ])
+   Route.post('/sign/update', "SignController.update").middleware([
+      'auth'
+   ])
+   Route.get('/sign/cancelar/:id', "SignController.cancelar").middleware([
+      'auth'
+   ])
+   Route.get('/sign/enviarToken/:id', "SignController.enviarToken")
+   Route.post('/sign/gerarDocumento', "SignController.gerarDocumento")
+   Route.post('/sign/solicitarAssinatura', "SignController.solicitarAssinatura").middleware([
+      'auth'
+   ])
+   //Route.post('/sign/pdf/:sign_id/:tipo', 'SignController.pdf')
+   Route.get('/sign/pdf/:sign_id/:tipo/:isBase64', 'SignController.pdf')
+   Route.get('/sign/show/:sign_id', 'SignController.show')
+   Route.post('/sign/updateStatus', "SignController.updateStatus").middleware([
+      'auth'
+   ])
+   Route.get('/sign/converter', "SignController.converter")
+
 
    /*Route.get('/sms/saldo',async ({response}) => {
       try {
