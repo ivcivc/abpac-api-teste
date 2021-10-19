@@ -1107,7 +1107,8 @@ class FichaInscricaoController {
 			const pessoa = await ModelPessoa.find(modelPessoaSign.pessoa_id)
 			await pessoa.load('pessoaSigns.signs')
 
-			return pessoa
+			//return pessoa
+			return { sign: modelSign.toJSON(), signPai: modelPessoaSign.toJSON() }
 		} catch (e) {
 			let mensagem = 'Ocorreu uma falha de transação'
 			if (lodash.has(e, 'mensagem')) {

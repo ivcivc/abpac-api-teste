@@ -194,6 +194,7 @@ class SignController {
 			let id = params.id
 
 			let servico = await new Servico().cancelar(id)
+
 			return servico
 		} catch (e) {
 			response.status(400).send({ success: false, message: e.message })

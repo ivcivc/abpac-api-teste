@@ -997,7 +997,7 @@ class AdesaoController {
 				modelSign.id
 			)
 
-			const query = await ModelEquipamento.query()
+			/*const query = await ModelEquipamento.query()
 				.where('preCadastro_id', modelEquipamentoSign.preCadastro_id)
 				.with('equipamentoStatuses')
 				.with('pessoa')
@@ -1006,9 +1006,13 @@ class AdesaoController {
 				.with('equipamentoSigns.signs')
 				.with('equipamentoBeneficios.beneficio')
 				.with('equipamentoRestricaos')
-				.fetch()
+				.fetch()*/
 
-			return query.rows[0]
+			//return query.rows[0]
+			return {
+				sign: modelSign.toJSON(),
+				signPai: modelEquipamentoSign.toJSON(),
+			}
 		} catch (e) {
 			let mensagem = 'Ocorreu uma falha de transação'
 			if (lodash.has(e, 'mensagem')) {

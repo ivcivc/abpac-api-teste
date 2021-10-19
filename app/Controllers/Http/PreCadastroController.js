@@ -566,7 +566,7 @@ class PreCadastroController {
 				emailError = true
 
 				let tel = modelSign.signatarioTel.replace(/\D/g, '')
-				let msg = `<ABPAC> Token ${token} para confirmação assinatura de documento.`
+				let msg = `<ABPAC - Token> Use o código ${token} para confirmar a assinatura de documento.`
 
 				let sms = await factory().Servico(Env.get('SMS_SERVICO'))
 				const result = await sms.enviar({
@@ -688,7 +688,7 @@ class PreCadastroController {
 				emailError = true
 
 				let tel = modelSign.signatarioTel.replace(/\D/g, '')
-				let msg = `<ABPAC> Token ${token} para confirmação assinatura de documento.`
+				let msg = `<ABPAC - Token> Use o código ${token} para confirmar a assinatura de documento.`
 
 				let sms = await factory().Servico(Env.get('SMS_SERVICO'))
 				const result = await sms.enviar({

@@ -165,6 +165,35 @@ class Sign {
 				await trx.commit()
 
 				resolve({ sign: modelSign.toJSON(), signPai: modelSub.toJSON() })
+
+				if (
+					lodash.isEmpty(modelSign.arquivo) &&
+					modelSign.status === 'Manual'
+				) {
+					let resPDF = null
+					switch (modelSign.tipo) {
+						case 'Requerimento de Inscrição':
+							//if (lodash.isEmpty(modelSign.arquivo)) {
+							resPDF =
+								await new ServiceFichaInscricao().criarDocumentoEmPdf({
+									sign_id: modelSign.id,
+									isAssinar: false,
+									tipo: 'Requerimento de Inscrição',
+								})
+							//}
+							break
+
+						case 'Requerimento de Adesão':
+							//if (lodash.isEmpty(modelSign.arquivo)) {
+							resPDF = await new ServiceAdesao().criarDocumentoEmPdf({
+								sign_id: modelSign.id,
+								isAssinar: false,
+								tipo: 'Requerimento de Adesão',
+							})
+							//}
+							break
+					}
+				}
 			} catch (e) {
 				await trx.rollback()
 				reject(e)
@@ -189,7 +218,6 @@ class Sign {
 					message: 'Não é permitido alterar este documento.',
 				}
 			}
-			const isEditar = lodash.isEmpty(modelSign.arquivo)
 
 			modelSign.merge({
 				signatarioCpf: payload.signatarioCpf,
@@ -199,12 +227,38 @@ class Sign {
 				signatarioTel: payload.signatarioTel,
 				dispositivo: payload.dispositivo,
 				status: payload.status,
-				assinatura: isEditar ? payload.assinatura : modelSign.assinatura,
-				dataDoc: isEditar ? payload.dataDoc : modelSign.dataDoc,
+				assinatura: payload.assinatura,
+				dataDoc: payload.dataDoc,
 			})
 
 			await modelSign.save(trx)
 			await trx.commit()
+
+			if (modelSign.status === 'Manual') {
+				let resPDF = null
+				switch (modelSign.tipo) {
+					case 'Requerimento de Inscrição':
+						//if (lodash.isEmpty(modelSign.arquivo)) {
+						resPDF =
+							await new ServiceFichaInscricao().criarDocumentoEmPdf({
+								sign_id: modelSign.id,
+								isAssinar: false,
+								tipo: 'Requerimento de Inscrição',
+							})
+						//}
+						break
+
+					case 'Requerimento de Adesão':
+						//if (lodash.isEmpty(modelSign.arquivo)) {
+						resPDF = await new ServiceAdesao().criarDocumentoEmPdf({
+							sign_id: modelSign.id,
+							isAssinar: false,
+							tipo: 'Requerimento de Adesão',
+						})
+						//}
+						break
+				}
+			}
 
 			return modelSign
 		} catch (e) {
@@ -247,23 +301,40 @@ class Sign {
 			if (!trx) {
 				trx = await Database.beginTransaction()
 			}
+
+			let modelSub = null
+
 			const modelSign = await Model.findOrFail(ID)
 			if (modelSign.status === 'Documento assinado') {
 				throw {
 					success: false,
-					message: 'Não é permitido cancelar este documento.',
+					message: 'Não é permitido cancelar um documento assinado.',
 				}
 			}
 
 			modelSign.merge({ status: 'Cancelado' })
 
+			switch (modelSign.tipo) {
+				case 'Requerimento de Inscrição':
+					modelSub = await ModelPessoaSign.findBy({
+						sign_id: modelSign.id,
+					})
+					break
+
+				case 'Requerimento de Adesão':
+					modelSub = await ModelEquipamentoSign.findBy({
+						sign_id: modelSign.id,
+					})
+					break
+			}
+
 			await modelSign.save(trx)
 			await trx.commit()
 
-			return modelSign
+			return { sign: modelSign.toJSON(), signPai: modelSub.toJSON() }
 		} catch (e) {
 			await trx.rollback()
-			return { success: false, message: e.message }
+			throw { success: false, message: e.message }
 		}
 	}
 
@@ -328,7 +399,8 @@ class Sign {
 				envioError = true
 
 				let tel = modelSign.signatarioTel.replace(/\D/g, '')
-				let msg = `<ABPAC> Token ${modelSign.token}`
+				//let msg = `<ABPAC> Token ${modelSign.token}`
+				let msg = `<Token - ABPAC> Use o código ${token}`
 
 				let sms = await factory().Servico(Env.get('SMS_SERVICO'))
 				const result = await sms.enviar({
