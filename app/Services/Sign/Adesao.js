@@ -327,7 +327,50 @@ class AdesaoController {
 					body: [
 						[
 							{
-								text: 'VEÍCULO',
+								text: 'VALOR INFORMADO',
+								bold: true,
+							},
+							{ text: '' },
+							{
+								text: 'ENQUADRAMENTO',
+								bold: true,
+								alignment: 'left',
+							},
+						],
+						[
+							{
+								text: this.moeda(equipa.valorMercado1),
+								bold: false,
+								fillColor: cor.cinzaClaro,
+							},
+							{ text: '' },
+							{
+								text: `${equipa.categoria.tipo} (${equipa.categoria.abreviado})`,
+								bold: false,
+								alignment: 'left',
+								fillColor: cor.cinzaClaro,
+							},
+						],
+					],
+				},
+			})
+
+			content.push({
+				layout: { defaultBorder: false },
+				margin: [0, 0, 0, 0],
+				border: [false, false, false, false],
+
+				table: {
+					headerRows: 0,
+
+					widths: ['*', 3, '*'],
+
+					body: [
+						[
+							{
+								text: `${
+									lodash.isEmpty(equipa.placa2) ? '' : '1)'
+								} VEÍCULO`,
 								bold: true,
 							},
 							{ text: '' },
@@ -368,7 +411,7 @@ class AdesaoController {
 					body: [
 						[
 							{
-								text: 'PLACA',
+								text: `PLACA`,
 								bold: true,
 							},
 							{ text: '' },
@@ -380,9 +423,7 @@ class AdesaoController {
 						],
 						[
 							{
-								text: `${equipa.placa1} ${
-									equipa.placa2 ? equipa.placa2 : ''
-								}`,
+								text: `${equipa.placa1}`,
 								bold: false,
 								fillColor: cor.cinzaClaro,
 							},
@@ -398,137 +439,214 @@ class AdesaoController {
 				},
 			})
 
-			content.push({
-				layout: { defaultBorder: false },
-				margin: [0, 0, 0, 0],
-				border: [false, false, false, false],
+			if (!lodash.isEmpty(equipa.placa2)) {
+				content.push({
+					layout: { defaultBorder: false },
+					margin: [0, 0, 0, 0],
+					border: [false, false, false, false],
 
-				table: {
-					headerRows: 0,
+					table: {
+						headerRows: 0,
 
-					widths: ['*', 3, '*'],
+						widths: ['*', 3, '*'],
 
-					body: [
-						[
-							{
-								text: 'VALOR INFORMADO',
-								bold: true,
-							},
-							{ text: '' },
-							{
-								text: 'ENQUADRAMENTO',
-								bold: true,
-								alignment: 'left',
-							},
+						body: [
+							[
+								{
+									text: '2) VEÍCULO',
+									bold: true,
+								},
+								{ text: '' },
+								{
+									text: 'ANO/MODELO',
+									bold: true,
+									alignment: 'left',
+								},
+							],
+							[
+								{
+									text: `${equipa.marca1.toUpperCase()} ${equipa.modelo2.toUpperCase()}`,
+									bold: false,
+									fillColor: cor.cinzaClaro,
+								},
+								{ text: '' },
+								{
+									text: `${equipa.anoF2}/${equipa.modeloF2}`,
+									bold: false,
+									alignment: 'left',
+									fillColor: cor.cinzaClaro,
+								},
+							],
 						],
-						[
-							{
-								text: this.moeda(equipa.valorMercado1),
-								bold: false,
-								fillColor: cor.cinzaClaro,
-							},
-							{ text: '' },
-							{
-								text: `${equipa.categoria.tipo} (${equipa.categoria.abreviado})`,
-								bold: false,
-								alignment: 'left',
-								fillColor: cor.cinzaClaro,
-							},
-						],
-					],
-				},
-			})
+					},
+				})
 
-			const oBeneficio = {
-				b1: { descricaoPlano: 'NÃO CONTRATADO' },
-				b2: { descricaoPlano: 'NÃO CONTRATADO' },
-				b3: { descricaoPlano: 'NÃO CONTRATADO' },
-				b4: { descricaoPlano: 'NÃO CONTRATADO' },
+				content.push({
+					layout: { defaultBorder: false },
+					margin: [0, 0, 0, 0],
+					border: [false, false, false, false],
+
+					table: {
+						headerRows: 0,
+
+						widths: ['*', 3, '*'],
+
+						body: [
+							[
+								{
+									text: 'PLACA',
+									bold: true,
+								},
+								{ text: '' },
+								{
+									text: 'CHASSI',
+									bold: true,
+									alignment: 'left',
+								},
+							],
+							[
+								{
+									text: `${equipa.placa2}`,
+									bold: false,
+									fillColor: cor.cinzaClaro,
+								},
+								{ text: '' },
+								{
+									text: `${equipa.chassi2}`,
+									bold: false,
+									alignment: 'left',
+									fillColor: cor.cinzaClaro,
+								},
+							],
+						],
+					},
+				})
 			}
-			let contador = 0
+
+			if (!lodash.isEmpty(equipa.placa3)) {
+				content.push({
+					layout: { defaultBorder: false },
+					margin: [0, 0, 0, 0],
+					border: [false, false, false, false],
+
+					table: {
+						headerRows: 0,
+
+						widths: ['*', 3, '*'],
+
+						body: [
+							[
+								{
+									text: '3) VEÍCULO',
+									bold: true,
+								},
+								{ text: '' },
+								{
+									text: 'ANO/MODELO',
+									bold: true,
+									alignment: 'left',
+								},
+							],
+							[
+								{
+									text: `${equipa.marca1.toUpperCase()} ${equipa.modelo3.toUpperCase()}`,
+									bold: false,
+									fillColor: cor.cinzaClaro,
+								},
+								{ text: '' },
+								{
+									text: `${equipa.anoF3}/${equipa.modeloF3}`,
+									bold: false,
+									alignment: 'left',
+									fillColor: cor.cinzaClaro,
+								},
+							],
+						],
+					},
+				})
+
+				content.push({
+					layout: { defaultBorder: false },
+					margin: [0, 0, 0, 0],
+					border: [false, false, false, false],
+
+					table: {
+						headerRows: 0,
+
+						widths: ['*', 3, '*'],
+
+						body: [
+							[
+								{
+									text: 'PLACA',
+									bold: true,
+								},
+								{ text: '' },
+								{
+									text: 'CHASSI',
+									bold: true,
+									alignment: 'left',
+								},
+							],
+							[
+								{
+									text: `${equipa.placa3}`,
+									bold: false,
+									fillColor: cor.cinzaClaro,
+								},
+								{ text: '' },
+								{
+									text: `${equipa.chassi3}`,
+									bold: false,
+									alignment: 'left',
+									fillColor: cor.cinzaClaro,
+								},
+							],
+						],
+					},
+				})
+			}
+
+			let cBeneficio = ''
+
 			equipa.equipamentoBeneficios.forEach(e => {
-				if (e.status === 'Ativo' && contador <= 4) {
-					contador += 1
-					e.descricaoPlano =
-						'PLANO: ' + e.beneficio.descricao.toUpperCase()
-					oBeneficio[`b${contador}`] = e
+				if (e.status === 'Ativo') {
+					if (!lodash.isEmpty(cBeneficio)) {
+						cBeneficio += '   '
+					}
+					cBeneficio += e.beneficio.descricao.toUpperCase()
 				}
 			})
 
-			content.push({
-				layout: { defaultBorder: false },
-				margin: [0, 5, 0, 0],
-				border: [false, false, false, false],
+			if (!lodash.isEmpty(cBeneficio)) {
+				content.push({
+					layout: { defaultBorder: false },
+					margin: [0, 5, 0, 0],
+					border: [false, false, false, false],
 
-				table: {
-					headerRows: 0,
+					table: {
+						headerRows: 0,
 
-					widths: ['*', 3, '*'],
+						widths: ['*'],
 
-					body: [
-						[
-							{
-								text: 'BENEFICIO',
-								bold: true,
-							},
-							{ text: '' },
-							{
-								text: 'BENEFICIO',
-								bold: true,
-								alignment: 'left',
-							},
+						body: [
+							[
+								{
+									text: 'BENEFICIO',
+									bold: true,
+								},
+							],
+							[
+								{
+									text: `${cBeneficio.toUpperCase()}`,
+									bold: false,
+									fillColor: cor.cinzaClaro,
+								},
+							],
 						],
-						[
-							{
-								text: oBeneficio.b1
-									? oBeneficio.b1.descricaoPlano
-									: ' ',
-								bold: false,
-								fillColor: cor.cinzaClaro,
-							},
-							{ text: '' },
-							{
-								text: oBeneficio.b2
-									? oBeneficio.b2.descricaoPlano
-									: ' ',
-								bold: false,
-								alignment: 'left',
-								fillColor: cor.cinzaClaro,
-							},
-						],
-						[
-							{
-								text: 'BENEFICIO',
-								bold: true,
-							},
-							{ text: '' },
-							{
-								text: 'BENEFICIO',
-								bold: true,
-								alignment: 'left',
-							},
-						],
-						[
-							{
-								text: oBeneficio.b3
-									? oBeneficio.b3.descricaoPlano
-									: ' ',
-								bold: false,
-								fillColor: cor.cinzaClaro,
-							},
-							{ text: '' },
-							{
-								text: oBeneficio.b4
-									? oBeneficio.b4.descricaoPlano
-									: ' ',
-								bold: false,
-								alignment: 'left',
-								fillColor: cor.cinzaClaro,
-							},
-						],
-					],
-				},
-			})
+					},
+				})
+			}
 
 			const texto1 = `Pelo presente termo de adesão, na condição de associado desta instituição, expresso minha livre vontade em requerer a adesão do meu(s) veículo(s) aqui descrito(s), para usufruir, além dos benefícios e serviços prestados pela ABPAC, também neste caso específico, do benefício do Plano de Benefício de Rateio para Ressarcimento de Despesas por Furto, Roubo e Acidentes de veículos, nos termos do regimento interno.
          `
@@ -554,6 +672,7 @@ class AdesaoController {
          `
 			const texto12 = `Declaro ainda ser conhecedor de que em caso de meu(s) equipamento(s) cadastrado(s) no Plano de Benefício de Rateio para Ressarcimento de Despesas por Furto, Roubo e Acidentes de Veículo, estiver em nome de terceira pessoa, ou seja, com titularidade diferente da minha, o associado, para fins de recebimento de qualquer tipo de indenização que possa ter direito, dependo da autorização expressa da pessoa em nome de quem se encontra registrado(s) o(s) equipamento(s) ou ainda que o referido pagamento será efetuado diretamente à pessoa em nome de que estiver registrado(s) o(s) equipamento(s).
          `
+			let texto13_pular = lodash.isEmpty(equipa.placa2) ? '' : ''
 			const texto13 = `Declaro por fim que todas as informações constantes deste documento são verídicas e sobre as quais assumo total responsabilidade, admitindo serem possíveis de verificação a qualquer tempo e que, caso se identifique fraudes nas informações por mim prestadas, estarei sujeito às penas e sanções legais cíveis e penais cabíveis sem prejuízo da minha imediata exclusão de associado dos quadros da ABPAC.
          `
 
@@ -651,6 +770,9 @@ class AdesaoController {
 							fontSize: 6,
 							font: 'Roboto',
 							alignment: 'justify',
+							margin: lodash.isEmpty(equipa.placa2)
+								? [0, 0, 0, 0]
+								: [0, 150, 0, 0],
 						},
 					],
 				],
