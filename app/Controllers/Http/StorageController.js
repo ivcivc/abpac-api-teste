@@ -146,7 +146,7 @@ class StorageController {
 
 			const validationOptions = {
 				types: ['image', 'pdf', 'application', 'plain', 'text'],
-				size: '40mb',
+				size: '50mb',
 				extnames: [
 					'png',
 					'PNG',
