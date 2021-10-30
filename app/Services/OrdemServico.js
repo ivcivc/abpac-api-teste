@@ -10,6 +10,8 @@ const ModelPessoa = use('App/Models/Pessoa')
 const ModelOcorrencia = use('App/Models/Ocorrencia')
 const ModelLancamento = use('App/Models/Lancamento')
 const ServiceLancamento = use('App/Services/Lancamento')
+const ServiceEstoque = use('App/Services/Estoque')
+const ModelEstoque = use('App/Models/Estoque')
 
 const lodash = require('lodash')
 
@@ -205,6 +207,10 @@ class OrdemServico {
 				delete data['financeiro']
 			}
 
+			if (!data['preCadastro_id']) {
+				data.preCadastro_id = 0
+			}
+
 			const os = await Model.create(data, trx ? trx : null)
 
 			const status = {
@@ -225,7 +231,25 @@ class OrdemServico {
 				await ModelStatus.create(status, trx ? trx : null)
 			}
 
-			await os.items().createMany(items, trx ? trx : null)
+			let modelItems = await os.items().createMany(items, trx ? trx : null)
+
+			for (const key in modelItems) {
+				if (Object.hasOwnProperty.call(modelItems, key)) {
+					const item = modelItems[key]
+					for (let i = 0; i <= item.quantidade - 1; i++) {
+						await item.estoques().create(
+							{
+								quantidade: 1,
+								descricao: item.descricao,
+								subtotal: item.subtotal,
+								total: item.subtotal,
+								entrada_id: item.id,
+							},
+							trx ? trx : null
+						)
+					}
+				}
+			}
 
 			if (objFinanceiro) {
 				objFinanceiro.ordem_servico_id = os.id
@@ -352,50 +376,116 @@ class OrdemServico {
 				await ModelStatus.create(status, trx ? trx : null)
 			}
 
-			let items = data['items']
-			items.forEach(e => {
-				delete e['id']
-			})
+			const isEstoque = true
+
+			if (isEstoque) {
+				let itemsUpdate = []
+				let itemsAdd = []
+				let nAdd = 0
+				let nUpdate = 0
+
+				for (const key in data['items']) {
+					if (Object.hasOwnProperty.call(data['items'], key)) {
+						const o = data['items'][key]
+						if (lodash.isNumber(o.id)) {
+							if (o.id <= 0) {
+								itemsAdd.push(o)
+								nAdd++
+							} else {
+								itemsUpdate.push(o)
+								nUpdate++
+							}
+						} else {
+							itemsAdd.push(o)
+							nAdd++
+						}
+					}
+				}
+
+				if (nAdd > 0) {
+					let modelItemsAdd = await os
+						.items()
+						.createMany(itemsAdd, trx ? trx : null)
+
+					for (const key in modelItemsAdd) {
+						if (Object.hasOwnProperty.call(modelItemsAdd, key)) {
+							const item = modelItemsAdd[key]
+							for (let i = 0; i <= item.quantidade - 1; i++) {
+								await ModelEstoque.query()
+									.transacting(trx ? trx : null)
+									.insert({
+										descricao: item.descricao,
+										subtotal: item.subtotal,
+										total: item.subtotal,
+										entrada_id: item.id,
+										updated_at: moment().format(),
+										created_at: moment().format(),
+									})
+							}
+						}
+					}
+				}
+
+				if (nUpdate > 0) {
+					let modelItemsUpdate = await os.items().fetch()
+					for (const key in modelItemsUpdate.rows) {
+						if (Object.hasOwnProperty.call(modelItemsUpdate.rows, key)) {
+							const item = modelItemsUpdate.rows[key]
+							let busca = lodash.find(itemsUpdate, { id: item.id })
+							let estoques = await item.estoques().fetch()
+						}
+					}
+				}
+
+				/*if (oArrItem.quantidade > item.quantidade) {
+					nAdd = oArrItem.quantidade - item.quantidade
+					nDel = 0
+				}
+				if (oArrItem.quantidade < item.quantidade) {
+					nDel = item.quantidade - oArrItem.quantidade
+					nAdd = 0
+				}*/
+			}
+
 			delete data['items']
 
-			const itemsDB = await os.items().fetch()
-
-			let estoque = {}
-			let itemsDeletar = []
+			//const itemsDB = await os.items().fetch()
 
 			os.merge(data)
 
-			itemsDB.rows.forEach(e => {
-				if (e.estoque_id) {
-					if (estoque[e.estoque_id]) {
-						if (estoque[e.estoque_id].delete) {
-							estoque[e.estoque_id].delete =
-								estoque[e.estoque_id].delete + e.quantidade
-						} else {
-							estoque[e.estoque_id].delete = e.quantidade
-						}
-					} else {
-						estoque[e.estoque_id] = { delete: e.quantidade }
-					}
-				}
-			})
+			/*
+            itemsDB.rows.forEach(e => {
+               if (e.estoque_id) {
+                  if (estoque[e.estoque_id]) {
+                     if (estoque[e.estoque_id].delete) {
+                        estoque[e.estoque_id].delete =
+                           estoque[e.estoque_id].delete + e.quantidade
+                     } else {
+                        estoque[e.estoque_id].delete = e.quantidade
+                     }
+                  } else {
+                     estoque[e.estoque_id] = { delete: e.quantidade }
+                  }
+               }
+            })
 
-			items.forEach(e => {
-				if (e.estoque_id) {
-					if (estoque[e.estoque_id]) {
-						if (estoque[e.estoque_id].update) {
-							estoque[e.estoque_id].update =
-								estoque[e.estoque_id].update + e.quantidade
-						} else {
-							estoque[e.estoque_id].update = e.quantidade
-						}
-					} else {
-						estoque[e.estoque_id] = { update: e.quantidade }
-					}
-				}
-			})
+            items.forEach(e => {
+               if (e.estoque_id) {
+                  if (estoque[e.estoque_id]) {
+                     if (estoque[e.estoque_id].update) {
+                        estoque[e.estoque_id].update =
+                           estoque[e.estoque_id].update + e.quantidade
+                     } else {
+                        estoque[e.estoque_id].update = e.quantidade
+                     }
+                  } else {
+                     estoque[e.estoque_id] = { update: e.quantidade }
+                  }
+               }
+            })
+         */
 
-			console.log('estoque ', estoque)
+			/*console.log('estoque ', estoque)
 
 			const deletarItems = await os
 				.items()
@@ -403,12 +493,21 @@ class OrdemServico {
 				.delete(trx ? trx : null)
 
 			await os.items().createMany(items, trx ? trx : null)
+         */
 
 			/* Adicionar aqui contas pagar/receber */
+
+			/*let atualizado = await ModelEstoque.query()
+				.where('id', 10)
+				.transacting(trx ? trx : null)
+				.update({ descricao: 'Borrachariasssssss 2' })
+
+			console.log('atualizado ', atualizado)*/
 
 			await os.save(trx ? trx : null)
 
 			await trx.commit()
+			//await trx.rollback()
 
 			return await this.get(os.id)
 
