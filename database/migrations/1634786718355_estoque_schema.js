@@ -20,7 +20,7 @@ class EstoqueSchema extends Schema {
 				.references('id')
 				.inTable('ordem_servico_items')
 				.onUpdate('CASCADE')
-				.onDelete('CASCADE')
+				.onDelete('SET NULL')
 
 			table
 				.integer('saida_id')
@@ -28,7 +28,7 @@ class EstoqueSchema extends Schema {
 				.references('id')
 				.inTable('ordem_servico_items')
 				.onUpdate('CASCADE')
-				.onDelete('CASCADE')
+				.onDelete('SET NULL')
 
 			table.timestamps()
 		})

@@ -5,11 +5,11 @@ const Model = use('Model')
 
 class OrdemServicoItem extends Model {
 	ordemServico() {
-		return this.belongsTo('App/Models/OrdemServico')
+		return this.belongsTo('App/Models/ordem_servico/OrdemServico')
 	}
 
 	items() {
-		return this.hasMany('App/Models/OrdemServico')
+		return this.hasMany('App/Models/ordem_servico/OrdemServico')
 	}
 
 	estoques() {

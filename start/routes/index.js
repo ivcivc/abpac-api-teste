@@ -663,6 +663,12 @@ Route.group(() => {
   Route.post('/ordemServico/localizarPor', 'ordem_servico/OrdemServicoController.localizarPor')
   // Route.post('/ordemServico/localizarOS', 'ordem_servico/OrdemServicoController.localizarOS')
 
+  Route.get('/estoque/localizar/:descricao', 'EstoqueController.localizar').middleware([
+   'auth'
+   ])
+  Route.post('/estoque/localizarPor', 'EstoqueController.localizarPor').middleware([
+   'auth'
+   ])
 
    Route.post('upload99', async ({ request }) => {
 

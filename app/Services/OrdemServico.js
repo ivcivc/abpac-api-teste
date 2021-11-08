@@ -12,6 +12,7 @@ const ModelLancamento = use('App/Models/Lancamento')
 const ServiceLancamento = use('App/Services/Lancamento')
 const ServiceEstoque = use('App/Services/Estoque')
 const ModelEstoque = use('App/Models/Estoque')
+const ModelOSConfig = use('App/Models/ordem_servico/OsConfig')
 
 const lodash = require('lodash')
 
@@ -233,20 +234,66 @@ class OrdemServico {
 
 			let modelItems = await os.items().createMany(items, trx ? trx : null)
 
-			for (const key in modelItems) {
-				if (Object.hasOwnProperty.call(modelItems, key)) {
-					const item = modelItems[key]
-					for (let i = 0; i <= item.quantidade - 1; i++) {
-						await item.estoques().create(
-							{
-								quantidade: 1,
-								descricao: item.descricao,
-								subtotal: item.subtotal,
-								total: item.subtotal,
-								entrada_id: item.id,
-							},
-							trx ? trx : null
-						)
+			const modelOsConfig = await ModelOSConfig.findOrFail(os.config_id)
+
+			const isEstoqueEntrada = modelOsConfig.modelo === 'Entrada Estoque'
+
+			if (isEstoqueEntrada) {
+				for (const key in modelItems) {
+					if (Object.hasOwnProperty.call(modelItems, key)) {
+						const item = modelItems[key]
+						for (let i = 0; i <= item.quantidade - 1; i++) {
+							await item.estoques().create(
+								{
+									quantidade: 1,
+									descricao: item.descricao,
+									subtotal: item.subtotal,
+									total: item.subtotal,
+									entrada_id: item.id,
+								},
+								trx ? trx : null
+							)
+						}
+					}
+				}
+			}
+
+			if (!isEstoqueEntrada) {
+				for (const key in modelItems) {
+					if (Object.hasOwnProperty.call(modelItems, key)) {
+						const item = modelItems[key]
+						if (item.estoque_id) {
+							let queryEstoqueDisponivel = await ModelEstoque.query()
+								.where('id', item.estoque_id)
+								.fetch()
+							//.transacting(trx ? trx : null)
+
+							if (queryEstoqueDisponivel.rows.length === 0) {
+								throw {
+									message:
+										'Item a ser adicionado não está disponível no estoque. Item: ' +
+										item.descricao,
+								}
+							}
+
+							if (queryEstoqueDisponivel.rows.length > 0) {
+								const nUpdates = await ModelEstoque.query()
+									.where('id', item.estoque_id)
+									.whereNull('saida_id')
+									.transacting(trx ? trx : null)
+									.update({
+										saida_id: item.id,
+										updated_at: moment().format(),
+									})
+								if (nUpdates === 0) {
+									throw {
+										message:
+											'Não foi possível registrar no estoque.  Item: ' +
+											item.descricao,
+									}
+								}
+							}
+						}
 					}
 				}
 			}
@@ -288,6 +335,7 @@ class OrdemServico {
 		}
 		try {
 			let os = await Model.findOrFail(ID)
+			await os.load('items')
 
 			const update_at_db = moment(os.updated_at).format()
 			const update_at = moment(data.updated_at).format()
@@ -310,62 +358,6 @@ class OrdemServico {
 				})
 				.transacting(trx ? trx : null)
 
-			/**if (data.status !== os.status) {
-            if (os.status !== 'Finalizado' && data.status === 'Finalizado') {
-               await ModelLancamento.query()
-                  .where('ordem_servico_id', os.id)
-                  .where('situacao', 'Aberto')
-                  .update({
-                     situacao: 'Aberto',
-                     pessoa_id: data.pessoa_id,
-                     updated_at: moment(),
-                  })
-                  .transacting(trx ? trx : null)
-            }
-
-            if (os.status === 'Finalizado') {
-               let modelLancamentoArr = await Database.from('lancamentos')
-                  .where('ordem_servico_id', os.id)
-                  .whereNotIn('situacao', ['Bloqueado', 'Aberto'])
-               //.fetch()
-               if (modelLancamentoArr.length > 0) {
-                  nrErro = -100
-                  throw {
-                     success: false,
-                     message:
-                        'Transação abortada! Não é possível alterar o status. Houve movimentação no financeiro.',
-                  }
-               }
-               //  Database.from('lancamentos')
-               await ModelLancamento.query()
-                  .where('ordem_servico_id', os.id)
-                  .update({
-                     situacao: 'Bloqueado',
-                     pessoa_id: data.pessoa_id,
-                     updated_at: moment(),
-                  })
-                  .transacting(trx ? trx : null)
-            }
-         } else {
-            if ( data.status === 'Finalizado') {
-               await ModelLancamento.query()
-                  .where('ordem_servico_id', os.id)
-                  .where('situacao', 'Bloqueado')
-                  .update({
-                     situacao: 'Aberto',
-                     pessoa_id: data.pessoa_id,
-                     updated_at: moment(),
-                  })
-                  .transacting(trx ? trx : null)
-            }
-            if (data.pessoa_id !== os.pessoa_id) {
-               await ModelLancamento.query()
-                  .where('ordem_servico_id', os.id)
-                  .update({ pessoa_id: data.pessoa_id, updated_at: moment() })
-                  .transacting(trx ? trx : null)
-            }
-         }**/
-
 			if (data.status !== os.status) {
 				const status = {
 					ordem_servico_id: os.id,
@@ -376,9 +368,33 @@ class OrdemServico {
 				await ModelStatus.create(status, trx ? trx : null)
 			}
 
-			const isEstoque = true
+			const modelOsConfig = await ModelOSConfig.findOrFail(os.config_id)
 
-			if (isEstoque) {
+			let isEstoqueEntrada = modelOsConfig.modelo === 'Entrada Estoque'
+			let isEstoque = false
+
+			if (!isEstoqueEntrada) {
+				let modelItems = os.items().fetch()
+				for (const key in modelItems) {
+					if (Object.hasOwnProperty.call(modelItems, key)) {
+						const item = modelItems[key]
+						if (item.estoque_id) {
+							isEstoque = true
+						}
+					}
+				}
+
+				/*for (const key in data['items']) {
+					if (Object.hasOwnProperty.call(data['items'], key)) {
+						const o = data['items'][key]
+						if (o.estoque_id) {
+							isEstoqueEntrada = true
+						}
+					}
+				}*/
+			}
+
+			if (isEstoqueEntrada) {
 				let itemsUpdate = []
 				let itemsAdd = []
 				let nAdd = 0
@@ -433,18 +449,366 @@ class OrdemServico {
 							const item = modelItemsUpdate.rows[key]
 							let busca = lodash.find(itemsUpdate, { id: item.id })
 							let estoques = await item.estoques().fetch()
+
+							if (!busca) {
+								let queryEstoque = await ModelEstoque.query()
+									.where('entrada_id', item.id)
+									.whereNotNull('saida_id')
+									.fetch()
+								let qtdEstoque = queryEstoque.rows.length
+								if (qtdEstoque > 0) {
+									throw {
+										message:
+											'Não é possível excluir um item do estoque com status de baixado.',
+									}
+								}
+								await ModelEstoque.query()
+									.where('entrada_id', item.id)
+									.whereNotNull('saida_id')
+									.transacting(trx ? trx : null)
+									.delete()
+
+								await ModelItem.query()
+									.where('id', item.id)
+									.transacting(trx ? trx : null)
+									.delete()
+							}
+
+							if (busca) {
+								let queryEstoqueEntrada = await ModelEstoque.query()
+									.where('entrada_id', item.id)
+									.whereNull('saida_id')
+									.fetch()
+								let queryEstoqueSaida = await ModelEstoque.query()
+									.where('entrada_id', item.id)
+									.whereNotNull('saida_id')
+									.fetch()
+								let qtdEntradaEstoqueDB =
+									queryEstoqueEntrada.rows.length
+								let qtdSaidaEstoqueDB = queryEstoqueSaida.rows.length
+								let qtdEstoqueDB =
+									qtdEntradaEstoqueDB + qtdSaidaEstoqueDB
+
+								if (item.quantidade === qtdEstoqueDB) {
+									await ModelEstoque.query()
+										.where('entrada_id', item.id)
+										.transacting(trx ? trx : null)
+										.update({
+											descricao: busca.descricao,
+											subtotal: busca.subtotal,
+											total: busca.subtotal,
+											updated_at: moment().format(),
+										})
+								}
+
+								if (item.quantidade < qtdEstoqueDB) {
+									let diffExcluir = qtdEstoqueDB - item.quantidade
+
+									if (diffExcluir >= qtdEntradaEstoqueDB) {
+										throw {
+											message:
+												'Não é possível excluir item(s) do estoque com status de baixado.',
+										}
+									}
+
+									let itemsIDsExcluir = []
+									let contador = 1
+
+									for (const key in queryEstoqueEntrada.rows) {
+										if (
+											Object.hasOwnProperty.call(
+												queryEstoqueEntrada.rows,
+												key
+											)
+										) {
+											const e = queryEstoqueEntrada.rows[key]
+											if (contador <= diffExcluir) {
+												itemsIDsExcluir.push(e.id)
+												contador++
+											}
+										}
+									}
+
+									await ModelEstoque.query()
+										.where('entrada_id', item.id)
+										.whereNotIn('id', itemsIDsExcluir)
+										.transacting(trx ? trx : null)
+										.update({
+											descricao: busca.descricao,
+											subtotal: busca.subtotal,
+											total: busca.subtotal,
+											updated_at: moment().format(),
+										})
+
+									await ModelEstoque.query()
+										.whereIn('id', itemsIDsExcluir)
+										.transacting(trx ? trx : null)
+										.delete()
+								}
+
+								if (item.quantidade > qtdEstoqueDB) {
+									let nAddEstoque = qtdEstoqueDB - item.quantidade
+									await ModelEstoque.query()
+										.where('entrada_id', item.id)
+										.whereNotIn('entrada_id', itemsIDsExcluir)
+										.transacting(trx ? trx : null)
+										.update({
+											descricao: busca.descricao,
+											subtotal: busca.subtotal,
+											total: busca.subtotal,
+											updated_at: moment().format(),
+										})
+
+									for (let i = 0; i <= nAddEstoque - 1; i++) {
+										await ModelEstoque.query()
+											.transacting(trx ? trx : null)
+											.insert({
+												quantidade: 1,
+												descricao: busca.descricao,
+												subtotal: busca.subtotal,
+												total: busca.subtotal,
+												entrada_id: item.id,
+												updated_at: moment().format(),
+												created_at: moment().format(),
+											})
+									}
+								}
+
+								if (busca.quantidade > item.quantidade) {
+									// adicionar item e estoque
+									let novaQuantidade =
+										busca.quantidade - item.quantidade
+
+									for (let i = 0; i <= novaQuantidade - 1; i++) {
+										await ModelEstoque.query()
+											.transacting(trx ? trx : null)
+											.insert({
+												quantidade: 1,
+												descricao: busca.descricao,
+												subtotal: busca.subtotal,
+												total: busca.subtotal,
+												entrada_id: busca.id,
+												updated_at: moment().format(),
+												created_at: moment().format(),
+											})
+									}
+								}
+
+								if (busca.quantidade < item.quantidade) {
+									let diffExcluir = item.quantidade - busca.quantidade
+
+									if (diffExcluir > qtdEntradaEstoqueDB) {
+										throw {
+											message:
+												'Não é possível excluir item(s) do estoque com status de baixado.',
+										}
+									}
+
+									let itemsIDsExcluir = []
+									let contador = 1
+
+									for (const key in queryEstoqueEntrada.rows) {
+										if (
+											Object.hasOwnProperty.call(
+												queryEstoqueEntrada.rows,
+												key
+											)
+										) {
+											const e = queryEstoqueEntrada.rows[key]
+											if (contador <= diffExcluir) {
+												itemsIDsExcluir.push(e.id)
+												contador++
+											}
+										}
+									}
+									await ModelEstoque.query()
+										.whereIn('id', itemsIDsExcluir)
+										.transacting(trx ? trx : null)
+										.delete()
+								}
+
+								await ModelItem.query()
+									.where('id', item.id)
+									.transacting(trx ? trx : null)
+									.update({
+										quantidade: busca.quantidade,
+										descricao: busca.descricao,
+										subtotal: busca.subtotal,
+										total: busca.total,
+										updated_at: moment().format(),
+									})
+							}
+						}
+					}
+				}
+			}
+
+			if (!isEstoqueEntrada) {
+				let itemsUpdate = []
+				let itemsAdd = []
+				let nAdd = 0
+				let nUpdate = 0
+
+				for (const key in data['items']) {
+					if (Object.hasOwnProperty.call(data['items'], key)) {
+						const o = data['items'][key]
+						if (lodash.isNumber(o.id)) {
+							if (o.id <= 0) {
+								itemsAdd.push(o)
+								nAdd++
+							} else {
+								itemsUpdate.push(o)
+								nUpdate++
+							}
+						} else {
+							itemsAdd.push(o)
+							nAdd++
 						}
 					}
 				}
 
-				/*if (oArrItem.quantidade > item.quantidade) {
-					nAdd = oArrItem.quantidade - item.quantidade
-					nDel = 0
+				if (nAdd > 0) {
+					let modelItemsAdd = await os
+						.items()
+						.createMany(itemsAdd, trx ? trx : null)
+
+					for (const key in modelItemsAdd) {
+						if (Object.hasOwnProperty.call(modelItemsAdd, key)) {
+							const item = modelItemsAdd[key]
+							if (item.estoque_id) {
+								let queryEstoqueDisponivel = await ModelEstoque.query()
+									.where('id', item.estoque_id)
+									.fetch()
+								//.transacting(trx ? trx : null)
+
+								if (queryEstoqueDisponivel.rows.length === 0) {
+									throw {
+										message:
+											'Item a ser adicionado não está disponível no estoque. Item: ' +
+											item.descricao,
+									}
+								}
+
+								/*if (!lodash.isNull(queryEstoqueDisponivel.rows[0])) {
+									throw {
+										message:
+											'Item a ser adicionado não está disponível no estoque. Item: ' +
+											item.descricao,
+									}
+								}*/
+
+								if (queryEstoqueDisponivel.rows.length > 0) {
+									const nUpdates = await ModelEstoque.query()
+										.where('id', item.estoque_id)
+										.whereNull('saida_id')
+										.transacting(trx ? trx : null)
+										.update({
+											saida_id: item.id,
+											updated_at: moment().format(),
+										})
+									if (nUpdates === 0) {
+										throw {
+											message:
+												'Não foi possível registrar no estoque.  Item: ' +
+												item.descricao,
+										}
+									}
+								}
+							}
+						}
+					}
 				}
-				if (oArrItem.quantidade < item.quantidade) {
-					nDel = item.quantidade - oArrItem.quantidade
-					nAdd = 0
-				}*/
+
+				if (nUpdate => 0) {
+					let modelItemsUpdate = await os.items().fetch()
+					for (const key in modelItemsUpdate.rows) {
+						if (Object.hasOwnProperty.call(modelItemsUpdate.rows, key)) {
+							const item = modelItemsUpdate.rows[key]
+							let busca = lodash.find(itemsUpdate, { id: item.id })
+
+							if (!busca) {
+								if (lodash.isNull(item.estoque_id)) {
+									await ModelEstoque.query()
+										.where('id', item.estoque_id)
+										.transacting(trx ? trx : null)
+										.update({
+											saida_id: null,
+											updated_at: moment().format(),
+										})
+								}
+
+								// Limpar estoque_id para perder o relacionamento com o estoque
+								await ModelItem.query()
+									.where('id', item.id)
+									.transacting(trx ? trx : null)
+									.update({ estoque_id: null })
+
+								// excluir o item
+								await ModelItem.query()
+									.where('id', item.id)
+									.transacting(trx ? trx : null)
+									.delete()
+							}
+
+							if (busca) {
+								// Estoque
+								if (!lodash.isNull(item.estoque_id)) {
+									await ModelItem.query()
+										.where('id', item.id)
+										.transacting(trx ? trx : null)
+										.update({
+											quantidade: busca.quantidade,
+											descricao: busca.descricao,
+											subtotal: busca.subtotal,
+											total: busca.total,
+											estoque_id: busca.estoque_id,
+											updated_at: moment().format(),
+										})
+
+									if (item.estoque_id !== busca.estoque_id) {
+										await ModelEstoque.query()
+											.where('id', item.estoque_id)
+											.transacting(trx ? trx : null)
+											.update({
+												saida_id: null,
+												updated_at: moment().format(),
+											})
+										let estoq = await ModelEstoque.query()
+											.where('id', busca.estoque_id)
+											.transacting(trx ? trx : null)
+											.whereNull('saida_id')
+											.update({
+												saida_id: busca.id,
+												updated_at: moment().format(),
+											})
+										if (estoq !== 1) {
+											throw {
+												message:
+													'Não foi possível utilizar um item com status de baixado no estoque. Descrição: ' +
+													busca.descricao,
+											}
+										}
+									}
+								}
+
+								// Item sem estoque
+								if (lodash.isNull(item.estoque_id)) {
+									await ModelItem.query()
+										.where('id', item.id)
+										.transacting(trx ? trx : null)
+										.update({
+											quantidade: busca.quantidade,
+											descricao: busca.descricao,
+											subtotal: busca.subtotal,
+											total: busca.total,
+											estoque_id: busca.estoque_id,
+											updated_at: moment().format(),
+										})
+								}
+							}
+						}
+					}
+				}
 			}
 
 			delete data['items']
@@ -452,57 +816,6 @@ class OrdemServico {
 			//const itemsDB = await os.items().fetch()
 
 			os.merge(data)
-
-			/*
-            itemsDB.rows.forEach(e => {
-               if (e.estoque_id) {
-                  if (estoque[e.estoque_id]) {
-                     if (estoque[e.estoque_id].delete) {
-                        estoque[e.estoque_id].delete =
-                           estoque[e.estoque_id].delete + e.quantidade
-                     } else {
-                        estoque[e.estoque_id].delete = e.quantidade
-                     }
-                  } else {
-                     estoque[e.estoque_id] = { delete: e.quantidade }
-                  }
-               }
-            })
-
-            items.forEach(e => {
-               if (e.estoque_id) {
-                  if (estoque[e.estoque_id]) {
-                     if (estoque[e.estoque_id].update) {
-                        estoque[e.estoque_id].update =
-                           estoque[e.estoque_id].update + e.quantidade
-                     } else {
-                        estoque[e.estoque_id].update = e.quantidade
-                     }
-                  } else {
-                     estoque[e.estoque_id] = { update: e.quantidade }
-                  }
-               }
-            })
-         */
-
-			/*console.log('estoque ', estoque)
-
-			const deletarItems = await os
-				.items()
-				.where('ordem_servico_id', os.id)
-				.delete(trx ? trx : null)
-
-			await os.items().createMany(items, trx ? trx : null)
-         */
-
-			/* Adicionar aqui contas pagar/receber */
-
-			/*let atualizado = await ModelEstoque.query()
-				.where('id', 10)
-				.transacting(trx ? trx : null)
-				.update({ descricao: 'Borrachariasssssss 2' })
-
-			console.log('atualizado ', atualizado)*/
 
 			await os.save(trx ? trx : null)
 

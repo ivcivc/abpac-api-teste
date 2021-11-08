@@ -133,6 +133,40 @@ class Estoque {
 			throw e
 		}
 	}
+
+	async localizarPor(payload) {
+		return new Promise(async (resolve, reject) => {
+			let field_name = payload.field_name
+			//let field_value = payload.field_value
+			let field_value_status = payload.field_value_status
+
+			try {
+				const query = Model.query().orderBy('descricao')
+
+				switch (field_name) {
+					case 'status':
+						if (field_value_status === 'disponivel') {
+							query.whereNull('saida_id')
+							query.with('osEntrada')
+						} else {
+							query.whereNotNull('saida_id')
+							query.with('osSaida')
+						}
+
+						break
+
+					default:
+						break
+				}
+
+				let retorno = await query.fetch()
+
+				resolve(retorno)
+			} catch (e) {
+				reject(e)
+			}
+		})
+	}
 }
 
 module.exports = Estoque

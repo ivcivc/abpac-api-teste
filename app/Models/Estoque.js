@@ -7,16 +7,18 @@ class Estoque extends Model {
 	osEntrada() {
 		return this.belongsTo(
 			'App/Models/ordem_servico/OrdemServicoItem',
-			id,
-			'entrada_id'
+
+			'entrada_id',
+			'id'
 		)
 	}
 
 	osSaida() {
 		return this.belongsTo(
 			'App/Models/ordem_servico/OrdemServicoItem',
+
 			'saida_id',
-			id
+			'id'
 		)
 	}
 }
