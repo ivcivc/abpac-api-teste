@@ -28,6 +28,7 @@ class EstoqueController {
 				.where('descricao', 'like', `%${descricao}%`)
 				.whereNull('saida_id')
 				.orderBy('descricao')
+				.with('osEntrada')
 				.fetch()
 
 			response.status(200).send({ type: true, data: model.rows })

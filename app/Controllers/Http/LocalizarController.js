@@ -32,11 +32,13 @@ class LocalizarController {
 		if (!lodash.has(payload, 'whereStatus')) {
 			//payload.whereStatus = ['equipamentos.status', 'like', '%%']
 		} else {
-			payload.whereStatus = [
-				'equipamentos.status',
-				'like',
-				payload.whereStatus,
-			]
+			if (!payload.whereStatus) {
+				payload.whereStatus = [
+					'equipamentos.status',
+					'like',
+					payload.whereStatus,
+				]
+			}
 		}
 
 		if (start) {

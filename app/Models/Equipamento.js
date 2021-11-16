@@ -4,37 +4,49 @@
 const Model = use('Model')
 
 class Equipamento extends Model {
-   equipamentoStatuses() {
-      return this.hasMany('App/Models/EquipamentoStatus')
-   }
+	equipamentoStatuses() {
+		return this.hasMany('App/Models/EquipamentoStatus')
+	}
 
-   ocorrencias() {
-      return this.hasMany('App/Models/Ocorrencia')
-   }
+	osAdesao() {
+		return this.hasOne(
+			'App/Models/ordem_servico/OrdemServico',
+			'preCadastro_id',
+			'preCadastro_id'
+		)
+	}
 
-   pessoa() {
-      return this.hasOne('App/Models/Pessoa', 'pessoa_id', 'id')
-   }
+	preCadastro() {
+		return this.hasMany('App/Models/PreCadastro', 'preCdastro_id', 'id')
+	}
 
-   categoria() {
-      return this.hasOne('App/Models/Categoria', 'categoria_id', 'id')
-   }
+	ocorrencias() {
+		return this.hasMany('App/Models/Ocorrencia')
+	}
 
-   equipamentoSigns() {
-      return this.hasMany('App/Models/EquipamentoSign')
-   }
+	pessoa() {
+		return this.hasOne('App/Models/Pessoa', 'pessoa_id', 'id')
+	}
 
-   equipamentoProtecoes() {
-      return this.hasMany('App/Models/EquipamentoProtecao')
-   }
+	categoria() {
+		return this.hasOne('App/Models/Categoria', 'categoria_id', 'id')
+	}
 
-   equipamentoBeneficios() {
-      return this.hasMany('App/Models/EquipamentoBeneficio')
-   }
+	equipamentoSigns() {
+		return this.hasMany('App/Models/EquipamentoSign')
+	}
 
-   equipamentoRestricaos() {
-      return this.hasMany('App/Models/EquipamentoRestricao')
-   }
+	equipamentoProtecoes() {
+		return this.hasMany('App/Models/EquipamentoProtecao')
+	}
+
+	equipamentoBeneficios() {
+		return this.hasMany('App/Models/EquipamentoBeneficio')
+	}
+
+	equipamentoRestricaos() {
+		return this.hasMany('App/Models/EquipamentoRestricao')
+	}
 }
 
 module.exports = Equipamento

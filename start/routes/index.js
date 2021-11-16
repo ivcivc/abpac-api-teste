@@ -190,6 +190,14 @@ Route.group(() => {
    Route.post('/equipamentos/localizarPorCategoria', 'EquipamentoController.localizarPorCategoria')
    Route.get('/equipamentos/localizarPorSubCategoria/:categoria_id', 'EquipamentoController.localizarPorSubCategoria')
 
+   Route.post('/equipamentos/relatorio/adesao', 'EquipamentoController.relatorioAdesao').middleware([
+      'auth'
+     ])
+
+     Route.post('/equipamentos/relatorio/cancelamento', 'EquipamentoController.relatorioBaixaCancelamento').middleware([
+      'auth'
+     ])
+
    /*Route.get('/restricao/getAllRestricao', 'EquipamentoController.getAllRestricao').middleware([
       'auth'
    ])*/
