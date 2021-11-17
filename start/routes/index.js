@@ -303,6 +303,10 @@ Route.group(() => {
    Route.resource('/ocorrenciaCausa', 'OcorrenciaCausaController')
    //.middleware(['auth'])
 
+   Route.post('/ocorrencias/localizarPorPeriodo', 'OcorrenciaController.localizarPorPeriodo').middleware([
+      'auth'
+   ])
+
    Route.resource('/lancamento', 'LancamentoController').middleware([
       'auth'
      ])
