@@ -258,6 +258,14 @@ Route.group(() => {
       'auth'
      ])
 
+     Route.post('/equipamentoProtecao/localizarPorMarca', 'EquipamentoProtecaoController.localizarPorMarca').middleware([
+      'auth'
+     ])
+
+     Route.post('/equipamentoProtecao/localizarSemProtecao', 'EquipamentoProtecaoController.localizarSemProtecao').middleware([
+      'auth'
+     ])
+
    Route.resource('/equipamentoProtecaoStatus', 'EquipamentoProtecaoStatusController').middleware([
       'auth'
      ])
@@ -304,6 +312,10 @@ Route.group(() => {
    //.middleware(['auth'])
 
    Route.post('/ocorrencias/localizarPorPeriodo', 'OcorrenciaController.localizarPorPeriodo').middleware([
+      'auth'
+   ])
+
+   Route.post('/ocorrencias/localizarTerceiroPorPeriodo', 'OcorrenciaController.localizarTerceiroPorPeriodo').middleware([
       'auth'
    ])
 
@@ -674,6 +686,8 @@ Route.group(() => {
 
   Route.post('/ordemServico/localizarPor', 'ordem_servico/OrdemServicoController.localizarPor')
   // Route.post('/ordemServico/localizarOS', 'ordem_servico/OrdemServicoController.localizarOS')
+
+  Route.post('/ordemServico/localizarBeneficiosTerceirosAssist24h', 'ordem_servico/OrdemServicoController.localizarBeneficiosTerceirosAssist24h')
 
   Route.get('/estoque/localizar/:descricao', 'EstoqueController.localizar').middleware([
    'auth'

@@ -4,15 +4,15 @@
 const Model = use('Model')
 
 class OrdemServico extends Model {
-   items() {
-      return this.hasMany('App/Models/ordem_servico/OrdemServicoItem')
-   }
+	items() {
+		return this.hasMany('App/Models/ordem_servico/OrdemServicoItem')
+	}
 
-   pessoa() {
-      return this.hasOne('App/Models/Pessoa', 'pessoa_id', 'id')
-   }
+	pessoa() {
+		return this.hasOne('App/Models/Pessoa', 'pessoa_id', 'id')
+	}
 
-   /*terceiro() {
+	/*terceiro() {
       return this.hasOne(
          'App/Models/OcorrenciaTerceiro',
          'ocorrencia_terceiro_id',
@@ -20,27 +20,35 @@ class OrdemServico extends Model {
       )
    }*/
 
-   ocorrencia() {
-      return this.hasOne('App/Models/Ocorrencia', 'ocorrencia_id', 'id')
-   }
+	ocorrencia() {
+		return this.hasOne('App/Models/Ocorrencia', 'ocorrencia_id', 'id')
+	}
 
-   user() {
-      return this.hasOne('App/Models/User', 'user_id', 'id')
-   }
+	user() {
+		return this.hasOne('App/Models/User', 'user_id', 'id')
+	}
 
-   config() {
-      return this.hasOne('App/Models/ordem_servico/OsConfig', 'config_id', 'id')
-   }
+	config() {
+		return this.hasOne('App/Models/ordem_servico/OsConfig', 'config_id', 'id')
+	}
 
-   lancamentos() {
-      return this.hasMany('App/Models/Lancamento') //, 'ordem_servico_id', 'id'
-   }
+	lancamentos() {
+		return this.hasMany('App/Models/Lancamento') //, 'ordem_servico_id', 'id'
+	}
 
-   equipamento() {
-      return this.hasOne('App/Models/Equipamento', 'equipamento_id', 'id')
-   }
+	equipamento() {
+		return this.hasOne('App/Models/Equipamento', 'equipamento_id', 'id')
+	}
 
-   /*statuses () {
+	terceiro() {
+		return this.hasOne(
+			'App/Models/OcorrenciaTerceiro',
+			'ocorrencia_terceiro_id',
+			'id'
+		)
+	}
+
+	/*statuses () {
       return this.hasMany('App/Models/OcorrenciaStatus')
    }
 

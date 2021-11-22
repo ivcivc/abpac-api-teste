@@ -27,9 +27,9 @@ const dropbox = dropboxV2Api.authenticate({
 })*/
 
 const dbx = new Dropbox({
-   accessToken:
-      'Oa8F7Dr5mzAAAAAAAAAAdCtu2ZHPDca4bFFIBz_uuRhcTRoXHRjtf_CZJqz7rOPp',
-   fetch,
+	accessToken:
+		'Oa8F7Dr5mzAAAAAAAAAAdCtu2ZHPDca4bFFIBz_uuRhcTRoXHRjtf_CZJqz7rOPp',
+	fetch,
 })
 
 const lodash = require('lodash')
@@ -37,9 +37,9 @@ const lodash = require('lodash')
  * Resourceful controller for interacting with files
  */
 class FileController {
-   async list({ request }) {
-      return new Promise((resolve, reject) => {
-         /*dbx.sharingGetSharedLinkFile({ url: 'id:vNe542VRdrAAAAAAAAAAZg' })
+	async list({ request }) {
+		return new Promise((resolve, reject) => {
+			/*dbx.sharingGetSharedLinkFile({ url: 'id:vNe542VRdrAAAAAAAAAAZg' })
          .then(function (data) {
            fs.writeFile(data.name, data.fileBinary, 'binary', function (err) {
              if (err) { throw err; }
@@ -52,248 +52,248 @@ class FileController {
            throw err;
          });*/
 
-         dbx.filesListFolder({ path: '' })
-            .then(function (response) {
-               console.log(response)
-               resolve(response)
-            })
-            .catch(function (err) {
-               console.log(err)
-               reject(err)
-            })
-      })
-   }
+			dbx.filesListFolder({ path: '' })
+				.then(function (response) {
+					console.log(response)
+					resolve(response)
+				})
+				.catch(function (err) {
+					console.log(err)
+					reject(err)
+				})
+		})
+	}
 
-   async delete({ request, response }) {
-      const { path } = request.all()
+	async delete({ request, response }) {
+		const { path } = request.all()
 
-      console.log('path ', path)
+		console.log('path ', path)
 
-      return new Promise((resolve, reject) => {
-         dbx.filesDelete({ path: path })
+		return new Promise((resolve, reject) => {
+			dbx.filesDelete({ path: path })
 
-            .then(function (data) {
-               resolve(data)
-            })
+				.then(function (data) {
+					resolve(data)
+				})
 
-            .catch(function (err) {
-               reject(err)
-               throw err
-            })
-      })
-   }
+				.catch(function (err) {
+					reject(err)
+					throw err
+				})
+		})
+	}
 
-   async linkTemp({ request, response }) {
-      const { id } = request.all()
+	async linkTemp({ request, response }) {
+		const { id } = request.all()
 
-      let item = null
+		let item = null
 
-      try {
-         item = await FileItem.findOrFail(id)
+		try {
+			item = await FileItem.findOrFail(id)
 
-         return new Promise((resolve, reject) => {
-            if (item.key === 'pendente') {
-               return resolve({ link: 'pendente' })
-            }
+			return new Promise((resolve, reject) => {
+				if (item.key === 'pendente') {
+					return resolve({ link: 'pendente' })
+				}
 
-            dbx.filesGetTemporaryLink({ path: item.key })
+				dbx.filesGetTemporaryLink({ path: item.key })
 
-               .then(function (data) {
-                  data.type = item.type
-                  data.subtype = item.subtype
+					.then(function (data) {
+						data.type = item.type
+						data.subtype = item.subtype
 
-                  resolve(data)
-               })
+						resolve(data)
+					})
 
-               .catch(function (err) {
-                  reject(err)
-                  throw err
-               })
-         })
-      } catch (e) {
-         response.status(400).send(e)
-      }
-   }
+					.catch(function (err) {
+						reject(err)
+						throw err
+					})
+			})
+		} catch (e) {
+			response.status(400).send(e)
+		}
+	}
 
-   async thumbnail({ request, response }) {
-      const { path, mode, size } = request.all()
+	async thumbnail({ request, response }) {
+		const { path, mode, size } = request.all()
 
-      console.log('path ', path)
+		console.log('path ', path)
 
-      return new Promise((resolve, reject) => {
-         dbx.filesGetTemporaryLink({ path: path, mode, size })
+		return new Promise((resolve, reject) => {
+			dbx.filesGetTemporaryLink({ path: path, mode, size })
 
-            .then(function (data) {
-               resolve(data)
-            })
+				.then(function (data) {
+					resolve(data)
+				})
 
-            .catch(function (err) {
-               reject(err)
-               throw err
-            })
-      })
-   }
+				.catch(function (err) {
+					reject(err)
+					throw err
+				})
+		})
+	}
 
-   async preview({ request, response }) {
-      const { path } = request.all()
+	async preview({ request, response }) {
+		const { path } = request.all()
 
-      console.log('path ', path)
+		console.log('path ', path)
 
-      return new Promise((resolve, reject) => {
-         dbx.filesGetPreview({ path: path })
+		return new Promise((resolve, reject) => {
+			dbx.filesGetPreview({ path: path })
 
-            .then(function (data) {
-               resolve(data)
-            })
+				.then(function (data) {
+					resolve(data)
+				})
 
-            .catch(function (err) {
-               reject(err)
-               throw err
-            })
-      })
-   }
+				.catch(function (err) {
+					reject(err)
+					throw err
+				})
+		})
+	}
 
-   async upload_file({ request, response, params }) {
-      let fileOriginal = ''
+	async upload_file({ request, response, params }) {
+		let fileOriginal = ''
 
-      console.log('response.id ', response.id)
+		console.log('response.id ', response.id)
 
-      try {
-         const query = request.get()
+		try {
+			const query = request.get()
 
-         let payload = query
+			let payload = query
 
-         if (!lodash.isObject) {
-            payload = JSON.parse(query.payload)
-         }
+			if (!lodash.isObject) {
+				payload = JSON.parse(query.payload)
+			}
 
-         let retorno = null
+			let retorno = null
 
-         await request.multipart
-            .file('upload', {}, async file => {
-               try {
-                  const fileName = `${Date.now()}.${file.extname}`
-                  fileOriginal = file.clientName
+			await request.multipart
+				.file('upload', {}, async file => {
+					try {
+						const fileName = `${Date.now()}.${file.extname}`
+						fileOriginal = file.clientName
 
-                  console.log('arquivo: ', fileName)
+						console.log('arquivo: ', fileName)
 
-                  //const fileContent = await getStream.buffer(file.stream);
+						//const fileContent = await getStream.buffer(file.stream);
 
-                  let res = await dbx.filesUpload({
-                     path: '/' + fileName,
-                     contents: file.stream,
-                  })
+						let res = await dbx.filesUpload({
+							path: '/' + fileName,
+							contents: file.stream,
+						})
 
-                  console.log('acabou de fazer upload no dropbox')
-                  console.log('response.id ', res.id)
+						console.log('acabou de fazer upload no dropbox')
+						console.log('response.id ', res.id)
 
-                  const fileModelItem = await FileItem.create({
-                     file: fileName,
-                     name: fileOriginal,
-                     path: res.path_lower,
-                     type: file.type,
-                     subtype: file.subtype,
-                     key: res.id,
-                     status: 'Aprovado',
-                  })
+						const fileModelItem = await FileItem.create({
+							file: fileName,
+							name: fileOriginal,
+							path: res.path_lower,
+							type: file.type,
+							subtype: file.subtype,
+							key: res.id,
+							status: 'Aprovado',
+						})
 
-                  retorno = {
-                     arquivo: fileName,
-                     value: fileModelItem.id,
-                     status: 'server',
-                  }
-               } catch (err) {
-                  console.log('retorno catch.... ')
-                  response.status(200).send({
-                     arquivo: fileOriginal,
-                     value: 'falha',
-                     status: 'error',
-                     err,
-                  })
-                  return
-               }
-            })
-            .process()
+						retorno = {
+							arquivo: fileName,
+							value: fileModelItem.id,
+							status: 'server',
+						}
+					} catch (err) {
+						console.log('retorno catch.... ')
+						response.status(200).send({
+							arquivo: fileOriginal,
+							value: 'falha',
+							status: 'error',
+							err,
+						})
+						return
+					}
+				})
+				.process()
 
-         console.log('resolvendo...')
+			console.log('resolvendo...')
 
-         response.status(200).send(retorno)
-      } catch (err) {
-         response.status(200).send({
-            arquivo: fileOriginal,
-            value: 'falha',
-            status: 'error',
-            err,
-         })
-      }
-   }
+			response.status(200).send(retorno)
+		} catch (err) {
+			response.status(200).send({
+				arquivo: fileOriginal,
+				value: 'falha',
+				status: 'error',
+				err,
+			})
+		}
+	}
 
-   // Upload de arquivo no dropbox
-   async upload_file_original({ request, response, params }) {
-      console.log('response.id ', response.id)
-      return new Promise((resolve, reject) => {
-         try {
-            const query = request.get()
+	// Upload de arquivo no dropbox
+	async upload_file_original({ request, response, params }) {
+		console.log('response.id ', response.id)
+		return new Promise((resolve, reject) => {
+			try {
+				const query = request.get()
 
-            let payload = query
+				let payload = query
 
-            if (!lodash.isObject) {
-               payload = JSON.parse(query.payload)
-            }
+				if (!lodash.isObject) {
+					payload = JSON.parse(query.payload)
+				}
 
-            request.multipart.file('upload', {}, async file => {
-               const fileName = `${Date.now()}.${file.extname}`
-               const fileOriginal = file.clientName
+				request.multipart.file('upload', {}, async file => {
+					const fileName = `${Date.now()}.${file.extname}`
+					const fileOriginal = file.clientName
 
-               console.log('arquivo: ', fileName)
+					console.log('arquivo: ', fileName)
 
-               const fileContent = await getStream.buffer(file.stream)
+					const fileContent = await getStream.buffer(file.stream)
 
-               dbx.filesUpload({ path: '/' + fileName, contents: fileContent })
+					dbx.filesUpload({ path: '/' + fileName, contents: fileContent })
 
-                  .then(async response => {
-                     console.log('passou no upload.... ', response)
-                     const fileModelItem = await FileItem.create({
-                        file: fileName,
-                        name: fileOriginal,
-                        path: response.path_lower,
-                        type: file.type,
-                        subtype: file.subtype,
-                        key: response.id,
-                        status: 'Aprovado',
-                     })
+						.then(async response => {
+							console.log('passou no upload.... ', response)
+							const fileModelItem = await FileItem.create({
+								file: fileName,
+								name: fileOriginal,
+								path: response.path_lower,
+								type: file.type,
+								subtype: file.subtype,
+								key: response.id,
+								status: 'Aprovado',
+							})
 
-                     resolve({
-                        arquivo: fileName,
-                        value: fileModelItem.id,
-                        status: 'server',
-                     })
-                  })
-                  .catch(error => {
-                     console.log('falhou no upload.... ', error)
-                     reject({
-                        arquivo: fileName,
-                        value: 'falha',
-                        status: 'error',
-                     })
-                  })
-            })
+							resolve({
+								arquivo: fileName,
+								value: fileModelItem.id,
+								status: 'server',
+							})
+						})
+						.catch(error => {
+							console.log('falhou no upload.... ', error)
+							reject({
+								arquivo: fileName,
+								value: 'falha',
+								status: 'error',
+							})
+						})
+				})
 
-            request.multipart.process()
-         } catch (err) {
-            return response.status(err.status).send({
-               err: err.message,
-               error: { message: 'Erro no upload de arquivo' },
-            })
-         }
-      })
-   }
+				request.multipart.process()
+			} catch (err) {
+				return response.status(err.status).send({
+					err: err.message,
+					error: { message: 'Erro no upload de arquivo' },
+				})
+			}
+		})
+	}
 
-   /*
+	/*
       Recebe o cabeçalho do File e grava a referencia id (file_id)
       no filho (fileItem - referencia dropbox)
    */
-   /*async store({request,response}) {
+	/*async store({request,response}) {
       let {files} = request.only('files')
       let payload = request.all()
       console.log('store')
@@ -343,7 +343,7 @@ class FileController {
 
    }*/
 
-   /*async setAddKue(ID) {
+	/*async setAddKue(ID) {
       try {
             // Ativar envio para o Dropbox (kue), caso key == pendente.
             let query = await FileItem.query()
@@ -363,7 +363,7 @@ class FileController {
 
    }*/
 
-   /*async update ({ request, response,params }) {
+	/*async update ({ request, response,params }) {
       console.log('update ')
       let trx= null
 
@@ -397,7 +397,7 @@ class FileController {
 
    }*/
 
-   /*async store_oroginal ({ request, response, params }) {
+	/*async store_oroginal ({ request, response, params }) {
 
       return new Promise((resolve, reject)  => {
 
@@ -458,48 +458,48 @@ class FileController {
 
    }*/
 
-   async index({ response, request }) {
-      const { modulo } = request.only('modulo')
-      const { idParent } = request.only('idParent')
+	async index({ response, request }) {
+		const { modulo } = request.only('modulo')
+		const { idParent } = request.only('idParent')
 
-      try {
-         const file = File.query()
+		try {
+			const file = File.query()
 
-         if (modulo) {
-            file.where('modulo', 'like', modulo)
-         }
+			if (modulo) {
+				file.where('modulo', 'like', modulo)
+			}
 
-         if (idParent) {
-            file.where('idParent', '=', idParent)
-         }
+			if (idParent) {
+				file.where('idParent', '=', idParent)
+			}
 
-         const res = await file.fetch()
+			const res = await file.fetch()
 
-         response.status(200).send(res)
-      } catch (error) {
-         response.status(400).send({
-            code: error.code,
-            message: error.message,
-            name: error.name,
-         })
-      }
-   }
+			response.status(200).send(res)
+		} catch (error) {
+			response.status(400).send({
+				code: error.code,
+				message: error.message,
+				name: error.name,
+			})
+		}
+	}
 
-   async busca({ response, request }) {
-      const payload = request.all()
+	async busca({ response, request }) {
+		const payload = request.all()
 
-      let modulos = []
+		let modulos = []
 
-      if (payload.modulos) {
-         modulos = payload.modulos
-      }
+		if (payload.modulos) {
+			modulos = payload.modulos
+		}
 
-      try {
-         let status = !payload.status ? null : payload.status.split(',')
+		try {
+			let status = !payload.status ? null : payload.status.split(',')
 
-         console.log('status ', status)
+			console.log('status ', status)
 
-         /*const query = await File
+			/*const query = await File
             .query()
             .select('*')
             .with('pessoa')
@@ -507,66 +507,66 @@ class FileController {
             //.with('equipamentos.ocorrencias')
             .fetch()*/
 
-         let query = null
+			let query = null
 
-         let arrQuery = []
+			let arrQuery = []
 
-         modulos.forEach(modulo => {
-            if (modulo === 'Associado') {
-               arrQuery.push(
-                  Database.select([
-                     'files.*',
-                     'files.status as placa ',
-                     'pessoas.nome as nome',
-                     'pessoas.status as pessoa_status',
-                     'pessoas.status as equipamento_status',
-                     //'pessoas.id as ID',
-                  ])
-                     .table('files')
-                     .where('modulo', 'Associado')
-                     .whereIn('files.status', status)
-                     .leftOuterJoin('pessoas', 'files.pessoa_id', 'pessoas.id')
-               )
-            }
+			modulos.forEach(modulo => {
+				if (modulo === 'Associado') {
+					arrQuery.push(
+						Database.select([
+							'files.*',
+							'files.status as placa ',
+							'pessoas.nome as nome',
+							'pessoas.status as pessoa_status',
+							'pessoas.status as equipamento_status',
+							//'pessoas.id as ID',
+						])
+							.table('files')
+							.where('modulo', 'Associado')
+							.whereIn('files.status', status)
+							.leftOuterJoin('pessoas', 'files.pessoa_id', 'pessoas.id')
+					)
+				}
 
-            if (modulo === 'Equipamento') {
-               arrQuery.push(
-                  Database.select([
-                     'files.*',
-                     'placa1 as placa ',
-                     'pessoas.nome as nome',
-                     'pessoas.status as pessoa_status',
-                     'equipamentos.status as equipamento_status',
-                     //'equipamentos.id as ID',
-                  ])
-                     .table('files')
-                     .where('modulo', 'Equipamento')
-                     .leftOuterJoin(
-                        'equipamentos',
-                        'files.idParent',
-                        'equipamentos.id'
-                     )
-                     .leftOuterJoin('pessoas', 'files.pessoa_id', 'pessoas.id')
-                     .whereIn('files.status', status)
-                  //.where('equipamentos.status', 'Ativo')
-               )
-            }
-         })
+				if (modulo === 'Equipamento') {
+					arrQuery.push(
+						Database.select([
+							'files.*',
+							'placa1 as placa ',
+							'pessoas.nome as nome',
+							'pessoas.status as pessoa_status',
+							'equipamentos.status as equipamento_status',
+							//'equipamentos.id as ID',
+						])
+							.table('files')
+							.where('modulo', 'Equipamento')
+							.leftOuterJoin(
+								'equipamentos',
+								'files.idParent',
+								'equipamentos.id'
+							)
+							.leftOuterJoin('pessoas', 'files.pessoa_id', 'pessoas.id')
+							.whereIn('files.status', status)
+						//.where('equipamentos.status', 'Ativo')
+					)
+				}
+			})
 
-         query = await Database.select([
-            'files.*',
-            'files.status as placa ',
-            'files.status as nome',
-            'files.status as pessoa_status',
-            'files.status as equipamento_status',
-            //'files.id as ID',
-         ])
-            .table('files')
-            .where(1, 0)
-            .union(arrQuery)
-            .orderBy('nome')
+			query = await Database.select([
+				'files.*',
+				'files.status as placa ',
+				'files.status as nome',
+				'files.status as pessoa_status',
+				'files.status as equipamento_status',
+				//'files.id as ID',
+			])
+				.table('files')
+				.where(1, 0)
+				.union(arrQuery)
+				.orderBy('nome')
 
-         /*query = await File.query()
+			/*query = await File.query()
             .join('problem_permissions as pp', 'pp.problemId', 'problems.problemId')
             .where('pp.userId', userId)
             .orderBy('problems.problemId', 'asc')
@@ -595,12 +595,12 @@ class FileController {
 
          }*/
 
-         response.status(200).send({ type: true, data: query })
-      } catch (error) {
-         console.log(error)
-         response.status(400).send(error)
-      }
-   }
+			response.status(200).send({ type: true, data: query })
+		} catch (error) {
+			console.log(error)
+			response.status(400).send(error)
+		}
+	}
 }
 
 module.exports = FileController

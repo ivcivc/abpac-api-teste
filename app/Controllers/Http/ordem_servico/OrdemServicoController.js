@@ -110,6 +110,22 @@ class OrdemServicoController {
 			response.status(400).send(error)
 		}
 	}
+
+	async localizarBeneficiosTerceirosAssist24h({ request, response }) {
+		const payload = request.all()
+
+		try {
+			const query =
+				await new OrdemServicoService().localizarBeneficiosTerceirosAssist24h(
+					payload
+				)
+
+			response.status(200).send(query)
+		} catch (error) {
+			console.log(error)
+			response.status(400).send(error)
+		}
+	}
 }
 
 module.exports = OrdemServicoController

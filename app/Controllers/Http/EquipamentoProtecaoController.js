@@ -1,79 +1,116 @@
 'use strict'
 
-const EquipamentoProtecaoServices = use("App/Services/EquipamentoProtecao");
+const EquipamentoProtecaoServices = use('App/Services/EquipamentoProtecao')
 const Database = use('Database')
 
 class EquipamentoProtecaoController {
+	async index({ request, response, view }) {}
 
-  async index ({ request, response, view }) {
-  }
+	async store({ request, response, auth }) {
+		const payload = request.all()
 
-  async store ({ request, response, auth }) {
-   const payload = request.all();
+		let equipamento_id = payload.equipamento_id
+		let trx = null
 
-   let equipamento_id= payload.equipamento_id
-   let trx= null
+		try {
+			trx = await Database.beginTransaction()
 
+			const protecao = await new EquipamentoProtecaoServices().update(
+				equipamento_id,
+				payload,
+				null,
+				auth
+			)
 
-   try {
+			await trx.commit()
 
-      trx = await Database.beginTransaction()
+			response.status(200).send({ type: true, data: protecao })
+		} catch (error) {
+			await trx.rollback()
+			console.log(error)
+			response.status(400).send(error)
+		}
+	}
 
-      const protecao = await new EquipamentoProtecaoServices().update(equipamento_id, payload, null, auth);
+	async show({ params, response }) {
+		try {
+			const protecao = await new EquipamentoProtecaoServices().get(params.id)
 
-      await trx.commit()
+			response.status(200).send({ type: true, data: protecao })
+		} catch (error) {
+			console.log(error)
+			response.status(400).send({
+				code: error.code,
+				message: error.message,
+				name: error.name,
+			})
+		}
+	}
 
-      response.status(200).send({ type: true, data: protecao });
-   } catch (error) {
-      await trx.rollback()
-      console.log(error);
-      response.status(400).send(error);
-   }
+	async update({ params, request, response, auth }) {
+		const payload = request.all()
 
-  }
+		const ID = params.id
 
+		let trx = null
 
-  async show({ params, response }) {
+		try {
+			trx = await Database.beginTransaction()
 
-      try {
-      const protecao = await new EquipamentoProtecaoServices().get(params.id);
+			const protecao = await new EquipamentoProtecaoServices().update(
+				ID,
+				payload,
+				null,
+				auth
+			)
 
-      response.status(200).send({ type: true, data: protecao });
-   } catch (error) {
-      console.log(error);
-      response.status(400).send({code: error.code, message: error.message, name: error.name});
-   }
-  }
+			await trx.commit()
 
+			response.status(200).send({ type: true, data: protecao })
+		} catch (error) {
+			await trx.rollback()
+			console.log(error)
+			response.status(400).send(error)
+		}
+	}
 
-  async update ({ params, request, response, auth }) {
-   const payload = request.all();
+	async destroy({ params, request, response }) {}
 
-   const ID = params.id
+	async localizarPorMarca({ request, response }) {
+		const payload = request.all()
+		if (payload.field_value_marca) {
+			payload.field_value_marca = payload.field_value_marca.split(',')
+		}
+		try {
+			const busca =
+				await new EquipamentoProtecaoServices().localizarPorMarca(payload)
 
-   let trx= null
+			response.status(200).send(busca)
+		} catch (error) {
+			console.log(error)
+			response.status(400).send({
+				code: error.code,
+				message: error.message,
+				name: error.name,
+			})
+		}
+	}
 
-   try {
+	async localizarSemProtecao({ response }) {
+		try {
+			const busca =
+				await new EquipamentoProtecaoServices().localizarSemProtecao()
 
-
-      trx = await Database.beginTransaction()
-
-
-      const protecao = await new EquipamentoProtecaoServices().update(ID, payload, null, auth);
-
-      await trx.commit()
-
-      response.status(200).send({ type: true, data: protecao });
-   } catch (error) {
-      await trx.rollback()
-      console.log(error);
-      response.status(400).send(error);
-   }
-  }
-
-
-  async destroy ({ params, request, response }) {
-  }
+			response.status(200).send(busca)
+		} catch (error) {
+			console.log(error)
+			response.status(400).send({
+				code: error.code,
+				message: error.message,
+				name: error.name,
+			})
+		}
+	}
 }
 
 module.exports = EquipamentoProtecaoController

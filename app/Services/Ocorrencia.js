@@ -8,6 +8,8 @@ const OcorrenciaStatus = use('App/Models/OcorrenciaStatus')
 const ModelTerceiroStatus = use('App/Models/OcorrenciaTerceiroStatus')
 const FileConfig = use('App/Models/FileConfig')
 const Galeria = use('App/Models/File')
+const ModelConfig = use('App/Models/ordem_servico/OsConfig')
+const ModelOS = use('App/Models/ordem_servico/OrdemServico')
 
 const Database = use('Database')
 
@@ -572,6 +574,13 @@ class Ocorrencia {
 					dEnd = payload.field_value_periodo.end
 				}
 
+				//const modelConfigOs = await ModelConfig.findBy('modelo', 'Terceiro')
+
+				//let osConfig_id = -1
+				//if (modelConfigOs) {
+				//	osConfig_id = modelConfigOs.id
+				//}
+
 				const query = await Model.query()
 					.whereBetween('dEvento', [
 						dStart.substr(0, 10),
@@ -646,12 +655,17 @@ class Ocorrencia {
 
 						delete e.equipamento
 
+						e.os_participacao = 0.0
+						e.os_outros = 0.0
+						e.os_total = 0.0
+
 						if (e.ordemServicos.length > 0) {
 							for (const keyOS in e.ordemServicos) {
 								if (
 									Object.hasOwnProperty.call(e.ordemServicos, keyOS)
 								) {
 									const os = e.ordemServicos[keyOS]
+
 									let tipo = os.config.modelo
 									switch (tipo) {
 										case 'Participação (Ocorrência)':
@@ -671,11 +685,11 @@ class Ocorrencia {
 											}
 											break
 									}
+									e.os_participacao = nParticipacao
+									e.os_outros = nOutros
+									e.os_total = nOutros - nParticipacao
 								}
 							}
-							e.os_participacao = nParticipacao
-							e.os_outros = nOutros
-							e.os_total = nOutros - nParticipacao
 						} else {
 							e.os_participacao = nParticipacao
 							e.os_outros = nOutros
@@ -687,6 +701,139 @@ class Ocorrencia {
 				}
 
 				resolve(json)
+			} catch (e) {
+				reject(e)
+			}
+		})
+	}
+
+	async localizarTerceiroPorPeriodo(payload, parametros) {
+		return new Promise(async (resolve, reject) => {
+			try {
+				let dStart = null
+				let dEnd = null
+
+				if (payload.field_value_periodo) {
+					dStart = payload.field_value_periodo.start
+					dEnd = payload.field_value_periodo.end
+				}
+
+				const query = await Database.select([
+					'ocorrencia_terceiros.id',
+					'ocorrencia_terceiros.nome',
+					'ocorrencia_terceiros.ocorrencia_id',
+					'ocorrencia_terceiros.cpfCnpj',
+					'ocorrencia_terceiros.status',
+					'ocorrencia_terceiros.equipamento',
+					'ocorrencia_terceiros.placa',
+					'ocorrencia_terceiros.fabricacao',
+					'ocorrencia_terceiros.patrimonio',
+					'ocorrencia_terceiros.anoF',
+					'ocorrencia_terceiros.modeloF',
+					'ocorrencia_terceiros.chassi',
+					'ocorrencia_terceiros.temSeguro',
+					'ocorrencia_terceiros.passivelRessarcimento',
+					'ocorrencia_terceiros.atender',
+					'ocorrencias.dEvento as osDEvento',
+					'ocorrencias.created_at as osDCad',
+					'ocorrencias.tipoAcidente as osTipoAcidente',
+					'ocorrencias.status as osStatus',
+					'ocorrencias.hora as osHora',
+					'ocorrencias.local as osLocal',
+					'ocorrencias.cidade as osCidade',
+					'ocorrencias.uf as osUf',
+					'ocorrencias.responsavel as osResponsavel',
+					'pessoas.nome as pessoa_nome',
+				])
+					.from('ocorrencia_terceiros')
+					//.distinct('ordem_servicos.id')
+					.innerJoin(
+						'ocorrencias',
+						'ocorrencia_terceiros.ocorrencia_id',
+						'ocorrencias.id'
+					)
+					.innerJoin('pessoas', 'ocorrencias.id', 'pessoas.id')
+					.whereBetween('ocorrencias.dEvento', [dStart, dEnd])
+				//.where('ocorrencias.tipoAcidente', 'Acidente')
+				/*query.leftOuterJoin(
+					'ordem_servicos',
+					'ocorrencia_terceiros.id',
+					'ordem_servicos.ocorrencia_terceiro_id'
+				)*/
+
+				const modelConfigOs = await ModelConfig.findBy(
+					'modelo',
+					'Terceiro (Participação)'
+				)
+				/*let terceiro_participacao_id= null
+				if (modelConfigOs) {
+					terceiro_participacao_id = modelConfigOs.id
+				}*/
+
+				for (const key in query) {
+					if (Object.hasOwnProperty.call(query, key)) {
+						const e = query[key]
+						if (e.placa) {
+							/*if (e.placa.length > 5) {
+								let placa = `${e.placa}`
+								placa = placa.substr(0, 3) + '-' + placa.substr(3)
+								e.placa = placa.toUpperCase()
+							}*/
+						}
+						if (e.osDEvento) {
+							e.osDEvento = e.osDEvento
+								? moment(e.osDEvento, 'YYYY-MM-DD').format('DD/MM/YYYY')
+								: ''
+						}
+						if (e.osDCad) {
+							e.osDCad = e.osDCad
+								? moment(e.osDCad, 'YYYY-MM-DD').format('DD/MM/YYYY')
+								: ''
+						}
+
+						if (e.patrimonio) {
+							e.bem = e.patrimonio
+						} else {
+							e.bem = e.equipamento
+						}
+						e.os_total = 0.0
+						e.os_participacao = 0.0
+						e.os_outros = 0.0
+						const modelOs = await ModelOS.query()
+							.where('ocorrencia_terceiro_id', e.id)
+							.with('config')
+							.fetch()
+						const os = modelOs.toJSON()
+
+						for (const keyOS in os) {
+							if (Object.hasOwnProperty.call(os, keyOS)) {
+								const eOs = os[keyOS]
+								if (eOs.status !== 'Cancelado') {
+									if (eOs.isCredito) {
+										if (
+											eOs.config.modelo === 'Terceiro (Participação)'
+										) {
+											e.os_participacao += eOs.valorTotal
+										} else {
+											e.os_outros -= eOs.valorTotal
+										}
+									} else {
+										if (
+											eOs.config.modelo === 'Terceiro (Participação)'
+										) {
+											e.os_participacao -= eOs.valorTotal
+										} else {
+											e.os_outros += eOs.valorTotal
+										}
+									}
+								}
+							}
+						}
+						e.os_total = e.os_outros - e.os_participacao
+					}
+				}
+
+				resolve(query)
 			} catch (e) {
 				reject(e)
 			}

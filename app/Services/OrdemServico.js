@@ -1630,6 +1630,170 @@ class OrdemServico {
 			}
 		})
 	}
+
+	async localizarBeneficiosTerceirosAssist24h(payload) {
+		return new Promise(async (resolve, reject) => {
+			try {
+				let dStart = null
+				let dEnd = null
+
+				if (payload.field_value_periodo) {
+					dStart = payload.field_value_periodo.start
+					dEnd = payload.field_value_periodo.end
+				}
+
+				const modelConfig = await ModelOSConfig.query()
+					.whereIn('modelo', ['Assistencia 24h', 'Terceiro'])
+					.fetch()
+
+				const config = []
+				modelConfig.rows.forEach(o => {
+					config.push(o.id)
+				})
+
+				const modelOS = await Model.query()
+					.whereIn('config_id', config)
+					.whereBetween('dCompetencia', [dStart, dEnd])
+					.whereNot('status', 'Cancelado')
+					.with('pessoa')
+					.with('equipamento')
+					.with('equipamento.categoria')
+					.with('equipamento.equipamentoBeneficios')
+					.with('equipamento.equipamentoBeneficios.beneficio')
+					.with('ocorrencia')
+					.with('ocorrencia.equipamento.categoria')
+					.with('ocorrencia.equipamento.categoria')
+					.with('ocorrencia.equipamento.equipamentoBeneficios')
+					.with('ocorrencia.equipamento.equipamentoBeneficios.beneficio')
+					.with('terceiro')
+					.fetch()
+
+				const json = modelOS.toJSON()
+				const arr = []
+
+				for (const key in json) {
+					if (Object.hasOwnProperty.call(json, key)) {
+						const os = json[key]
+						const o = {
+							id: os.id,
+							status: os.status,
+							dCompetencia: os.dCompetencia
+								? moment(os.dCompetencia, 'YYYY-MM-DD').format(
+										'DD/MM/YYYY'
+								  )
+								: '',
+							valorTotal: os.isCredito
+								? os.valorTotal * -1
+								: os.valorTotal,
+							pessoa_nome: os.pessoa ? os.pessoa.nome : '',
+							ocorrencia_id: '',
+							ocorrencia_dEvento: '',
+							ocorrencia_tipoAcidente: '',
+							placa: '',
+							equipamento: '',
+							anoModelo: '',
+							categoria: '',
+							beneficios: '',
+							terceiro_nome: '',
+							terceiro_id: '',
+							terceiro_patrimonio: '',
+							terceiro_placa: '',
+						}
+
+						let equipa = null
+						let ordemPlaca = 1
+
+						if (os.ocorrencia) {
+							equipa = os.ocorrencia.equipamento
+							o.ocorrencia_id = os.ocorrencia.id
+							o.ocorrencia_dEvento = os.ocorrencia.dEvento
+								? moment(os.ocorrencia.dEvento, 'YYYY-MM-DD').format(
+										'DD/MM/YYYY'
+								  )
+								: ''
+							o.ocorrencia_tipoAcidente = os.ocorrencia.tipoAcidente
+							ordemPlaca = os.ocorrencia.qualPlaca
+						} else {
+							equipa = os.equipamento
+						}
+
+						if (equipa) {
+							o.categoria = equipa.categoria.abreviado
+							switch (ordemPlaca) {
+								case 1:
+									o.placa = equipa.placa1
+										? equipa.placa1.length > 5
+											? equipa.placa1.substr(0, 3) +
+											  '-' +
+											  equipa.placa1.substr(3)
+											: equipa.placa1
+										: equipa.placa1
+									o.equipamento = equipa.marca1 + ' ' + equipa.modelo1
+									o.anoModelo = equipa.anoF1 + '/' + equipa.modeloF1
+									break
+
+								case 2:
+									o.placa = equipa.placa2
+										? equipa.placa2.length > 5
+											? equipa.placa2.substr(0, 3) +
+											  '-' +
+											  equipa.placa2.substr(3)
+											: equipa.placa2
+										: equipa.placa2
+
+									o.equipamento = equipa.marca2 + ' ' + equipa.modelo2
+									o.anoModelo = equipa.anoF2 + '/' + equipa.modeloF2
+									break
+								case 3:
+									o.placa = equipa.placa3
+										? equipa.placa3.length > 5
+											? equipa.placa3.substr(0, 3) +
+											  '-' +
+											  equipa.placa3.substr(3)
+											: equipa.placa3
+										: equipa.placa3
+									o.equipamento = equipa.marca3 + ' ' + equipa.modelo3
+									o.anoModelo = equipa.anoF3 + '/' + equipa.modeloF3
+									break
+							}
+
+							for (const keyB in equipa.equipamentoBeneficios) {
+								if (
+									Object.hasOwnProperty.call(
+										equipa.equipamentoBeneficios,
+										keyB
+									)
+								) {
+									const b = equipa.equipamentoBeneficios[keyB]
+									if (b.status === 'Ativo') {
+										if (!lodash.isEmpty(o.beneficios)) {
+											o.beneficios = o.beneficios + '|'
+										}
+										o.beneficios += b.beneficio.descricao
+									}
+								}
+							}
+
+							if (os.terceiro) {
+								o.terceiro_nome = os.terceiro.nome
+								o.terceiro_id = os.terceiro.id
+								o.terceiro_patrimonio = os.terceiro.patrimonio
+									? os.terceiro.patrimonio
+									: os.terceiro.equipamento
+								o.terceiro_placa = os.terceiro.placa
+							}
+						}
+
+						arr.push(o)
+					}
+				}
+
+				resolve(arr)
+			} catch (e) {
+				reject(e)
+			}
+		})
+	}
 }
 
 module.exports = OrdemServico

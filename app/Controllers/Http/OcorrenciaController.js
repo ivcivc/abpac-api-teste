@@ -194,6 +194,27 @@ class OcorrenciaController {
 			})
 		}
 	}
+
+	async localizarTerceiroPorPeriodo({ request, params, response, auth, trx }) {
+		try {
+			const filtro = request.all()
+			const query =
+				await new OcorrenciaServices().localizarTerceiroPorPeriodo(
+					filtro,
+					trx,
+					auth
+				)
+
+			response.status(200).send(query)
+		} catch (error) {
+			console.log(error)
+			response.status(400).send({
+				code: error.code,
+				message: error.message,
+				name: error.name,
+			})
+		}
+	}
 }
 
 module.exports = OcorrenciaController

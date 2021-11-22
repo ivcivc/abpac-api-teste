@@ -26,46 +26,48 @@ const OrdemServico = use('App/Models/ordem_servico/OrdemServico')
 const OrdemServicoItem = use('App/Models/ordem_servico/OrdemServicoItem')
 const OrdemServicoStatus = use('App/Models/ordem_servico/OrdemServicoStatus')
 const LancamentoStatus = use('App/Models/LancamentoStatus')
+const LogProtecao = use('App/Models/LogProtecao')
 
 const classes = {
-   __proto__: null,
-   Pessoa,
-   PessoaStatus,
-   User,
-   Categoria,
-   Equipamento,
-   EquipamentoStatus,
-   Ocorrencia,
-   OcorrenciaTerceiro,
-   OcorrenciaStatus,
-   File,
-   FileItem,
-   BloqueadorLocalizador,
-   EquipamentoProtecao,
-   EquipamentoProtecaoStatus,
-   Beneficio,
-   EquipamentoBeneficio,
-   EquipamentoBeneficioStatus,
-   PendenciaSetup,
-   Pendencia,
-   OcorrenciaTerceiroStatus,
-   OrdemServico,
-   OrdemServicoItem,
-   OrdemServicoStatus,
-   LancamentoStatus,
+	__proto__: null,
+	Pessoa,
+	PessoaStatus,
+	User,
+	Categoria,
+	Equipamento,
+	EquipamentoStatus,
+	Ocorrencia,
+	OcorrenciaTerceiro,
+	OcorrenciaStatus,
+	File,
+	FileItem,
+	BloqueadorLocalizador,
+	EquipamentoProtecao,
+	EquipamentoProtecaoStatus,
+	Beneficio,
+	EquipamentoBeneficio,
+	EquipamentoBeneficioStatus,
+	PendenciaSetup,
+	Pendencia,
+	OcorrenciaTerceiroStatus,
+	OrdemServico,
+	OrdemServicoItem,
+	OrdemServicoStatus,
+	LancamentoStatus,
+	LogProtecao,
 }
 
 class LucidQlController {
-   async query({ request }) {
-      let { baseTable, query } = request.all()
+	async query({ request }) {
+		let { baseTable, query } = request.all()
 
-      console.log(query)
-      console.log(
-         '-------------------------------------------------------------'
-      )
+		console.log(query)
+		console.log(
+			'-------------------------------------------------------------'
+		)
 
-      return lucidql.run(classes[baseTable], query)
-   }
+		return lucidql.run(classes[baseTable], query)
+	}
 }
 
 module.exports = LucidQlController
