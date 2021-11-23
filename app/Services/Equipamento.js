@@ -1895,7 +1895,11 @@ class Equipamento {
 
 				let continua = false
 
-				if (codigo !== e.idPrincipal) {
+				if (e.idPrincipal === 0) {
+					codigo = -1
+				}
+
+				/*if (codigo !== e.idPrincipal) {
 					switch (e.status) {
 						case 'Ativo':
 							if (e.dEndosso) {
@@ -1914,6 +1918,12 @@ class Equipamento {
 							break
 
 						case 'Inativo':
+							codigo = e.idPrincipal
+							break
+
+						case 'Endossado':
+							codigo = e.idPrincipal
+							continua = true
 							break
 
 						default:
@@ -1931,6 +1941,32 @@ class Equipamento {
 							}
 
 							break
+					}
+				}*/
+
+				if (codigo !== e.idPrincipal) {
+					e.dAdesaoMA = moment(e.dAdesao, 'YYYY-MM-DD').format('YYYYMM')
+					e.dEndossoMA = e.dEndosso
+						? moment(e.dEndosso, 'YYYY-MM-DD').format('YYYYMM')
+						: null
+					if (e.dEndosso) {
+						if (e.dAdesaoMA === e.dEndossoMA) {
+							if (e.status === 'Inativo') {
+								continua = false
+								codigo = e.idPrincipal
+							} else {
+								continua = true
+								codigo = e.idPrincipal
+							}
+						}
+					} else {
+						if (e.status === 'Inativo') {
+							continua = false
+							codigo = e.idPrincipal
+						} else {
+							continua = true
+							codigo = e.idPrincipal
+						}
 					}
 				}
 
@@ -1953,6 +1989,7 @@ class Equipamento {
 						os_valor: 0.0,
 						os_id: null,
 						dAdesao: moment(e.dAdesao, 'YYYY-MM-DD').format('DD/MM/YYYY'),
+						dAdesaoOriginal: e.dAdesao,
 						dEndosso: e.dEndosso
 							? moment(e.dEndosso, 'YYYY-MM-DD').format('DD/MM/YYYY')
 							: null,
@@ -1976,7 +2013,7 @@ class Equipamento {
 			}
 		}
 
-		return { totais, data: arr }
+		return { totais, data: lodash.orderBy(arr, ['dAdesaoOriginal'], ['asc']) }
 	}
 
 	async relatorioBaixaCancelamento(payload) {
@@ -2091,6 +2128,110 @@ class Equipamento {
 		}
 
 		return { totais, data: arr }
+	}
+
+	async relatorioEquipamentoBeneficioAtivo(payload) {
+		let dStart = null
+		let dEnd = null
+
+		if (payload.field_value_periodo) {
+			dStart = payload.field_value_periodo.start
+			dEnd = payload.field_value_periodo.end
+		}
+
+		const query = await Model.query()
+			.where('status', 'Ativo')
+
+			.select(
+				'id',
+				'idPrincipal',
+				'pessoa_id',
+				'preCadastro_id',
+				'categoria_id',
+				'dAdesao',
+				'dEndosso',
+				'marca1',
+				'modelo1',
+				'placa1 as placa',
+				'modeloF1',
+				'anoF1',
+				'status'
+			)
+			//.with('equipamentoStatuses')
+			.with('pessoa', build => {
+				build.select('id', 'nome', 'cpfCnpj')
+			})
+
+			.with('categoria', build => {
+				build.select('id', 'abreviado', 'tipo')
+			})
+
+			.with('equipamentoBeneficios')
+			.with('equipamentoBeneficios.beneficio')
+
+			.fetch()
+
+		let arr = []
+		const queryJSON = query.toJSON()
+
+		let items = 0
+		let itemsBeneficios = 0
+
+		for (const key in queryJSON) {
+			if (Object.hasOwnProperty.call(queryJSON, key)) {
+				const e = queryJSON[key]
+
+				let placa = `${e.placa}`
+				placa = placa.substr(0, 3) + '-' + placa.substr(3)
+				placa = placa.toUpperCase()
+
+				let obj = {
+					id: e.id,
+					equipamento: `${e.marca1} ${e.modelo1}`,
+					ano_modelo: `${e.anoF1} / ${e.modeloF1}`,
+					placa: placa,
+					categoria_id: e.categoria_id,
+					categoria_abrev: e.categoria.abreviado,
+					categoria_tipo: e.categoria.tipo,
+					pessoa_id: e.pessoa_id,
+					pessoa_nome: e.pessoa.nome,
+					dAdesao: moment(e.dAdesao, 'YYYY-MM-DD').format('DD/MM/YYYY'),
+					dAdesaoOriginal: e.dAdesao,
+					dEndosso: e.dEndosso
+						? moment(e.dEndosso, 'YYYY-MM-DD').format('DD/MM/YYYY')
+						: null,
+					status: e.status,
+					beneficios: '',
+				}
+
+				items++
+
+				let beneficios = ''
+				for (const keyBen in e.equipamentoBeneficios) {
+					if (
+						Object.hasOwnProperty.call(e.equipamentoBeneficios, keyBen)
+					) {
+						const b = e.equipamentoBeneficios[keyBen]
+						if (b.status === 'Ativo') {
+							if (!lodash.isEmpty(beneficios)) {
+								beneficios = beneficios + '|'
+							}
+							beneficios += b.beneficio.descricao
+							itemsBeneficios++
+						}
+					}
+				}
+				obj.beneficios = beneficios
+
+				arr.push(obj)
+			}
+		}
+
+		return {
+			items,
+			itemsBeneficios,
+			data: lodash.orderBy(arr, ['pessoa_nome'], ['asc']),
+		}
 	}
 
 	async EXCLUIR_relatorioCancelamento(payload) {

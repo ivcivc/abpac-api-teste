@@ -209,6 +209,10 @@ Route.group(() => {
       'auth'
      ])
 
+   Route.post('/equipamentos/relatorioEquipamentoBeneficioAtivo', 'EquipamentoController.relatorioEquipamentoBeneficioAtivo').middleware([
+      'auth'
+   ])
+
    Route.get('/equipamentos/baixarTodosEquipamentos/:pessoa_id', 'EquipamentoController.locBaixarTodosEquipamentos').middleware([
       'auth'
    ])

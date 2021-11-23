@@ -323,6 +323,26 @@ class EquipamentoController {
 			})
 		}
 	}
+
+	async relatorioEquipamentoBeneficioAtivo({ request, response }) {
+		const payload = request.all()
+
+		try {
+			const service =
+				await new EquipamentoServices().relatorioEquipamentoBeneficioAtivo(
+					payload
+				)
+
+			response.status(200).send(service)
+		} catch (error) {
+			console.log(error)
+			response.status(400).send({
+				code: error.code,
+				message: error.message,
+				name: error.name,
+			})
+		}
+	}
 }
 
 module.exports = EquipamentoController
