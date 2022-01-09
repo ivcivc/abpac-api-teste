@@ -5,53 +5,70 @@ const EquipamentoServices = use('App/Services/Equipamento')
 const xmlToJson = require('xml2json')
 
 class EquipamentoOutrosController {
-   async getIDEndossos({ params, response }) {
-      // recebe o idPrincipal
+	async getIDEndossos({ params, response }) {
+		// recebe o idPrincipal
 
-      try {
-         const equipamentos = await new EquipamentoServices().getEndossos(
-            params.id
-         )
+		try {
+			const equipamentos = await new EquipamentoServices().getEndossos(
+				params.id
+			)
 
-         return equipamentos
-      } catch (error) {
-         console.log(error)
-         response.status(400).send({
-            code: error.code,
-            message: error.message,
-            name: error.name,
-         })
-      }
-   }
+			return equipamentos
+		} catch (error) {
+			console.log(error)
+			response.status(400).send({
+				code: error.code,
+				message: error.message,
+				name: error.name,
+			})
+		}
+	}
 
-   async endosso({ request, response, auth }) {
-      const payload = request.all()
+	async getEndossoPorPessoaID({ params, response }) {
+		// recebe o idPrincipal
 
-      console.log('endosso...................')
+		try {
+			const equipamentos =
+				await new EquipamentoServices().getEndossoPorPessoaID(params.id)
 
-      try {
-         const equipamento = await new EquipamentoServices().endosso(
-            payload,
-            null,
-            auth
-         )
+			return equipamentos
+		} catch (error) {
+			console.log(error)
+			response.status(400).send({
+				code: error.code,
+				message: error.message,
+				name: error.name,
+			})
+		}
+	}
+	async endosso({ request, response, auth }) {
+		const payload = request.all()
 
-         response.status(200).send({ type: true, data: equipamento })
-      } catch (error) {
-         console.log(error)
-         response.status(400).send(error)
-      }
-   }
+		console.log('endosso...................')
 
-   async xmlToJson({ request }) {
-      try {
-         const xml = request.all()
-         return xmlToJson.toJson(xml)
-      } catch (error) {
-         console.log(error)
-         response.status(400).send(error)
-      }
-   }
+		try {
+			const equipamento = await new EquipamentoServices().endosso(
+				payload,
+				null,
+				auth
+			)
+
+			response.status(200).send({ type: true, data: equipamento })
+		} catch (error) {
+			console.log(error)
+			response.status(400).send(error)
+		}
+	}
+
+	async xmlToJson({ request }) {
+		try {
+			const xml = request.all()
+			return xmlToJson.toJson(xml)
+		} catch (error) {
+			console.log(error)
+			response.status(400).send(error)
+		}
+	}
 }
 
 module.exports = EquipamentoOutrosController

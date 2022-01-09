@@ -6,14 +6,19 @@ const Equipamento = use('App/Models/Equipamento')
 const Model = use('App/Models/EquipamentoProtecao')
 const EquipamentoProtecaoStatus = use('App/Models/EquipamentoProtecaoStatus')
 const LogProtecao = use('App/Models/LogProtecao')
+const ModelEquipamentoControle = use('App/Models/EquipamentoControle')
 
 const moment = require('moment')
 
 const Database = use('Database')
 
 class EquipamentoProtecao {
-	async add(equipamento_id, protecoes, trx, auth) {
+	async add(oConfig, protecoes, trx, auth) {
 		try {
+			let equipamento_id = oConfig.equipamento.id
+
+			let arr = []
+
 			if (protecoes) {
 				for (let i = 0; i < protecoes.length; i++) {
 					let item = protecoes[i]
@@ -24,6 +29,8 @@ class EquipamentoProtecao {
 						trx ? trx : null
 					)
 
+					arr.push(equipamentoProtecao.toJSON())
+
 					// status protecao
 					const status = {
 						equipamento_protecao_id: equipamentoProtecao.id,
@@ -32,8 +39,26 @@ class EquipamentoProtecao {
 						status: item.status,
 					}
 					await EquipamentoProtecaoStatus.create(status, trx ? trx : null)
+
+					await ModelEquipamentoControle.create(
+						{
+							descricao: equipamentoProtecao.tipo,
+							motivo: oConfig.controle.motivo,
+							acao: oConfig.controle.acao,
+							tipo: equipamentoProtecao.tipo,
+							obs: '',
+							status: 'PENDENTE',
+							pessoa_id: oConfig.equipamento.pessoa_id,
+							equipamento_id: equipamento_id,
+							equipamento_protecao_id: equipamentoProtecao.id,
+							equipamento_beneficio_id: null,
+							user_id: auth.user.id,
+						},
+						trx ? trx : null
+					)
 				}
 			}
+			return arr
 		} catch (e) {
 			throw e
 		}

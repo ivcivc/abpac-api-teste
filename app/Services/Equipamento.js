@@ -2,6 +2,7 @@
 const lodash = require('lodash')
 const moment = require('moment')
 const Beneficio = require('../Models/Beneficio')
+const EquipamentoEndossoItem = require('../Models/EquipamentoEndossoItem')
 
 const Model = use('App/Models/Equipamento')
 const EquipamentoStatus = use('App/Models/EquipamentoStatus')
@@ -18,6 +19,11 @@ const Galeria = use('App/Models/File')
 const LancamentoService = use('App/Services/Lancamento')
 const ModelCategoria = use('App/Models/Categoria')
 const ModelBeneficio = use('App/Models/Beneficio')
+const ModelEquipamentoLog = use('App/Models/EquipamentoLog')
+const ModelEquipamentoControle = use('App/Models/EquipamentoControle')
+const ModelEquipamentoEndosso = use('App/Models/EquipamentoEndosso')
+const ModelEquipamentoEndossoItem = use('App/Models/EquipamentoEndossoItem')
+const ModelSign = use('App/Models/Sign')
 
 const Env = use('Env')
 
@@ -186,7 +192,10 @@ class Equipamento {
 				}
 
 				await new EquipamentoProtecaoService().add(
-					equipamento.id,
+					{
+						equipamento,
+						controle: { motivo: 'Novo Equipamento', acao: 'INCLUSÃO' },
+					},
 					protecoes,
 					trx,
 					auth
@@ -395,14 +404,60 @@ class Equipamento {
 
 			const endosso_id = new Date().getTime()
 
+			let arrAddControle = []
+
+			let motivoEndosso = ''
+			let motivoStatus = ''
+			let tipoEndosso = ''
+
+			if (payload.lancamento) {
+				motivoStatus = lodash.isEmpty(payload.motivo)
+					? 'Endosso de Baixa Total dos Equipamentos'
+					: payload.motivo
+
+				motivoEndosso = lodash.isEmpty(payload.motivo)
+					? 'Endosso de Baixa Total dos Equipamentos'
+					: payload.motivo
+
+				tipoEndosso = payload.lancamento
+					? 'Endosso de Baixa Total dos Equipamentos'
+					: 'Endosso de Inativação Total dos Equipamentos'
+			} else {
+				motivoStatus = lodash.isEmpty(payload.motivo)
+					? 'Endosso de Inativação Total Equipamentos'
+					: payload.motivo
+
+				motivoEndosso = lodash.isEmpty(payload.motivo)
+					? 'Endosso de Baixa Total dos Equipamentos'
+					: payload.motivo
+
+				tipoEndosso = payload.lancamento
+					? 'Endosso de Baixa Total dos Equipamentos'
+					: 'Endosso de Inativação Total Equipamentos'
+			}
+
+			// Endosso - EndossoItem
+			const endossoAdd = await ModelEquipamentoEndosso.create(
+				{
+					pessoa_id: payload.pessoa_id,
+					tipo: payload.lancamento
+						? 'Baixa de Equipamento'
+						: 'Inativação de Equipamento',
+					sai_id: null,
+					status: 'Ativo',
+				},
+				trx ? trx : null
+			)
+
 			for (const key in payload.equipamentos) {
 				if (Object.hasOwnProperty.call(payload.equipamentos, key)) {
 					const element = payload.equipamentos[key]
 
 					const equipa = await Model.findOrFail(element.id)
-					//await equipa.load('equipamentoProtecoes')
-					//await equipa.load('equipamentoBeneficios')
-					//await equipa.load('equipamentoRestricaos')
+					await equipa.load('pessoa')
+					await equipa.load('equipamentoBeneficios.beneficio')
+					await equipa.load('equipamentoRestricaos')
+					await equipa.load('equipamentoProtecoes')
 
 					let equipaJson = equipa.toJSON()
 					let updated_at = moment(
@@ -417,86 +472,100 @@ class Equipamento {
 						}
 					}
 
-					// Adincionar novo equipamento (endosso)
-					const novoEquipamento = lodash.cloneDeep(equipaJson)
-					delete novoEquipamento['id']
-					novoEquipamento.idFilho = null
-					novoEquipamento.idPai = equipaJson.id
-					novoEquipamento.idPrincipal =
-						equipaJson.idPrincipal === 0
-							? equipaJson.id
-							: equipaJson.idPrincipal
-					novoEquipamento.ratear = 'Não'
-					novoEquipamento.baixa = 'Sim'
-					novoEquipamento.status = 'Inativo'
-					novoEquipamento.tipoEndosso = 'Baixa total equipamento'
-					;(novoEquipamento.dEndosso = dEndosso),
-						(novoEquipamento.endosso_id = endosso_id)
+					let oEquipamento = {}
+					oEquipamento.tipoEndosso = tipoEndosso
+					oEquipamento.dEndosso = dEndosso
+					oEquipamento.baixa = 'Não'
+					oEquipamento.ratear = 'Não'
+					oEquipamento.endosso_id = endosso_id
+					oEquipamento.status = 'Inativo'
 
-					const equipamentoAdd = await Model.create(
-						novoEquipamento,
-						trx ? trx : null
-					)
-					equipa.idFilho = equipamentoAdd.id
-					equipa.status = 'Endossado'
-					equipa.idPrincipal =
-						equipa.idPrincipal === 0 ? equipa.id : equipa.idPrincipal
+					equipa.merge(oEquipamento)
 
-					await ModelOcorrencia.query()
-						.where('equipamento_id', equipa.id)
-						.transacting(trx ? trx : null)
-						.update({ equipamento_id: equipamentoAdd.id })
-
-					// Transferir beneficios para o equipamento atual (endosso)
-					await EquipamentoProtecao.query()
-						.where('equipamento_id', equipa.id)
-						.transacting(trx ? trx : null)
-						.update({ equipamento_id: equipamentoAdd.id })
-
-					// Transferir Proteção (bloequeador e Localizador) para o equipamento atual (endosso)
-					await EquipamentoBeneficio.query()
-						.where('equipamento_id', equipa.id)
-						.transacting(trx ? trx : null)
-						.update({ equipamento_id: equipamentoAdd.id })
-
-					// Transferir restriçoes para o equipamento atual (endosso)
-					await ModelEquipamentoRestricao.query()
-						.where('equipamento_id', equipa.id)
-						.transacting(trx ? trx : null)
-						.update({ equipamento_id: equipamentoAdd.id })
-
-					// Tratar galeria - transferir galeria para o registro atual
-					const affectedRows = await Database.table('files')
-						.where('modulo', 'Equipamento')
-						.andWhere('idParent', equipa.id)
-						.transacting(trx ? trx : null)
-						.update({ idParent: equipamentoAdd.id })
+					// Log
+					await this.addLog(equipa, auth, trx)
 
 					await equipa.save(trx ? trx : null)
 
 					// status equipamento
-					let motivo = lodash.isEmpty(payload.motivo)
-						? 'Endosso de Baixa Total dos Equipamentos'
-						: payload.motivo
+					let motivo = motivoStatus
 					motivo = motivo + `(${moment(dEndosso).format('DD/MM/YYYY')})`
 					let status = {
 						equipamento_id: equipa.id,
 						user_id: auth.user.id,
 						motivo: motivo,
-						status: 'Endossado',
+						status: equipa.status,
 					}
 					await EquipamentoStatus.create(status, trx ? trx : null)
 
-					// status novo equipamento (endosso)
-					status = {
-						equipamento_id: equipamentoAdd.id,
-						user_id: auth.user.id,
-						motivo: motivo,
-						status: 'Inativo',
-					}
-					await EquipamentoStatus.create(status, trx ? trx : null)
+					// Controle - Retirada de Benefícios
+					for (const key in equipaJson.equipamentoBeneficios) {
+						if (
+							Object.hasOwnProperty.call(
+								equipaJson.equipamentoBeneficios,
+								key
+							)
+						) {
+							const e = equipaJson.equipamentoBeneficios[key]
 
-					// Fim status equipamento
+							let motivoControle = payload.lancamento
+								? 'Baixa Equipamento'
+								: 'Inativação Equipamento'
+
+							arrAddControle.push({
+								descricao: e.beneficio.descricao,
+								motivo: motivoControle,
+								acao: 'REMOÇÃO',
+								tipo: 'BENEFICIO',
+								obs: '',
+								status: 'PENDENTE',
+								pessoa_id: e.pessoa_id,
+								equipamento_id: e.equipamento_id,
+								equipamento_protecao_id: null,
+								equipamento_beneficio_id: e.id,
+								user_id: auth.user.id,
+							})
+						}
+					}
+
+					// Controle - Retirada de Proteçoes
+					for (const key in equipaJson.equipamentoProtecoes) {
+						if (
+							Object.hasOwnProperty.call(
+								equipaJson.equipamentoProtecoes,
+								key
+							)
+						) {
+							const e = equipaJson.equipamentoProtecoes[key]
+
+							let motivoControle = payload.lancamento
+								? 'Baixa Equipamento'
+								: 'Inativação Equipamento'
+
+							arrAddControle.push({
+								descricao: e.tipo,
+								motivo: motivoControle,
+								acao: 'REMOÇÃO',
+								tipo: e.tipo.toUpperCase(),
+								obs: '',
+								status: 'PENDENTE',
+								pessoa_id: e.pessoa_id,
+								equipamento_id: e.equipamento_id,
+								equipamento_protecao_id: e.id,
+								equipamento_beneficio_id: null,
+								user_id: auth.user.id,
+							})
+						}
+					}
+
+					// Endosso - EndossoItem
+					const endossoAddItem = await ModelEquipamentoEndossoItem.create(
+						{
+							equipa_endosso_id: endossoAdd.id,
+							equipamento_id: equipaJson.id,
+						},
+						trx ? trx : null
+					)
 				}
 			}
 
@@ -554,6 +623,9 @@ class Equipamento {
 				)
 			}
 
+			// Gerar Controle
+			await this.addControle(arrAddControle, trx)
+
 			await trx.commit()
 
 			let ret = {}
@@ -603,6 +675,11 @@ class Equipamento {
 			}
 
 			let equipamento = await Model.findOrFail(id)
+			await equipamento.load('equipamentoProtecoes')
+			//await equipamento.load('equipamentoSigns.signs')
+			await equipamento.load('equipamentoBeneficios.beneficio')
+			await equipamento.load('pessoa')
+			await equipamento.load('equipamentoRestricaos')
 
 			if (equipamento.status !== 'Ativo') {
 				if (
@@ -632,34 +709,15 @@ class Equipamento {
 
 				const categoria_tipo = categoria.tipo
 
-				//const nValorInicio= categoria.valorMercadoInicio
-				//const nValorFim= categoria.valorMercadoFim
+				equipamento.merge({
+					valorMercado1: data.valorMercado,
+					tipoEndosso: 'Alteração de categoria de rateio',
+					categoria_id: data.categoria_id,
+				})
 
-				let novoEquipamento = equipamento.toJSON()
-				delete novoEquipamento['id']
-				novoEquipamento.idPai = equipamento.id
-				novoEquipamento.idFilho = null
-				novoEquipamento.idPrincipal = oEquipamento.idPrincipal
-				novoEquipamento.endosso_id = endosso_id
-				novoEquipamento.status = 'Ativo'
+				// Log
+				await this.addLog(equipamento, auth, trx)
 
-				novoEquipamento.especie1 = categoria_tipo
-				//novoEquipamento.especie2= !lodash.isNull(novoEquipamento.marca2) ? categoria_tipo : null
-				//novoEquipamento.especie3= !lodash.isNull(novoEquipamento.marca3) ? categoria_tipo : null
-
-				novoEquipamento.categoria_id = data.categoria_id
-				novoEquipamento.tipoEndosso = 'Alteração de categoria de rateio'
-
-				novoEquipamento.dEndosso = dEndosso
-
-				// Adincionar novo equipamento (endosso)
-				equipamentoAdd = await Model.create(
-					novoEquipamento,
-					trx ? trx : null
-				)
-				oEquipamento.idFilho = equipamentoAdd.id
-
-				equipamento.merge(oEquipamento)
 				equipamento.save(trx ? trx : null)
 
 				// status equipamento
@@ -667,41 +725,20 @@ class Equipamento {
 					equipamento_id: equipamento.id,
 					user_id: auth.user.id,
 					motivo: 'Endosso de alteração de categoria de rateio',
-					status: 'Endossado',
-				}
-				await EquipamentoStatus.create(status, trx ? trx : null)
-
-				// status novo equipamento (endosso)
-				status = {
-					equipamento_id: equipamentoAdd.id,
-					user_id: auth.user.id,
-					motivo: 'Endosso de alteração de categoria de rateio',
-					status: 'Ativo',
+					status: equipamento.status,
 				}
 				await EquipamentoStatus.create(status, trx ? trx : null)
 			}
 
 			if (tipo_endosso === 'acerto-adesao') {
-				let novoEquipamento = equipamento.toJSON()
-				delete novoEquipamento['id']
-				novoEquipamento.idPai = equipamento.id
-				novoEquipamento.idFilho = null
-				novoEquipamento.idPrincipal = oEquipamento.idPrincipal
-				novoEquipamento.status = 'Ativo'
+				equipamento.merge({
+					dAdesao: data.dAdesao,
+					tipoEndosso: 'Acerto na data de adesão',
+				})
 
-				novoEquipamento.dAdesao = data.dAdesao
-				novoEquipamento.tipoEndosso = 'Acerto na data de adesão'
-				novoEquipamento.dEndosso = dEndosso
-				novoEquipamento.endosso_id = endosso_id
+				// Log
+				await this.addLog(equipamento, auth, trx)
 
-				// Adincionar novo equipamento (endosso)
-				equipamentoAdd = await Model.create(
-					novoEquipamento,
-					trx ? trx : null
-				)
-				oEquipamento.idFilho = equipamentoAdd.id
-
-				equipamento.merge(oEquipamento)
 				equipamento.save(trx ? trx : null)
 
 				// status equipamento
@@ -709,16 +746,7 @@ class Equipamento {
 					equipamento_id: equipamento.id,
 					user_id: auth.user.id,
 					motivo: 'Endosso de acerto na data de adesão',
-					status: 'Endossado',
-				}
-				await EquipamentoStatus.create(status, trx ? trx : null)
-
-				// status novo equipamento (endosso)
-				status = {
-					equipamento_id: equipamentoAdd.id,
-					user_id: auth.user.id,
-					motivo: 'Endosso de acerto na data de adesão',
-					status: 'Ativo',
+					status: equipamento.status,
 				}
 				await EquipamentoStatus.create(status, trx ? trx : null)
 			}
@@ -729,55 +757,38 @@ class Equipamento {
 					throw { message: 'Placa em duplicidade.', code: '666' }
 				}
 
-				let novoEquipamento = equipamento.toJSON()
-				delete novoEquipamento['id']
-				novoEquipamento.idPai = equipamento.id
-				novoEquipamento.idFilho = null
-				novoEquipamento.idPrincipal = oEquipamento.idPrincipal
-				novoEquipamento.status = 'Ativo'
+				const equipamentoJSON = equipamento.toJSON()
 
-				novoEquipamento.dEndosso = dEndosso
-				novoEquipamento.endosso_id = endosso_id
+				let dataUpdate = lodash.cloneDeep(data)
 
-				novoEquipamento.tipoEndosso = 'Acerto nos dados do equipamento'
+				const addRestricoes = data.equipamentoRestricaos
 
-				novoEquipamento.especie1 = data.especie1
-				novoEquipamento.marca1 = data.marca1
-				novoEquipamento.modelo1 = data.modelo1
-				novoEquipamento.anoF1 = data.anoF1
-				novoEquipamento.modeloF1 = data.modeloF1
-				novoEquipamento.placa1 = data.placa1
-				novoEquipamento.chassi1 = data.chassi1
-				novoEquipamento.renavam1 = data.renavam1
+				delete dataUpdate['beneficios']
+				delete dataUpdate['endosso']
+				delete dataUpdate['equipamentoRestricaos']
+				delete dataUpdate['equipamentoSigns']
+				delete dataUpdate['logs']
+				delete dataUpdate['protecoes']
+				delete dataUpdate['created_at']
 
-				novoEquipamento.especie2 = data.especie2
-				novoEquipamento.marca2 = data.marca2
-				novoEquipamento.modelo2 = data.modeloF2
-				novoEquipamento.anoF2 = data.anoF2
-				novoEquipamento.modeloF2 = data.modeloF2
-				novoEquipamento.placa2 = data.placa2
-				novoEquipamento.chassi2 = data.chassi2
-				novoEquipamento.renavam2 = data.renavam2
+				data.placas = gerarPlacas(dataUpdate)
+				data.tipoEndosso = 'Acerto nos dados do equipamento'
+				equipamento.merge(dataUpdate)
 
-				novoEquipamento.especie3 = data.especie3
-				novoEquipamento.marca3 = data.marca3
-				novoEquipamento.modelo3 = data.modeloF3
-				novoEquipamento.anoF3 = data.anoF3
-				novoEquipamento.modeloF3 = data.modeloF3
-				novoEquipamento.placa3 = data.placa3
-				novoEquipamento.chassi3 = data.chassi3
-				novoEquipamento.renavam3 = data.renavam3
+				await ModelEquipamentoRestricao.query()
+					.where('equipamento_id', equipamento.id)
+					.transacting(trx ? trx : null)
+					.delete()
 
-				novoEquipamento.placas = gerarPlacas(data)
+				if (addRestricoes) {
+					await equipamento
+						.equipamentoRestricaos()
+						.createMany(addRestricoes, trx ? trx : null)
+				}
 
-				// Adicionar novo equipamento (endosso)
-				equipamentoAdd = await Model.create(
-					novoEquipamento,
-					trx ? trx : null
-				)
-				oEquipamento.idFilho = equipamentoAdd.id
+				// Log
+				await this.addLog(equipamento, auth, trx)
 
-				equipamento.merge(oEquipamento)
 				equipamento.save(trx ? trx : null)
 
 				// status equipamento
@@ -785,43 +796,21 @@ class Equipamento {
 					equipamento_id: equipamento.id,
 					user_id: auth.user.id,
 					motivo: 'Endosso de acerto nos dados do equipamento',
-					status: 'Endossado',
-				}
-				await EquipamentoStatus.create(status, trx ? trx : null)
-
-				// status novo equipamento (endosso)
-				status = {
-					equipamento_id: equipamentoAdd.id,
-					user_id: auth.user.id,
-					motivo: 'Endosso de acerto nos dados do equipamento',
-					status: 'Ativo',
+					status: equipamento.status,
 				}
 				await EquipamentoStatus.create(status, trx ? trx : null)
 			}
 
 			// Valor de Mercado
 			if (tipo_endosso === 'acerto-valorMercado') {
-				let novoEquipamento = equipamento.toJSON()
-				delete novoEquipamento['id']
-				novoEquipamento.idPai = equipamento.id
-				novoEquipamento.idFilho = null
-				novoEquipamento.idPrincipal = oEquipamento.idPrincipal
-				novoEquipamento.status = 'Ativo'
+				equipamento.merge({
+					valorMercado1: data.valorMercado,
+					tipoEndosso: 'Alteração do Valor de Mercado',
+				})
 
-				novoEquipamento.dEndosso = dEndosso
-				novoEquipamento.endosso_id = endosso_id
+				// Log
+				await this.addLog(equipamento, auth, trx)
 
-				novoEquipamento.valorMercado1 = data.valorMercado
-				novoEquipamento.tipoEndosso = 'Alteração do Valor de Mercado'
-
-				// Adincionar novo equipamento (endosso)
-				equipamentoAdd = await Model.create(
-					novoEquipamento,
-					trx ? trx : null
-				)
-				oEquipamento.idFilho = equipamentoAdd.id
-
-				equipamento.merge(oEquipamento)
 				equipamento.save(trx ? trx : null)
 
 				// status equipamento
@@ -829,16 +818,7 @@ class Equipamento {
 					equipamento_id: equipamento.id,
 					user_id: auth.user.id,
 					motivo: 'Endosso de alteração do Valor de Mercado',
-					status: 'Endossado',
-				}
-				await EquipamentoStatus.create(status, trx ? trx : null)
-
-				// status novo equipamento (endosso)
-				status = {
-					equipamento_id: equipamentoAdd.id,
-					user_id: auth.user.id,
-					motivo: 'Endosso de alteração do Valor de Mercado',
-					status: 'Ativo',
+					status: equipamento.status,
 				}
 				await EquipamentoStatus.create(status, trx ? trx : null)
 			}
@@ -846,54 +826,40 @@ class Equipamento {
 
 			// Baixa (inativação)
 			if (tipo_endosso === 'baixa') {
-				let novoEquipamento = equipamento.toJSON()
-				delete novoEquipamento['id']
-				novoEquipamento.idPai = equipamento.id
-				novoEquipamento.idFilho = null
-				novoEquipamento.idPrincipal = oEquipamento.idPrincipal
-				novoEquipamento.status = 'Inativo'
+				let equipamentoJSON = equipamento.toJSON()
 
-				//novoEquipamento.valorMercado1= data.valorMercado
-				novoEquipamento.tipoEndosso = 'Baixa do Equipamento'
-				novoEquipamento.dEndosso = dEndosso
-				novoEquipamento.baixa = 'Sim'
-				novoEquipamento.endosso_id = endosso_id
+				let oEquipamento = {}
+				oEquipamento.tipoEndosso = 'Baixa de Equipamento'
+				oEquipamento.dEndosso = dEndosso
+				oEquipamento.baixa = 'Sim'
+				oEquipamento.endosso_id = endosso_id
+				oEquipamento.status = 'Inativo'
 
 				if (lancamento) {
-					novoEquipamento.ratear = 'Não'
+					oEquipamento.ratear = 'Não'
 				} else {
-					novoEquipamento.ratear = 'Sim'
+					oEquipamento.ratear = 'Sim'
 				}
 
-				// Adincionar novo equipamento (endosso)
-				equipamentoAdd = await Model.create(
-					novoEquipamento,
-					trx ? trx : null
-				)
-				oEquipamento.idFilho = equipamentoAdd.id
-
 				equipamento.merge(oEquipamento)
+
+				// Log
+				await this.addLog(equipamento, auth, trx)
+
 				equipamento.save(trx ? trx : null)
+
+				let arrAddControle = []
 
 				// status equipamento
 				let motivo = lodash.isEmpty(data.motivo)
-					? 'Endosso de Baixa do Equipamento'
+					? 'Endosso de Baixa de Equipamento'
 					: data.motivo
 				motivo = motivo + `(${moment(dEndosso).format('DD/MM/YYYY')})`
 				let status = {
 					equipamento_id: equipamento.id,
 					user_id: auth.user.id,
 					motivo: motivo,
-					status: 'Endossado',
-				}
-				await EquipamentoStatus.create(status, trx ? trx : null)
-
-				// status novo equipamento (endosso)
-				status = {
-					equipamento_id: equipamentoAdd.id,
-					user_id: auth.user.id,
-					motivo: motivo,
-					status: 'Inativo',
+					status: equipamento.status,
 				}
 				await EquipamentoStatus.create(status, trx ? trx : null)
 
@@ -915,7 +881,7 @@ class Equipamento {
 						tipo: 'Receita',
 						parcelaI: 1,
 						parcelaF: 1,
-						equipamento_id: equipamentoAdd.id,
+						equipamento_id: equipamento.id,
 						dVencimento: lancamento.dVencimento,
 						dCompetencia: dEndosso,
 						valorBase: lancamento.valorReceber,
@@ -949,106 +915,299 @@ class Equipamento {
 						false // isCommit
 					)
 
-					equipamentoAdd.lancamento_id = modelLancamento.id
+					equipamento.lancamento_id = modelLancamento.id
 				}
+
+				// Controle - Retirada de Benefícios
+				for (const key in equipamentoJSON.equipamentoBeneficios) {
+					if (
+						Object.hasOwnProperty.call(
+							equipamentoJSON.equipamentoBeneficios,
+							key
+						)
+					) {
+						const e = equipamentoJSON.equipamentoBeneficios[key]
+
+						arrAddControle.push({
+							descricao: e.beneficio.descricao,
+							motivo: 'Baixa Equipamento',
+							acao: 'REMOÇÃO',
+							tipo: 'BENEFICIO',
+							obs: '',
+							status: 'PENDENTE',
+							pessoa_id: e.pessoa_id,
+							equipamento_id: e.equipamento_id,
+							equipamento_protecao_id: null,
+							equipamento_beneficio_id: e.id,
+							user_id: auth.user.id,
+						})
+					}
+				}
+
+				// Controle - Retirada de Proteçoes
+				for (const key in equipamentoJSON.equipamentoProtecoes) {
+					if (
+						Object.hasOwnProperty.call(
+							equipamentoJSON.equipamentoProtecoes,
+							key
+						)
+					) {
+						const e = equipamentoJSON.equipamentoProtecoes[key]
+
+						arrAddControle.push({
+							descricao: e.tipo,
+							motivo: 'Baixa Equipamento',
+							acao: 'REMOÇÃO',
+							tipo: e.tipo.toUpperCase(),
+							obs: '',
+							status: 'PENDENTE',
+							pessoa_id: e.pessoa_id,
+							equipamento_id: e.equipamento_id,
+							equipamento_protecao_id: e.id,
+							equipamento_beneficio_id: null,
+							user_id: auth.user.id,
+						})
+					}
+				}
+
+				// Endosso - EndossoItem
+				const endossoAdd = await ModelEquipamentoEndosso.create(
+					{
+						pessoa_id: equipamentoJSON.pessoa_id,
+						tipo: 'Baixa de Equipamento',
+						sai_id: null,
+						status: 'Ativo',
+					},
+					trx ? trx : null
+				)
+				const endossoAddItem = await ModelEquipamentoEndossoItem.create(
+					{
+						equipa_endosso_id: endossoAdd.id,
+						equipamento_id: equipamentoJSON.id,
+					},
+					trx ? trx : null
+				)
+
+				// Gerar Controle
+				await this.addControle(arrAddControle, trx)
 			}
 			// fim - baixa
 
 			// Cancelamento (inativação)
 			if (tipo_endosso === 'cancelamento') {
-				let novoEquipamento = equipamento.toJSON()
-				delete novoEquipamento['id']
-				novoEquipamento.idPai = equipamento.id
-				novoEquipamento.idFilho = null
-				novoEquipamento.idPrincipal = oEquipamento.idPrincipal
-				novoEquipamento.status = 'Inativo'
+				let equipamentoJSON = equipamento.toJSON()
 
-				//novoEquipamento.valorMercado1= data.valorMercado
-				novoEquipamento.tipoEndosso = 'Cancelamento do Equipamento'
-				novoEquipamento.dEndosso = dEndosso
-				novoEquipamento.endosso_id = endosso_id
-
-				// Adincionar novo equipamento (endosso)
-				equipamentoAdd = await Model.create(
-					novoEquipamento,
-					trx ? trx : null
-				)
-				oEquipamento.idFilho = equipamentoAdd.id
+				let oEquipamento = {}
+				oEquipamento.tipoEndosso = 'Cancelamento do Equipamento'
+				oEquipamento.dEndosso = dEndosso
+				oEquipamento.baixa = 'Não'
+				oEquipamento.ratear = 'Não'
+				oEquipamento.endosso_id = endosso_id
+				oEquipamento.status = 'Inativo'
 
 				equipamento.merge(oEquipamento)
+
+				// Log
+				await this.addLog(equipamento, auth, trx)
+
 				equipamento.save(trx ? trx : null)
+
+				let arrAddControle = []
 
 				// status equipamento
 				let motivo = lodash.isEmpty(data.motivo)
-					? 'Endosso de Baixa do Equipamento'
+					? 'Endosso de Inativação de Equipamento'
 					: data.motivo
 				motivo = motivo + `(${moment(dEndosso).format('DD/MM/YYYY')})`
 				let status = {
 					equipamento_id: equipamento.id,
 					user_id: auth.user.id,
 					motivo: motivo,
-					status: 'Endossado',
+					status: equipamento.status,
 				}
 				await EquipamentoStatus.create(status, trx ? trx : null)
 
-				// status novo equipamento (endosso)
-				status = {
-					equipamento_id: equipamentoAdd.id,
-					user_id: auth.user.id,
-					motivo: motivo,
-					status: 'Inativo',
+				// Controle - Retirada de Benefícios
+				for (const key in equipamentoJSON.equipamentoBeneficios) {
+					if (
+						Object.hasOwnProperty.call(
+							equipamentoJSON.equipamentoBeneficios,
+							key
+						)
+					) {
+						const e = equipamentoJSON.equipamentoBeneficios[key]
+
+						arrAddControle.push({
+							descricao: e.beneficio.descricao,
+							motivo: 'Inativação Equipamento',
+							acao: 'REMOÇÃO',
+							tipo: 'BENEFICIO',
+							obs: '',
+							status: 'PENDENTE',
+							pessoa_id: e.pessoa_id,
+							equipamento_id: e.equipamento_id,
+							equipamento_protecao_id: null,
+							equipamento_beneficio_id: e.id,
+							user_id: auth.user.id,
+						})
+					}
 				}
-				await EquipamentoStatus.create(status, trx ? trx : null)
+
+				// Controle - Retirada de Proteçoes
+				for (const key in equipamentoJSON.equipamentoProtecoes) {
+					if (
+						Object.hasOwnProperty.call(
+							equipamentoJSON.equipamentoProtecoes,
+							key
+						)
+					) {
+						const e = equipamentoJSON.equipamentoProtecoes[key]
+
+						arrAddControle.push({
+							descricao: e.tipo,
+							motivo: 'Inativação Equipamento',
+							acao: 'REMOÇÃO',
+							tipo: e.tipo.toUpperCase(),
+							obs: '',
+							status: 'PENDENTE',
+							pessoa_id: e.pessoa_id,
+							equipamento_id: e.equipamento_id,
+							equipamento_protecao_id: e.id,
+							equipamento_beneficio_id: null,
+							user_id: auth.user.id,
+						})
+					}
+				}
+
+				// Endosso - EndossoItem
+				const endossoAdd = await ModelEquipamentoEndosso.create(
+					{
+						pessoa_id: equipamentoJSON.pessoa_id,
+						tipo: 'Baixa de Equipamento',
+						sai_id: equipamento.id,
+						status: 'Ativo',
+					},
+					trx ? trx : null
+				)
+				const endossoAddItem = await ModelEquipamentoEndossoItem.create(
+					{
+						equipa_endosso_id: endossoAdd.id,
+						equipamento_id: equipamentoJSON.id,
+					},
+					trx ? trx : null
+				)
+
+				// Gerar Controle
+				await this.addControle(arrAddControle, trx)
 			}
 			// Cancelamento (inativação)
 
 			// Reativar (tornar ativo)
 			if (tipo_endosso === 'reativacao') {
-				let novoEquipamento = equipamento.toJSON()
-				delete novoEquipamento['id']
-				novoEquipamento.idPai = equipamento.id
-				novoEquipamento.idFilho = null
-				novoEquipamento.idPrincipal = oEquipamento.idPrincipal
-				novoEquipamento.baixa = 'Não'
-				novoEquipamento.status = 'Ativo'
+				let equipamentoJSON = equipamento.toJSON()
 
-				//novoEquipamento.valorMercado1= data.valorMercado
-				novoEquipamento.tipoEndosso = 'Reativação do Equipamento'
-				novoEquipamento.dEndosso = dEndosso
-				novoEquipamento.endosso_id = endosso_id
-
-				// Adincionar novo equipamento (endosso)
-				equipamentoAdd = await Model.create(
-					novoEquipamento,
-					trx ? trx : null
-				)
-
-				oEquipamento.idFilho = equipamentoAdd.id
+				let oEquipamento = {}
+				oEquipamento.tipoEndosso = 'Reativação do Equipamento'
+				oEquipamento.dEndosso = dEndosso
+				oEquipamento.baixa = 'Não'
+				oEquipamento.ratear = 'Não'
+				oEquipamento.endosso_id = endosso_id
+				oEquipamento.status = 'Ativo'
 
 				equipamento.merge(oEquipamento)
+
+				// Log
+				await this.addLog(equipamento, auth, trx)
+
 				equipamento.save(trx ? trx : null)
+
+				let arrAddControle = []
 
 				// status equipamento
 				let motivo = lodash.isEmpty(data.motivo)
-					? 'Endosso de Reativação do Equipamento'
+					? 'Endosso de Reativação de Equipamento'
 					: data.motivo
 				motivo = motivo + `(${moment(dEndosso).format('DD/MM/YYYY')})`
 				let status = {
 					equipamento_id: equipamento.id,
 					user_id: auth.user.id,
 					motivo: motivo,
-					status: 'Endossado',
+					status: equipamento.status,
 				}
 				await EquipamentoStatus.create(status, trx ? trx : null)
 
-				// status novo equipamento (endosso)
-				status = {
-					equipamento_id: equipamentoAdd.id,
-					user_id: auth.user.id,
-					motivo: motivo,
-					status: 'Ativo',
+				// Controle - Retirada de Benefícios
+				for (const key in equipamentoJSON.equipamentoBeneficios) {
+					if (
+						Object.hasOwnProperty.call(
+							equipamentoJSON.equipamentoBeneficios,
+							key
+						)
+					) {
+						const e = equipamentoJSON.equipamentoBeneficios[key]
+
+						arrAddControle.push({
+							descricao: e.beneficio.descricao,
+							motivo: 'Reativação Equipamento',
+							acao: 'INCLUSÃO',
+							tipo: 'BENEFICIO',
+							obs: '',
+							status: 'PENDENTE',
+							pessoa_id: e.pessoa_id,
+							equipamento_id: e.equipamento_id,
+							equipamento_protecao_id: null,
+							equipamento_beneficio_id: e.id,
+							user_id: auth.user.id,
+						})
+					}
 				}
-				await EquipamentoStatus.create(status, trx ? trx : null)
+
+				// Controle - Retirada de Proteçoes
+				for (const key in equipamentoJSON.equipamentoProtecoes) {
+					if (
+						Object.hasOwnProperty.call(
+							equipamentoJSON.equipamentoProtecoes,
+							key
+						)
+					) {
+						const e = equipamentoJSON.equipamentoProtecoes[key]
+
+						arrAddControle.push({
+							descricao: e.tipo,
+							motivo: 'Reativação Equipamento',
+							acao: 'INCLUSÃO',
+							tipo: e.tipo.toUpperCase(),
+							obs: '',
+							status: 'PENDENTE',
+							pessoa_id: e.pessoa_id,
+							equipamento_id: e.equipamento_id,
+							equipamento_protecao_id: e.id,
+							equipamento_beneficio_id: null,
+							user_id: auth.user.id,
+						})
+					}
+				}
+
+				// Endosso - EndossoItem
+				const endossoAdd = await ModelEquipamentoEndosso.create(
+					{
+						pessoa_id: equipamentoJSON.pessoa_id,
+						tipo: 'Reativação de Equipamento',
+						sai_id: null,
+						status: 'Ativo',
+					},
+					trx ? trx : null
+				)
+				const endossoAddItem = await ModelEquipamentoEndossoItem.create(
+					{
+						equipa_endosso_id: endossoAdd.id,
+						equipamento_id: equipamentoJSON.id,
+					},
+					trx ? trx : null
+				)
+
+				// Gerar Controle
+				await this.addControle(arrAddControle, trx)
 			}
 			// Fim reativação
 
@@ -1059,7 +1218,71 @@ class Equipamento {
 				}
 
 				let novoEquipamento = equipamento.toJSON()
+				let pessoaSign = lodash.cloneDeep(novoEquipamento.pessoa)
+				delete novoEquipamento['pessoa']
+				let jsonSubstituicao = {
+					pessoa: pessoaSign,
+					sai: lodash.cloneDeep(novoEquipamento),
+				}
+
+				let arrAddControle = []
+
+				// Controle - Retirada de Benefícios
+				for (const key in novoEquipamento.equipamentoBeneficios) {
+					if (
+						Object.hasOwnProperty.call(
+							novoEquipamento.equipamentoBeneficios,
+							key
+						)
+					) {
+						const e = novoEquipamento.equipamentoBeneficios[key]
+
+						arrAddControle.push({
+							descricao: e.beneficio.descricao,
+							motivo: 'Equipamento Substituido',
+							acao: 'REMOÇÃO',
+							tipo: 'BENEFICIO',
+							obs: '',
+							status: 'PENDENTE',
+							pessoa_id: e.pessoa_id,
+							equipamento_id: e.id,
+							equipamento_protecao_id: null,
+							equipamento_beneficio_id: e.id,
+							user_id: auth.user.id,
+						})
+					}
+				}
+
+				// Controle - Retirada de Proteçoes
+				for (const key in novoEquipamento.equipamentoProtecoes) {
+					if (
+						Object.hasOwnProperty.call(
+							novoEquipamento.equipamentoProtecoes,
+							key
+						)
+					) {
+						const e = novoEquipamento.equipamentoProtecoes[key]
+
+						arrAddControle.push({
+							descricao: e.tipo,
+							motivo: 'Equipamento Substituido',
+							acao: 'REMOÇÃO',
+							tipo: e.tipo.toUpperCase(),
+							obs: '',
+							status: 'PENDENTE',
+							pessoa_id: e.pessoa_id,
+							equipamento_id: e.id,
+							equipamento_protecao_id: e.id,
+							equipamento_beneficio_id: null,
+							user_id: auth.user.id,
+						})
+					}
+				}
+
 				delete novoEquipamento['id']
+				delete novoEquipamento['equipamentoBeneficios']
+				delete novoEquipamento['equipamentoProtecoes']
+				delete novoEquipamento['pessoa']
 				novoEquipamento.idPai = equipamento.id
 				novoEquipamento.idFilho = null
 				novoEquipamento.idPrincipal = oEquipamento.idPrincipal
@@ -1107,10 +1330,48 @@ class Equipamento {
 					novoEquipamento,
 					trx ? trx : null
 				)
+				// Log para novo equipamento
+				await ModelEquipamentoLog.createMany(
+					[
+						{
+							field: 'Tipo Endosso',
+							valueOld: '',
+							valueNew: equipamentoAdd.tipoEndosso,
+							equipamento_id: equipamentoAdd['id'],
+							user_id: auth.user.id,
+							isVisible: true,
+						},
+					],
+					trx ? trx : null
+				)
+
 				oEquipamento.idFilho = equipamentoAdd.id
 
 				equipamento.merge(oEquipamento)
+				//novoEquipamento.id = equipamento.id
+
+				// Log
+				await this.addLog(equipamento, auth, trx)
+
 				equipamento.save(trx ? trx : null)
+
+				// Endosso - EndossoItem
+				const endossoAdd = await ModelEquipamentoEndosso.create(
+					{
+						pessoa_id: equipamentoAdd.pessoa_id,
+						tipo: equipamentoAdd.tipoEndosso,
+						sai_id: equipamento.id,
+						status: 'Ativo',
+					},
+					trx ? trx : null
+				)
+				const endossoAddItem = await ModelEquipamentoEndossoItem.create(
+					{
+						equipa_endosso_id: endossoAdd.id,
+						equipamento_id: equipamentoAdd.id,
+					},
+					trx ? trx : null
+				)
 
 				// status equipamento
 				let status = {
@@ -1130,9 +1391,12 @@ class Equipamento {
 				}
 				await EquipamentoStatus.create(status, trx ? trx : null)
 
+				jsonSubstituicao.entra = equipamentoAdd.toJSON()
+
 				// Beneficios - copiar para o atual
 				const beneficios = data.beneficios
 				if (beneficios) {
+					jsonSubstituicao.entra.EquipamentoBeneficio = []
 					for (let i in beneficios) {
 						let r = beneficios[i]
 						let registro = {
@@ -1143,51 +1407,42 @@ class Equipamento {
 							obs: r.obs,
 						}
 						//r.equipamento_id= novoEquipamento.equipamento_id
-						await new EquipamentoBeneficioService().add(
-							registro,
-							trx,
-							auth
+						const resEquipamentoBeneficio =
+							await new EquipamentoBeneficioService().add(
+								registro,
+								trx,
+								auth
+							)
+						const modelBeneficio = await Beneficio.findOrFail(
+							r.beneficio_id
+						)
+						arrAddControle.push({
+							descricao: modelBeneficio.descricao,
+							motivo: 'Substituição de Equipamento',
+							acao: 'INCLUSÃO',
+							tipo: 'BENEFICIO',
+							obs: '',
+							status: 'PENDENTE',
+							pessoa_id: equipamentoAdd.pessoa_id,
+							equipamento_id: equipamentoAdd.id,
+							equipamento_protecao_id: null,
+							equipamento_beneficio_id: resEquipamentoBeneficio.id,
+							user_id: auth.user.id,
+						})
+
+						const resEquipamentoBeneficioJSON =
+							resEquipamentoBeneficio.toJSON()
+						resEquipamentoBeneficioJSON.beneficio =
+							modelBeneficio.toJSON()
+
+						jsonSubstituicao.entra.EquipamentoBeneficio.push(
+							resEquipamentoBeneficioJSON
 						)
 					}
 				}
 
-				/*// Beneficios - copiar para o atual
-            const queryBeneficios = await EquipamentoBeneficio.query()
-               .where('equipamento_id', 'like', equipamento.id)
-               .fetch()
-
-            for (let i in queryBeneficios.rows) {
-               let r = queryBeneficios.rows[i]
-               let registro = {
-                  dInicio: new Date(),
-                  equipamento_id: equipamentoAdd.id,
-                  beneficio_id: r.beneficio_id,
-                  status: r.status,
-                  obs: r.obs,
-               }
-               //r.equipamento_id= novoEquipamento.equipamento_id
-               await new EquipamentoBeneficioService().add(registro, trx, auth)
-            }*/
-
-				/*if ( lodash.has(data, 'beneficios')) {
-               // Transferir beneficios para o equipamento atual (endosso)
-            //*await EquipamentoBeneficio
-            //   .query()
-           //    .where('equipamento_id', equipamento.id)
-           //    .transacting(trx ? trx : null)
-           //    .update({ equipamento_id: equipamentoAdd.id })
-
-         if ( data.beneficios) {
-            for (const key in data.beneficios) {
-               if (data.beneficios.hasOwnProperty(key)) {
-                  const element = data.beneficios[key];
-                  element.equipamento_id= equipamentoAdd.id
-                  await new EquipamentoBeneficioService().add(element, trx, auth)
-               }
-            }
-         }
-
-      }*/
+				// Gerar Controle
+				await this.addControle(arrAddControle, trx)
 
 				if (lodash.has(data, 'protecoes')) {
 					// Transferir beneficios para o equipamento atual (endosso)
@@ -1196,17 +1451,43 @@ class Equipamento {
             .where('equipamento_id', equipamento.id)
             .transacting(trx ? trx : null)
             .update({ equipamento_id: equipamentoAdd.id })*/
+					jsonSubstituicao.entra.equipamentoProtecoes = []
+
 					const protecaoServ = await new EquipamentoProtecaoService().add(
-						equipamentoAdd.id,
+						{
+							equipamento: equipamentoAdd,
+							controle: {
+								motivo: 'Substituição de Equipamento',
+								acao: 'INCLUSÃO',
+							},
+						},
 						data.protecoes,
 						trx,
 						auth
 					)
+
+					jsonSubstituicao.entra.equipamentoProtecoes = protecaoServ
 				}
+
+				// Adicionar sign
+				const oSign = {
+					signatarioNome: pessoaSign.signatarioNome,
+					signatarioCPF: pessoaSign.signatarioCPF,
+					dispositivo: pessoaSign.dispositivo,
+					signatarioDNasc: pessoaSign.dNasc,
+					signatarioEmail: pessoaSign.email,
+					tipo: 'Requerimento de Substituição',
+					dataDoc: null,
+					assinatura: null,
+					user_id: auth.user.id,
+					status: 'Iniciado',
+					dataJson: JSON.stringify(jsonSubstituicao),
+				}
+				await ModelSign.create(oSign, trx)
 			}
 
 			// Ocorrencia  - Alterar ID do equipamento da ocorrencia para os equipamentos endossados - exceto para substituição de equipamento.
-			if (tipo_endosso !== 'substituicao-equipamento') {
+			/*if (tipo_endosso !== 'substituicao-equipamento') {
 				await ModelOcorrencia.query()
 					.where('equipamento_id', equipamento.id)
 					.transacting(trx ? trx : null)
@@ -1241,20 +1522,35 @@ class Equipamento {
 					.andWhere('idParent', equipamento.id)
 					.transacting(trx ? trx : null)
 					.update({ idParent: equipamentoAdd.id })
-			}
+			}*/
 
 			//await trx.rollback()
 			await trx.commit()
 
-			await equipamentoAdd.load('equipamentoProtecoes')
-			await equipamentoAdd.load('equipamentoStatuses')
-			await equipamentoAdd.load('pessoa')
-			await equipamentoAdd.load('categoria')
-			await equipamentoAdd.load('equipamentoBeneficios')
-			await equipamentoAdd.load('ocorrencias')
-			await equipamentoAdd.load('equipamentoRestricaos')
+			if (tipo_endosso === 'substituicao-equipamento') {
+				await equipamentoAdd.load('equipamentoProtecoes')
+				await equipamentoAdd.load('equipamentoStatuses')
+				await equipamentoAdd.load('pessoa')
+				await equipamentoAdd.load('categoria')
+				await equipamentoAdd.load('equipamentoBeneficios')
+				await equipamentoAdd.load('ocorrencias')
+				await equipamentoAdd.load('equipamentoRestricaos')
+				await equipamentoAdd.load('logs')
 
-			return equipamentoAdd
+				return equipamentoAdd
+			} else {
+				equipamento = await Model.findOrFail(id)
+				await equipamento.load('equipamentoProtecoes')
+				await equipamento.load('equipamentoStatuses')
+				await equipamento.load('pessoa')
+				await equipamento.load('categoria')
+				await equipamento.load('equipamentoBeneficios')
+				await equipamento.load('ocorrencias')
+				await equipamento.load('equipamentoRestricaos')
+				await equipamento.load('logs')
+
+				return equipamento
+			}
 		} catch (e) {
 			await trx.rollback()
 			throw e
@@ -1273,10 +1569,63 @@ class Equipamento {
 			//await equipamento.load('equipamentoBeneficios')
 			await equipamento.load('equipamentoBeneficios.beneficio')
 			await equipamento.load('equipamentoRestricaos')
+			await equipamento.load('logs')
 
 			//await equipamento.load('ocorrencias')
 
 			return equipamento
+		} catch (e) {
+			throw e
+		}
+	}
+
+	async getEndossoPorPessoaID(ID) {
+		try {
+			const query = await ModelEquipamentoEndosso.query()
+				.where('pessoa_id', ID)
+				.orderBy('id', 'desc')
+				.with('pessoa', builder => {
+					builder.select('id', 'nome')
+				})
+
+				.with('items')
+				.with('items.equipamento.pessoa', builder => {
+					builder.select('id', 'nome')
+				})
+
+				.with('items.equipamento', builder => {
+					builder.select(
+						'id',
+						'categoria_id',
+						'pessoa_id',
+						'placa1',
+						'marca1',
+						'modelo1',
+						'anoF1',
+						'modeloF1',
+						'placas'
+					)
+					builder.with('pessoa', builder => {
+						builder.select('id', 'nome')
+					})
+					builder.with('categoria', builder => {
+						builder.select('id', 'abreviado')
+					})
+					//builder.with('equipamentoBeneficios')
+					//builder.with('equipamentoProtecoes')
+				})
+
+				.fetch()
+
+			/*await equipamento.load('equipamentoStatuses')
+         await equipamento.load('pessoa')
+         await equipamento.load('categoria')
+         await equipamento.load('equipamentoProtecoes')
+         await equipamento.load('equipamentoBeneficios')*/
+
+			//await equipamento.load('ocorrencias')
+
+			return query
 		} catch (e) {
 			throw e
 		}
@@ -1307,6 +1656,148 @@ class Equipamento {
 			//await equipamento.load('ocorrencias')
 
 			return query
+		} catch (e) {
+			throw e
+		}
+	}
+
+	async addLog(data, auth = null, trx = null) {
+		try {
+			const arr = Object.keys(data.dirty)
+			for (const key in arr) {
+				if (Object.hasOwnProperty.call(arr, key)) {
+					const field = arr[key]
+					let novo = data.$attributes[field]
+					let original = data.$originalAttributes[field]
+
+					let o = null
+
+					switch (field) {
+						case 'created_at':
+							break
+						case 'updated_at':
+							if (
+								moment(novo, 'YYYY-MM-DD hh:mm:ss').toJSON() !==
+								moment(original, 'YYYY-MM-DD').toJSON()
+							) {
+								o = {
+									field: 'updated_at',
+									valueOld: moment(original).format(
+										'DD/MM/YYYY hh:mm:ss'
+									),
+									valueNew: moment(novo, 'YYYY-MM-DD hh:mm:ss').format(
+										'DD/MM/YYYY hh:mm:ss'
+									),
+									equipamento_id: data.$originalAttributes['id'],
+									user_id: auth.user.id,
+								}
+							}
+							break
+
+						case 'status':
+							if (novo !== original) {
+								o = {
+									field: 'status',
+									valueOld: original,
+									valueNew: novo,
+									equipamento_id: data.$originalAttributes['id'],
+									user_id: auth.user.id,
+								}
+							}
+							break
+						case 'preCadastro_id':
+							if (novo !== original) {
+								o = {
+									field: 'preCadastro_id',
+									valueOld: original,
+									valueNew: novo,
+									equipamento_id: data.$originalAttributes['id'],
+									user_id: auth.user.id,
+								}
+							}
+							break
+
+						case 'dAdesao':
+							if (
+								moment(novo, 'YYYY-MM-DD').format('YYYY-MM-DD') !==
+								moment(original, 'YYYY-MM-DD').format('YYYY-MM-DD')
+							) {
+								o = {
+									field: 'Adesão',
+									valueOld: moment(original, 'YYYY-MM-DD').format(
+										'DD/MM/YYYY'
+									),
+									valueNew: moment(novo, 'YYYY-MM-DD').format(
+										'DD/MM/YYYY'
+									),
+									equipamento_id: data.$originalAttributes['id'],
+									user_id: auth.user.id,
+								}
+							}
+							break
+
+						case 'dEndosso':
+							if (
+								moment(novo, 'YYYY-MM-DD').format('YYYY-MM-DD') !==
+								moment(original, 'YYYY-MM-DD').format('YYYY-MM-DD')
+							) {
+								o = {
+									field: 'Endosso',
+									valueOld: moment(original, 'YYYY-MM-DD').format(
+										'DD/MM/YYYY'
+									),
+									valueNew: moment(novo, 'YYYY-MM-DD').format(
+										'DD/MM/YYYY'
+									),
+									equipamento_id: data.$originalAttributes['id'],
+									user_id: auth.user.id,
+								}
+							}
+							break
+
+						default:
+							let isVisible = true
+							if (
+								field === 'idPrincipal' ||
+								field === 'idFilho' ||
+								field === 'idPai'
+							) {
+								isVisible = false
+							}
+
+							if (field === 'valorMercado1') {
+								novo = parseFloat(novo)
+							}
+							if (novo !== original) {
+								o = {
+									field: field,
+									valueOld: original,
+									valueNew: novo,
+									equipamento_id: data.$originalAttributes['id'],
+									user_id: auth.user.id,
+									isVisible,
+								}
+							}
+							break
+					}
+
+					if (o) {
+						await ModelEquipamentoLog.create(o, trx ? trx : null)
+					}
+
+					o = null
+				}
+			}
+		} catch (e) {
+			throw e
+		}
+	}
+
+	async addControle(arr, trx = null) {
+		try {
+			const controle = await ModelEquipamentoControle.createMany(arr, trx)
+
+			return controle
 		} catch (e) {
 			throw e
 		}

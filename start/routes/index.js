@@ -221,6 +221,9 @@ Route.group(() => {
       'auth'
    ])
 
+   Route.post('/endosso/localizarPor', 'EndossoController.localizarPor').middleware([
+      'auth'
+   ])
 
    Route.post('/equipamentos/totalAtivos', 'EquipamentoController.totalAtivos')
    /*.middleware([
@@ -247,6 +250,10 @@ Route.group(() => {
    ])
 
    Route.get('/equipamentos/getIDEndossos/:id', 'EquipamentoOutrosController.getIDEndossos').middleware([
+      'auth'
+   ])
+
+   Route.get('/equipamentos/getEndossoPorPessoaID/:id', 'EquipamentoOutrosController.getEndossoPorPessoaID').middleware([
       'auth'
    ])
 
@@ -894,6 +901,142 @@ Route.group(() => {
          const factory= use('App/Services/SMS/Factory')
          let sms= await factory().Servico(Env.get('SMS_SERVICO'))
          return await sms.enviar(data)
+      } catch(e) {
+         return e.message
+      }
+   })
+
+   Route.post('/b3', async ({request}) => {
+      try {
+         const data= request.all()
+
+         let o= {acao: {}, opcao: {}, liquido: 0, total_corretagem: 0,total_nota: 0}
+
+         let tabelaAcao= { liquidacao: parseFloat("0.000250"), emolumentos: parseFloat("0.000050")}
+         let tabelaOpcao= { liquidacao:parseFloat("0.000275"), emolumentos: parseFloat("0.000370"), registro: parseFloat("0.000695") }
+         let tabelaDayTrade= {liquidacao:parseFloat("0.000250"), emolumentos: parseFloat("0.000050"), }
+
+         const corretagem= (valor = 0.00, isAcao= true) => {
+            let correta= 0.00
+            const tx_inss= parseFloat("0.1068")
+            const tx_outros= parseFloat("0.039")
+
+            let o= { corretagem: 0, inss: 0, outros: 0, total: 0}
+
+            if ( valor <= 135.07) {
+               const tx = parseFloat("2.7")
+               o.corretagem= (valaor * tx )
+               o.corretagem= o.corretagem * parseFloat('0.15')
+               o.inss= o.corretagem * tx_inss
+               o.outros= o.corretagem * tx_outros
+
+            }
+            if (valor >= 135.08 &&  valor <= 498.62) {
+               const tx= parseFloat("0.02")
+               const adicional= 0
+               o.corretagem= (valor * tx ) + adicional
+               o.corretagem= o.corretagem * parseFloat('0.15')
+               o.inss= o.corretagem * tx_inss
+               o.outros= o.corretagem * tx_outros
+            }
+            if (valor >= 498.63 &&  valor <= 1514.69) {
+               const tx= parseFloat("0.015")
+               const adicional= 2.49
+               o.corretagem= (valor * tx ) + adicional
+               o.corretagem= o.corretagem * parseFloat('0.15')
+               o.inss= o.corretagem * tx_inss
+               o.outros= o.corretagem * tx_outros
+            }
+            if (valor >= 1514.70 &&  valor <= 3029.38) {
+               const tx= parseFloat("0.010")
+               const adicional= 10.06
+               o.corretagem= (valor * tx ) + adicional
+               o.corretagem= o.corretagem * parseFloat('0.15')
+               o.inss= o.corretagem * tx_inss
+               o.outros= o.corretagem * tx_outros
+            }
+            if (valor > 3029.39) {
+               const tx= parseFloat("0.005")
+               const adicional= 25.21
+               o.corretagem= (valor * tx ) + adicional
+               o.corretagem= o.corretagem * parseFloat('0.15')
+               o.inss= o.corretagem * tx_inss
+               o.outros= o.corretagem * tx_outros
+            }
+
+            o.irrf= 0
+            let baseIRRF= 0
+            if ( isAcao) {
+               baseIRRF= data.valor_acao
+            } else {
+               if (data.valor_op !== 0)  {
+                  baseIRRF= data.valor_opcao
+               }
+            }
+            if ( baseIRRF !== 0) {
+               o.irrf= baseIRRF * 0.00005
+               if ( o.irrf < 0) {
+                  o.irrf= o.irrf * -1
+               }
+            }
+
+            o.total= o.corretagem + o.inss + o.outros + o.irrf
+
+            return o
+         }
+
+         if ( data.acao > 0 ) {
+            o.acao.valor= data.acao
+            o.acao.emolumentos= data.acao * tabelaAcao.emolumentos
+            o.acao.liquidacao= data.acao * tabelaAcao.liquidacao
+            o.acao.corretagem= corretagem(data.acao)
+            o.acao.despesas= o.acao.emolumentos + o.acao.liquidacao + o.acao.corretagem.total
+            o.acao.valor_liquido_nota = data.valor_acao
+            o.acao.valor_bruto_nota= data.valor_acao + o.acao.despesas
+            o.liquido += data.valor_acao
+            o.total_corretagem += o.acao.despesas
+            o.total_nota += data.valor_acao + o.acao.despesas
+         }
+
+         if ( data.opcao > 0 ) {
+            o.opcao.valor= data.opcao
+            o.opcao.emolumentos= data.opcao * tabelaOpcao.emolumentos
+            o.opcao.liquidacao= data.opcao * tabelaOpcao.liquidacao
+            o.opcao.registro= data.opcao * tabelaOpcao.registro
+
+            o.opcao.corretagem= corretagem(data.opcao, false)
+            o.opcao.despesas= o.opcao.emolumentos + o.opcao.liquidacao + o.opcao.corretagem.total
+            o.opcao.valor_liquido_nota = data.valor_opcao
+            o.opcao.valor_bruto_nota= data.valor_opcao + o.opcao.despesas
+            o.liquido += data.valor_opcao
+            o.total_corretagem += o.opcao.despesas
+            o.total_nota += data.valor_opcao + o.opcao.despesas
+         }
+
+         o.total_nota= o.liquido + o.total_corretagem
+
+         if ( data.calcular) {
+            let nCorretaLucro= o.total_corretagem +  ( (o.total_corretagem *  data.calcular.percentual_lucro) / 100)
+            let nNotaComLucroCorreta= ( (o.total_nota *  data.calcular.percentual_lucro) / 100)
+            let valorTotalComLucro= o.total_nota +  nNotaComLucroCorreta
+            let lucroLiquidoSemCorreta=  nNotaComLucroCorreta - nCorretaLucro
+            let percentual_lucroReal=   ( (valorTotalComLucro - (nNotaComLucroCorreta - lucroLiquidoSemCorreta))) / o.total_nota
+
+            o.lucro= {
+               valorNota: o.total_nota,
+               corretagem: nCorretaLucro,
+               percentual_lucro: data.calcular.percentual_lucro ,
+               percentual_real: percentual_lucroReal ,
+               lucroLiquidoComCorreta: nNotaComLucroCorreta,
+               lucroLiquidoSemCorreta: lucroLiquidoSemCorreta,
+               valor_nota: valorTotalComLucro
+            }
+         }
+
+         const nDespesaDayTrade= (o.liquido * tabelaDayTrade.liquidacao) + (o.liquido * tabelaDayTrade.emolumentos)
+         o.dayTrade= { liquido: o.liquido, despesas: nDespesaDayTrade, total: o.liquido + nDespesaDayTrade}
+
+         return o
       } catch(e) {
          return e.message
       }
