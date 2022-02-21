@@ -230,6 +230,14 @@ Route.group(() => {
       'auth'
    ])*/
 
+   Route.post('/equipamentos/updateControle', 'EquipamentoController.updateControle').middleware([
+      'auth'
+   ])
+
+   Route.post('/equipamentos/localizarControlePor', 'EquipamentoController.localizarControlePor').middleware([
+      'auth'
+   ])
+
    Route.post('/equipamentos/localizarPor', 'EquipamentoController.localizarPor').middleware([
       'auth'
    ])
@@ -246,6 +254,10 @@ Route.group(() => {
    Route.post('/equipamentos/buscarBaixas', 'EquipamentoController.buscarBaixas')
 
    Route.post('/equipamento/endosso', 'EquipamentoOutrosController.endosso').middleware([
+      'auth'
+   ])
+
+   Route.get('/equipamentos/getLog/:equipamento_id', 'EquipamentoController.getLog').middleware([
       'auth'
    ])
 
@@ -285,6 +297,9 @@ Route.group(() => {
       'auth'
      ])
 
+     Route.post('/equipamentoBeneficio/getLog', 'EquipamentoBeneficioController.getLog').middleware([
+      'auth'
+   ])
 
    Route.resource('/bloqueadorLocalizador', 'BloqueadorLocalizadorController').middleware([
       'auth'

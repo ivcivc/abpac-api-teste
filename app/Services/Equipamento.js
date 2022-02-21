@@ -21,6 +21,7 @@ const ModelCategoria = use('App/Models/Categoria')
 const ModelBeneficio = use('App/Models/Beneficio')
 const ModelEquipamentoLog = use('App/Models/EquipamentoLog')
 const ModelEquipamentoControle = use('App/Models/EquipamentoControle')
+const ModelEquipamentoControleLog = use('App/Models/EquipamentoControleLog')
 const ModelEquipamentoEndosso = use('App/Models/EquipamentoEndosso')
 const ModelEquipamentoEndossoItem = use('App/Models/EquipamentoEndossoItem')
 const ModelSign = use('App/Models/Sign')
@@ -48,6 +49,9 @@ class Equipamento {
 			}
 
 			let equipamento = await Model.findOrFail(ID)
+			await equipamento.load('equipamentoRestricaos.restricao')
+
+			const equipamentoOriginalJSON = equipamento.toJSON()
 
 			let addRestricoes = []
 
@@ -61,6 +65,7 @@ class Equipamento {
 			delete data['categoria']
 			delete data['equipamentoRestricaos']
 			delete data['equipamentoSigns']
+			delete data['logs']
 
 			if (
 				lodash.has(data, 'placa1') &&
@@ -72,6 +77,8 @@ class Equipamento {
 
 			equipamento.merge(data)
 
+			await this.addLog(equipamento, auth, trx)
+
 			await equipamento.save(trx ? trx : null)
 
 			await ModelEquipamentoRestricao.query()
@@ -80,10 +87,58 @@ class Equipamento {
 				.delete()
 
 			if (addRestricoes) {
-				await equipamento
+				const mRestri = await equipamento
 					.equipamentoRestricaos()
 					.createMany(addRestricoes, trx ? trx : null)
 			}
+
+			// Log de restriçoes
+			let isLogRestricao = false
+			let restricao_sai = ''
+			let restricao_entra = ''
+			let arrRestricao = []
+			let arrRestricaoEntra = []
+			equipamentoOriginalJSON.equipamentoRestricaos.forEach(e => {
+				arrRestricao.push(parseInt(e.restricao_id))
+				restricao_sai += restricao_sai == '' ? '' : ', '
+				restricao_sai += e.restricao.descricao
+			})
+			addRestricoes.forEach(e => {
+				arrRestricao.push(parseInt(e.restricao_id))
+				arrRestricaoEntra.push(e.restricao_id)
+			})
+			let objRestricao = lodash.groupBy(arrRestricao)
+			Object.keys(objRestricao).forEach(e => {
+				if (objRestricao[e].length < 2) {
+					isLogRestricao = true
+				}
+			})
+			if (isLogRestricao) {
+				const modelRestricao = await ModelRestricao.query()
+					.whereIn('id', arrRestricaoEntra)
+					.fetch()
+				modelRestricao.rows.forEach(e => {
+					restricao_entra += restricao_entra == '' ? '' : ', '
+					restricao_entra += e.descricao
+				})
+
+				restricao_entra =
+					restricao_entra == '' ? 'sem restrições' : restricao_entra
+				restricao_sai =
+					restricao_sai === '' ? 'sem restrições' : restricao_sai
+
+				const o = {
+					field: 'Restrições',
+					valueOld: restricao_sai,
+					valueNew: restricao_entra,
+					equipamento_id: equipamento.id,
+					user_id: auth.user.id,
+					isVisible: true,
+				}
+
+				await ModelEquipamentoLog.create(o, trx ? trx : null)
+			}
+			/// Fim log de restrição
 
 			// Protecoes (localizador e bloqueador)
 			/*if ( protecoes) {
@@ -680,6 +735,7 @@ class Equipamento {
 			await equipamento.load('equipamentoBeneficios.beneficio')
 			await equipamento.load('pessoa')
 			await equipamento.load('equipamentoRestricaos')
+			await equipamento.load('categoria')
 
 			if (equipamento.status !== 'Ativo') {
 				if (
@@ -977,6 +1033,8 @@ class Equipamento {
 						tipo: 'Baixa de Equipamento',
 						sai_id: null,
 						status: 'Ativo',
+						saiJson: null,
+						equipaJson: JSON.stringify([equipamentoJSON]), //JSON.stringify([equipamentoAdd]),
 					},
 					trx ? trx : null
 				)
@@ -1217,6 +1275,8 @@ class Equipamento {
 					throw { message: 'Placa em duplicidade.', code: '666' }
 				}
 
+				const equipamentoSai = equipamento.toJSON()
+
 				let novoEquipamento = equipamento.toJSON()
 				let pessoaSign = lodash.cloneDeep(novoEquipamento.pessoa)
 				delete novoEquipamento['pessoa']
@@ -1244,8 +1304,8 @@ class Equipamento {
 							tipo: 'BENEFICIO',
 							obs: '',
 							status: 'PENDENTE',
-							pessoa_id: e.pessoa_id,
-							equipamento_id: e.id,
+							pessoa_id: equipamentoSai.pessoa_id,
+							equipamento_id: e.equipamento_id,
 							equipamento_protecao_id: null,
 							equipamento_beneficio_id: e.id,
 							user_id: auth.user.id,
@@ -1270,8 +1330,8 @@ class Equipamento {
 							tipo: e.tipo.toUpperCase(),
 							obs: '',
 							status: 'PENDENTE',
-							pessoa_id: e.pessoa_id,
-							equipamento_id: e.id,
+							pessoa_id: equipamentoSai.pessoa_id,
+							equipamento_id: e.equipamento_id,
 							equipamento_protecao_id: e.id,
 							equipamento_beneficio_id: null,
 							user_id: auth.user.id,
@@ -1279,10 +1339,25 @@ class Equipamento {
 					}
 				}
 
+				let addRestricoes = []
+				let arrRestricoes = data.equipamentoRestricaos
+					? data.equipamentoRestricaos
+					: []
+
+				// Restriçoes
+				for (const key in arrRestricoes) {
+					if (Object.hasOwnProperty.call(arrRestricoes, key)) {
+						const r = arrRestricoes[key]
+						addRestricoes.push(r)
+					}
+				}
+
 				delete novoEquipamento['id']
 				delete novoEquipamento['equipamentoBeneficios']
 				delete novoEquipamento['equipamentoProtecoes']
 				delete novoEquipamento['pessoa']
+				delete novoEquipamento['equipamentoRestricaos']
+				delete novoEquipamento['categoria']
 				novoEquipamento.idPai = equipamento.id
 				novoEquipamento.idFilho = null
 				novoEquipamento.idPrincipal = oEquipamento.idPrincipal
@@ -1355,23 +1430,11 @@ class Equipamento {
 
 				equipamento.save(trx ? trx : null)
 
-				// Endosso - EndossoItem
-				const endossoAdd = await ModelEquipamentoEndosso.create(
-					{
-						pessoa_id: equipamentoAdd.pessoa_id,
-						tipo: equipamentoAdd.tipoEndosso,
-						sai_id: equipamento.id,
-						status: 'Ativo',
-					},
-					trx ? trx : null
-				)
-				const endossoAddItem = await ModelEquipamentoEndossoItem.create(
-					{
-						equipa_endosso_id: endossoAdd.id,
-						equipamento_id: equipamentoAdd.id,
-					},
-					trx ? trx : null
-				)
+				if (addRestricoes.length > 0) {
+					await equipamento
+						.equipamentoRestricaos()
+						.createMany(addRestricoes, trx ? trx : null)
+				}
 
 				// status equipamento
 				let status = {
@@ -1393,10 +1456,15 @@ class Equipamento {
 
 				jsonSubstituicao.entra = equipamentoAdd.toJSON()
 
+				// Restriçoes para substuição (ENTRA)
+				if (addRestricoes.length > 0) {
+					jsonSubstituicao.entra.equipamentoRestricaos = addRestricoes
+				}
+
 				// Beneficios - copiar para o atual
 				const beneficios = data.beneficios
 				if (beneficios) {
-					jsonSubstituicao.entra.EquipamentoBeneficio = []
+					jsonSubstituicao.entra.equipamentoBeneficios = []
 					for (let i in beneficios) {
 						let r = beneficios[i]
 						let registro = {
@@ -1411,7 +1479,9 @@ class Equipamento {
 							await new EquipamentoBeneficioService().add(
 								registro,
 								trx,
-								auth
+								auth,
+								novoEquipamento,
+								false // Não adicionar / desabilitar add controle dentro do metodo add
 							)
 						const modelBeneficio = await Beneficio.findOrFail(
 							r.beneficio_id
@@ -1435,7 +1505,7 @@ class Equipamento {
 						resEquipamentoBeneficioJSON.beneficio =
 							modelBeneficio.toJSON()
 
-						jsonSubstituicao.entra.EquipamentoBeneficio.push(
+						jsonSubstituicao.entra.equipamentoBeneficios.push(
 							resEquipamentoBeneficioJSON
 						)
 					}
@@ -1469,6 +1539,26 @@ class Equipamento {
 					jsonSubstituicao.entra.equipamentoProtecoes = protecaoServ
 				}
 
+				// Endosso - EndossoItem
+				const endossoAdd = await ModelEquipamentoEndosso.create(
+					{
+						pessoa_id: equipamentoAdd.pessoa_id,
+						tipo: equipamentoAdd.tipoEndosso,
+						sai_id: equipamento.id,
+						status: 'Ativo',
+						saiJson: JSON.stringify(equipamentoSai),
+						equipaJson: JSON.stringify([jsonSubstituicao.entra]), //JSON.stringify([equipamentoAdd]),
+					},
+					trx ? trx : null
+				)
+				const endossoAddItem = await ModelEquipamentoEndossoItem.create(
+					{
+						equipa_endosso_id: endossoAdd.id,
+						equipamento_id: equipamentoAdd.id,
+					},
+					trx ? trx : null
+				)
+
 				// Adicionar sign
 				const oSign = {
 					signatarioNome: pessoaSign.signatarioNome,
@@ -1481,7 +1571,7 @@ class Equipamento {
 					assinatura: null,
 					user_id: auth.user.id,
 					status: 'Iniciado',
-					dataJson: JSON.stringify(jsonSubstituicao),
+					dataJson: JSON.stringify([jsonSubstituicao]),
 				}
 				await ModelSign.create(oSign, trx)
 			}
@@ -1574,6 +1664,19 @@ class Equipamento {
 			//await equipamento.load('ocorrencias')
 
 			return equipamento
+		} catch (e) {
+			throw e
+		}
+	}
+
+	async getLog(equipamento_id) {
+		try {
+			const log = await ModelEquipamentoLog.query()
+				.where('equipamento_id', equipamento_id)
+				.with('user')
+				.fetch()
+
+			return log
 		} catch (e) {
 			throw e
 		}
@@ -1705,6 +1808,17 @@ class Equipamento {
 								}
 							}
 							break
+						case 'categoria_id':
+							if (parseInt(novo) !== parseInt(original)) {
+								o = {
+									field: 'Código Categoria',
+									valueOld: original,
+									valueNew: novo,
+									equipamento_id: data.$originalAttributes['id'],
+									user_id: auth.user.id,
+								}
+							}
+							break
 						case 'preCadastro_id':
 							if (novo !== original) {
 								o = {
@@ -1796,6 +1910,42 @@ class Equipamento {
 	async addControle(arr, trx = null) {
 		try {
 			const controle = await ModelEquipamentoControle.createMany(arr, trx)
+
+			return controle
+		} catch (e) {
+			throw e
+		}
+	}
+
+	async updateControle(payload, auth) {
+		try {
+			const trx = await Database.beginTransaction()
+
+			const controle = await ModelEquipamentoControle.findOrFail(
+				payload.id,
+				trx
+			)
+
+			let isStatus = false
+
+			if (controle.status.toUpperCase() !== payload.status.toUpperCase()) {
+				isStatus = true
+			}
+
+			const log = {
+				field: 'status',
+				valueOld: controle.status,
+				valueNew: payload.status,
+				equipamento_controle_id: controle.id,
+				user_id: auth.user.id,
+			}
+
+			await ModelEquipamentoControleLog.create(log, trx ? trx : null)
+
+			controle.merge(payload)
+			await controle.save(trx)
+
+			await trx.commit()
 
 			return controle
 		} catch (e) {
@@ -2087,6 +2237,56 @@ class Equipamento {
       }
 
    }*/
+
+	async localizarControlePor(payload) {
+		try {
+			const field_name = payload.field_name
+			const field_value = payload.field_value
+			const field_status_value = payload.field_status_value
+
+			const query = Database.select([
+				'equipamento_controles.*',
+				'pessoas.nome as pessoa_nome',
+				'pessoas.nome as pessoa_nome_equipa',
+				'pessoas.cpfCnpj as pessoa_cpfCnpj',
+				'equipamentos.dAdesao',
+				'equipamentos.pessoa_id',
+				'equipamentos.placas',
+				'equipamentos.especie1',
+				'equipamentos.placa1',
+				'equipamentos.marca1',
+				'equipamentos.anoF1',
+				'equipamentos.modelo1',
+				'equipamentos.modeloF1',
+				'users.username',
+			])
+				.table('equipamento_controles')
+				.leftOuterJoin(
+					'pessoas',
+					'equipamento_controles.pessoa_id',
+					'pessoas.id'
+				)
+				.leftOuterJoin(
+					'equipamentos',
+					'equipamento_controles.equipamento_id',
+					'equipamentos.id'
+				)
+				.leftOuterJoin('users', 'equipamento_controles.user_id', 'users.id')
+				.orderBy('created_at', 'desc')
+
+			if (field_name === 'tipo') {
+				query.whereIn('equipamento_controles.tipo', field_value)
+			}
+
+			if (field_status_value) {
+				query.where('equipamento_controles.status', field_status_value)
+			}
+
+			return await query.paginate(1, 40)
+		} catch (e) {
+			throw e
+		}
+	}
 
 	async localizarPor(payload) {
 		try {

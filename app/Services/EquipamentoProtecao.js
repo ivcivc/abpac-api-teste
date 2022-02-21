@@ -251,6 +251,25 @@ class EquipamentoProtecao {
 					motivo: `Inclusão do status "${protecao.status}"`,
 					status: protecao.status,
 				}
+
+				let equipa = await Equipamento.findOrFail(equipamento_id)
+
+				await ModelEquipamentoControle.create(
+					{
+						descricao: data.tipo,
+						motivo: 'Inclusão de Proteção',
+						acao: 'INCLUSÃO',
+						tipo: data.tipo,
+						obs: '',
+						status: 'PENDENTE',
+						pessoa_id: equipa.pessoa_id,
+						equipamento_id: equipamento_id,
+						equipamento_protecao_id: protecao.id,
+						equipamento_beneficio_id: null,
+						user_id: auth.user.id,
+					},
+					trx ? trx : null
+				)
 			}
 
 			if (addStatus) {

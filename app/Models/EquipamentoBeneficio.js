@@ -4,18 +4,22 @@
 const Model = use('Model')
 
 class EquipamentoBeneficio extends Model {
-   equipamentoBeneficioStatuses() {
-      return this.hasMany('App/Models/EquipamentoBeneficioStatus')
-   }
+	equipamentoBeneficioStatuses() {
+		return this.hasMany('App/Models/EquipamentoBeneficioStatus')
+	}
 
-   equipamentos() {
-      return this.hasMany('App/Models/Equipamento')
-   }
+	equipamentos() {
+		return this.hasMany('App/Models/Equipamento')
+	}
 
-   beneficio() {
-      return this.hasOne('App/Models/Beneficio', 'beneficio_id', 'id')
-      //return this.belongsTo('App/Models/Beneficio')
-   }
+	beneficio() {
+		return this.hasOne('App/Models/Beneficio', 'beneficio_id', 'id')
+		//return this.belongsTo('App/Models/Beneficio')
+	}
+
+	logs() {
+		return this.hasMany('App/Models/EquipamentoBeneficioLog')
+	}
 }
 
 module.exports = EquipamentoBeneficio

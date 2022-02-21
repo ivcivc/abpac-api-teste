@@ -3,14 +3,10 @@
 /** @type {typeof import('@adonisjs/lucid/src/Lucid/Model')} */
 const Model = use('Model')
 
-class EquipamentoLog extends Model {
-	equipamento() {
-		return this.hasOne('App/Models/Equipamento', 'equipamento_id', 'id')
-	}
-
+class EquipamentoBeneficioLog extends Model {
 	user() {
 		return this.hasOne('App/Models/User', 'user_id', 'id')
 	}
 }
 
-module.exports = EquipamentoLog
+module.exports = EquipamentoBeneficioLog

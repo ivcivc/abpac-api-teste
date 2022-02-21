@@ -23,6 +23,10 @@ class EquipamentoControle extends Model {
 	equipamento() {
 		return this.hasOne('App/Models/Equipamento', 'equipamento_id', 'id')
 	}
+
+	logs() {
+		return this.hasMany('App/Models/EquipamentoControleLog')
+	}
 }
 
 module.exports = EquipamentoControle
