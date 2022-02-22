@@ -9,7 +9,7 @@ const ModelEquipamentoBeneficioLog = use('App/Models/EquipamentoBeneficioLog')
 const ModelEquipamento = use('App/Models/Equipamento')
 
 const moment = require('moment')
-const { findOrFail } = require('../Models/Beneficio')
+//const { findOrFail } = require('../Models/Beneficio')
 
 class EquipamentoBeneficio {
 	async add(data, trx, auth, oldEquipamento = null, isControle = true) {
