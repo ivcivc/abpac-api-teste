@@ -265,7 +265,8 @@ class Equipamento {
 						await new EquipamentoBeneficioService().add(
 							element,
 							trx,
-							auth
+							auth,
+							equipamento
 						)
 					}
 				}
