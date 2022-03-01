@@ -586,6 +586,7 @@ class Ocorrencia {
 						dStart.substr(0, 10),
 						dEnd.substr(0, 10),
 					])
+					.whereIn('atender', ['Associado', 'Ambos'])
 					.with('pessoa', build => {
 						build.select('id', 'nome', 'cpfCnpj', 'parcela')
 					})
@@ -673,6 +674,8 @@ class Ocorrencia {
 												nParticipacao += os.valorTotal
 											}
 
+											break
+										case 'Terceiro':
 											break
 
 										default:

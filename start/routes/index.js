@@ -1057,6 +1057,346 @@ Route.group(() => {
       }
    })
 
+   Route.get('/etiqueta/pdf', async( {response}) => {
+      const Helpers = use('Helpers')
+      const Drive = use('Drive')
+
+      let pasta = Helpers.tmpPath('/')
+      let arquivo= "etiqueta.pdf"
+
+      let existe = await Drive.exists(pasta + arquivo)
+
+
+      return response
+         .header('Content-type', 'application/pdf')
+         .download(pasta + arquivo)
+   })
+
+   Route.get('/etiqueta', async( {response}) => {
+      //const Env = use('Env')
+
+      let data=
+         [
+             {
+                 "name": "Ivan Carlos Araujo de Oliveira",
+                 "endRua": "Rua doutor Lucídio Avelar, 55",
+                 "endComplemento": "apto 502",
+                 "endBairro": "Buritis",
+                 "endCidade": "Belo Horizonte",
+                 "endEstado": "MG",
+                 "endCep": "30.493-165"
+             },
+             {
+               "name": "Cristiano Prazeres de Oliveira",
+               "endRua": "Rua Ariovaldo Luciano Pinho, 155",
+               "endComplemento": "apto 502",
+               "endBairro": "Jd. Petropolis",
+               "endCidade": "Betim",
+               "endEstado": "MG",
+               "endCep": "30.493-165"
+           },
+           {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar Damasco Oliveira Andrade, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165"
+            },
+      ]
+
+      return new Promise( async (resolve, reject) => {
+
+         const Helpers = use('Helpers')
+         const fs = require('fs')
+         const PrintTicket = use("App/Services/etiqueta") //require("print-tag/lib")
+
+         var pt = new PrintTicket('pimaco_6080');
+         // write in test/results/output.pdf , see PDFkit documentation
+         pt.doc.pipe( fs.createWriteStream(Helpers.tmpPath('etiqueta.pdf')) );
+         pt.doc.fontSize(8);
+
+         pt.makeTickets({
+         count: data.length
+         }, function onSetOneTag(i, marginLeft, marginTop, size, next) {
+               // write something in tag area
+               const endEndereco= data[i].endRua + ' ' + data[i].endComplemento + ' ' + data[i].endBairro
+
+               pt.doc.text(data[i].name, marginLeft+1,  marginTop+6, size);
+               pt.doc.text(endEndereco, marginLeft+1,  marginTop+17, size);
+               pt.doc.text(data[i].endCidade + ' / ' + data[i].endEstado, marginLeft+1,  marginTop+38, size);
+               pt.doc.text(data[i].endCep, marginLeft+1,  marginTop+52, size);
+
+               // ticket box
+               pt.doc.lineWidth(0.0);
+               pt.doc.rect(marginLeft, marginTop, size.width, size.height).stroke();
+               // run next function
+               next();
+         }, async function afterSetAllTags(){
+            // end, required for end / finish the PDF file
+            console.log('afterSetAllTags')
+            pt.doc.end();
+
+
+
+         });
+
+         pt.doc.on('end', () =>  {
+           //done();
+           console.log('end')
+            resolve(true)
+
+         });
+
+      })
+
+
+   })
+
    /*Route.get('/filemanager/folders', 'GerenciadorArquivoController.folders')
    Route.get('/filemanager/files', 'GerenciadorArquivoController.files')
    Route.get('/filemanager/info', 'GerenciadorArquivoController.info')
