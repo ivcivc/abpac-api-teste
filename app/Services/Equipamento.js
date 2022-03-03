@@ -497,13 +497,15 @@ class Equipamento {
 				{
 					pessoa_id: payload.pessoa_id,
 					tipo: payload.lancamento
-						? 'Baixa de Equipamento'
+						? 'Baixa Total de Equipamento'
 						: 'Inativação de Equipamento',
 					sai_id: null,
 					status: 'Ativo',
 				},
 				trx ? trx : null
 			)
+
+			let arrBaixaItensJson = []
 
 			for (const key in payload.equipamentos) {
 				if (Object.hasOwnProperty.call(payload.equipamentos, key)) {
@@ -520,6 +522,8 @@ class Equipamento {
 						equipaJson.updated_at,
 						'YYYY-MM-DD hh:mm:ss'
 					).toJSON()
+
+					arrBaixaItensJson.push(equipaJson)
 
 					if (element.updated_at !== updated_at) {
 						throw {
@@ -624,6 +628,9 @@ class Equipamento {
 					)
 				}
 			}
+
+			endossoAdd.equipaJson = JSON.stringify(arrBaixaItensJson)
+			endossoAdd.save(trx ? trx : null)
 
 			// Lançamento de Financeiro
 			let modelLancamento = null
@@ -891,6 +898,7 @@ class Equipamento {
 				oEquipamento.baixa = 'Sim'
 				oEquipamento.endosso_id = endosso_id
 				oEquipamento.status = 'Inativo'
+				oEquipamento.idFilho = null
 
 				if (lancamento) {
 					oEquipamento.ratear = 'Não'

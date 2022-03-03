@@ -1084,7 +1084,8 @@ Route.group(() => {
                  "endBairro": "Buritis",
                  "endCidade": "Belo Horizonte",
                  "endEstado": "MG",
-                 "endCep": "30.493-165"
+                 "endCep": "30.493-165",
+                 "cpfCnpj": "872.750.906-00"
              },
              {
                "name": "Cristiano Prazeres de Oliveira",
@@ -1093,7 +1094,8 @@ Route.group(() => {
                "endBairro": "Jd. Petropolis",
                "endCidade": "Betim",
                "endEstado": "MG",
-               "endCep": "30.493-165"
+               "endCep": "30.493-165",
+               "cpfCnpj": "872.750.906-00"
            },
            {
                "name": "Ivan Carlos Araujo de Oliveira",
@@ -1102,7 +1104,248 @@ Route.group(() => {
                "endBairro": "Buritis",
                "endCidade": "Belo Horizonte",
                "endEstado": "MG",
-               "endCep": "30.493-165"
+               "endCep": "30.493-165",
+               "cpfCnpj": "872.750.906-00"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165",
+               "cpfCnpj": "872.750.906-00"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165",
+               "cpfCnpj": "872.750.906-00"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165",
+               "cpfCnpj": "872.750.906-00"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165",
+               "cpfCnpj": "872.750.906-00"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165",
+               "cpfCnpj": "872.750.906-00"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165",
+               "cpfCnpj": "872.750.906-00"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165",
+               "cpfCnpj": "872.750.906-00"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165",
+               "cpfCnpj": "872.750.906-00"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165",
+               "cpfCnpj": "872.750.906-00"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165",
+               "cpfCnpj": "872.750.906-00"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165",
+               "cpfCnpj": "872.750.906-00"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165",
+               "cpfCnpj": "872.750.906-00"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165",
+               "cpfCnpj": "872.750.906-00"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165",
+               "cpfCnpj": "872.750.906-00"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165",
+               "cpfCnpj": "872.750.906-00"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165",
+               "cpfCnpj": "872.750.906-00"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165",
+               "cpfCnpj": "872.750.906-00"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165",
+               "cpfCnpj": "872.750.906-00"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165",
+               "cpfCnpj": "872.750.906-00"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165",
+               "cpfCnpj": "872.750.906-00"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165",
+               "cpfCnpj": "872.750.906-00"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165",
+               "cpfCnpj": "872.750.906-00"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165",
+               "cpfCnpj": "872.750.906-00"
+            },
+            {
+               "name": "Ivan Carlos Araujo de Oliveira",
+               "endRua": "Rua doutor Lucídio Avelar, 55",
+               "endComplemento": "apto 502",
+               "endBairro": "Buritis",
+               "endCidade": "Belo Horizonte",
+               "endEstado": "MG",
+               "endCep": "30.493-165",
+               "cpfCnpj": "872.750.906-00"
             },
             {
                "name": "Ivan Carlos Araujo de Oliveira",
@@ -1120,7 +1363,8 @@ Route.group(() => {
                "endBairro": "Buritis",
                "endCidade": "Belo Horizonte",
                "endEstado": "MG",
-               "endCep": "30.493-165"
+               "endCep": "30.493-165",
+               "cpfCnpj": "872.750.906-00"
             },
             {
                "name": "Ivan Carlos Araujo de Oliveira",
@@ -1129,223 +1373,8 @@ Route.group(() => {
                "endBairro": "Buritis",
                "endCidade": "Belo Horizonte",
                "endEstado": "MG",
-               "endCep": "30.493-165"
-            },
-            {
-               "name": "Ivan Carlos Araujo de Oliveira",
-               "endRua": "Rua doutor Lucídio Avelar, 55",
-               "endComplemento": "apto 502",
-               "endBairro": "Buritis",
-               "endCidade": "Belo Horizonte",
-               "endEstado": "MG",
-               "endCep": "30.493-165"
-            },
-            {
-               "name": "Ivan Carlos Araujo de Oliveira",
-               "endRua": "Rua doutor Lucídio Avelar, 55",
-               "endComplemento": "apto 502",
-               "endBairro": "Buritis",
-               "endCidade": "Belo Horizonte",
-               "endEstado": "MG",
-               "endCep": "30.493-165"
-            },
-            {
-               "name": "Ivan Carlos Araujo de Oliveira",
-               "endRua": "Rua doutor Lucídio Avelar, 55",
-               "endComplemento": "apto 502",
-               "endBairro": "Buritis",
-               "endCidade": "Belo Horizonte",
-               "endEstado": "MG",
-               "endCep": "30.493-165"
-            },
-            {
-               "name": "Ivan Carlos Araujo de Oliveira",
-               "endRua": "Rua doutor Lucídio Avelar, 55",
-               "endComplemento": "apto 502",
-               "endBairro": "Buritis",
-               "endCidade": "Belo Horizonte",
-               "endEstado": "MG",
-               "endCep": "30.493-165"
-            },
-            {
-               "name": "Ivan Carlos Araujo de Oliveira",
-               "endRua": "Rua doutor Lucídio Avelar, 55",
-               "endComplemento": "apto 502",
-               "endBairro": "Buritis",
-               "endCidade": "Belo Horizonte",
-               "endEstado": "MG",
-               "endCep": "30.493-165"
-            },
-            {
-               "name": "Ivan Carlos Araujo de Oliveira",
-               "endRua": "Rua doutor Lucídio Avelar, 55",
-               "endComplemento": "apto 502",
-               "endBairro": "Buritis",
-               "endCidade": "Belo Horizonte",
-               "endEstado": "MG",
-               "endCep": "30.493-165"
-            },
-            {
-               "name": "Ivan Carlos Araujo de Oliveira",
-               "endRua": "Rua doutor Lucídio Avelar, 55",
-               "endComplemento": "apto 502",
-               "endBairro": "Buritis",
-               "endCidade": "Belo Horizonte",
-               "endEstado": "MG",
-               "endCep": "30.493-165"
-            },
-            {
-               "name": "Ivan Carlos Araujo de Oliveira",
-               "endRua": "Rua doutor Lucídio Avelar, 55",
-               "endComplemento": "apto 502",
-               "endBairro": "Buritis",
-               "endCidade": "Belo Horizonte",
-               "endEstado": "MG",
-               "endCep": "30.493-165"
-            },
-            {
-               "name": "Ivan Carlos Araujo de Oliveira",
-               "endRua": "Rua doutor Lucídio Avelar, 55",
-               "endComplemento": "apto 502",
-               "endBairro": "Buritis",
-               "endCidade": "Belo Horizonte",
-               "endEstado": "MG",
-               "endCep": "30.493-165"
-            },
-            {
-               "name": "Ivan Carlos Araujo de Oliveira",
-               "endRua": "Rua doutor Lucídio Avelar, 55",
-               "endComplemento": "apto 502",
-               "endBairro": "Buritis",
-               "endCidade": "Belo Horizonte",
-               "endEstado": "MG",
-               "endCep": "30.493-165"
-            },
-            {
-               "name": "Ivan Carlos Araujo de Oliveira",
-               "endRua": "Rua doutor Lucídio Avelar, 55",
-               "endComplemento": "apto 502",
-               "endBairro": "Buritis",
-               "endCidade": "Belo Horizonte",
-               "endEstado": "MG",
-               "endCep": "30.493-165"
-            },
-            {
-               "name": "Ivan Carlos Araujo de Oliveira",
-               "endRua": "Rua doutor Lucídio Avelar, 55",
-               "endComplemento": "apto 502",
-               "endBairro": "Buritis",
-               "endCidade": "Belo Horizonte",
-               "endEstado": "MG",
-               "endCep": "30.493-165"
-            },
-            {
-               "name": "Ivan Carlos Araujo de Oliveira",
-               "endRua": "Rua doutor Lucídio Avelar, 55",
-               "endComplemento": "apto 502",
-               "endBairro": "Buritis",
-               "endCidade": "Belo Horizonte",
-               "endEstado": "MG",
-               "endCep": "30.493-165"
-            },
-            {
-               "name": "Ivan Carlos Araujo de Oliveira",
-               "endRua": "Rua doutor Lucídio Avelar, 55",
-               "endComplemento": "apto 502",
-               "endBairro": "Buritis",
-               "endCidade": "Belo Horizonte",
-               "endEstado": "MG",
-               "endCep": "30.493-165"
-            },
-            {
-               "name": "Ivan Carlos Araujo de Oliveira",
-               "endRua": "Rua doutor Lucídio Avelar, 55",
-               "endComplemento": "apto 502",
-               "endBairro": "Buritis",
-               "endCidade": "Belo Horizonte",
-               "endEstado": "MG",
-               "endCep": "30.493-165"
-            },
-            {
-               "name": "Ivan Carlos Araujo de Oliveira",
-               "endRua": "Rua doutor Lucídio Avelar, 55",
-               "endComplemento": "apto 502",
-               "endBairro": "Buritis",
-               "endCidade": "Belo Horizonte",
-               "endEstado": "MG",
-               "endCep": "30.493-165"
-            },
-            {
-               "name": "Ivan Carlos Araujo de Oliveira",
-               "endRua": "Rua doutor Lucídio Avelar, 55",
-               "endComplemento": "apto 502",
-               "endBairro": "Buritis",
-               "endCidade": "Belo Horizonte",
-               "endEstado": "MG",
-               "endCep": "30.493-165"
-            },
-            {
-               "name": "Ivan Carlos Araujo de Oliveira",
-               "endRua": "Rua doutor Lucídio Avelar, 55",
-               "endComplemento": "apto 502",
-               "endBairro": "Buritis",
-               "endCidade": "Belo Horizonte",
-               "endEstado": "MG",
-               "endCep": "30.493-165"
-            },
-            {
-               "name": "Ivan Carlos Araujo de Oliveira",
-               "endRua": "Rua doutor Lucídio Avelar, 55",
-               "endComplemento": "apto 502",
-               "endBairro": "Buritis",
-               "endCidade": "Belo Horizonte",
-               "endEstado": "MG",
-               "endCep": "30.493-165"
-            },
-            {
-               "name": "Ivan Carlos Araujo de Oliveira",
-               "endRua": "Rua doutor Lucídio Avelar, 55",
-               "endComplemento": "apto 502",
-               "endBairro": "Buritis",
-               "endCidade": "Belo Horizonte",
-               "endEstado": "MG",
-               "endCep": "30.493-165"
-            },
-            {
-               "name": "Ivan Carlos Araujo de Oliveira",
-               "endRua": "Rua doutor Lucídio Avelar, 55",
-               "endComplemento": "apto 502",
-               "endBairro": "Buritis",
-               "endCidade": "Belo Horizonte",
-               "endEstado": "MG",
-               "endCep": "30.493-165"
-            },
-            {
-               "name": "Ivan Carlos Araujo de Oliveira",
-               "endRua": "Rua doutor Lucídio Avelar, 55",
-               "endComplemento": "apto 502",
-               "endBairro": "Buritis",
-               "endCidade": "Belo Horizonte",
-               "endEstado": "MG",
-               "endCep": "30.493-165"
-            },
-            {
-               "name": "Ivan Carlos Araujo de Oliveira",
-               "endRua": "Rua doutor Lucídio Avelar, 55",
-               "endComplemento": "apto 502",
-               "endBairro": "Buritis",
-               "endCidade": "Belo Horizonte",
-               "endEstado": "MG",
-               "endCep": "30.493-165"
-            },
-            {
-               "name": "Ivan Carlos Araujo de Oliveira",
-               "endRua": "Rua doutor Lucídio Avelar, 55",
-               "endComplemento": "apto 502",
-               "endBairro": "Buritis",
-               "endCidade": "Belo Horizonte",
-               "endEstado": "MG",
-               "endCep": "30.493-165"
+               "endCep": "30.493-165",
+               "cpfCnpj": "872.750.906-00"
             },
       ]
 
@@ -1367,9 +1396,10 @@ Route.group(() => {
                const endEndereco= data[i].endRua + ' ' + data[i].endComplemento + ' ' + data[i].endBairro
 
                pt.doc.text(data[i].name, marginLeft+1,  marginTop+6, size);
-               pt.doc.text(endEndereco, marginLeft+1,  marginTop+17, size);
-               pt.doc.text(data[i].endCidade + ' / ' + data[i].endEstado, marginLeft+1,  marginTop+38, size);
-               pt.doc.text(data[i].endCep, marginLeft+1,  marginTop+52, size);
+               pt.doc.text("CPF: " + data[i].cpfCnpj, marginLeft+1,  marginTop+17, size);
+               pt.doc.text(endEndereco,  marginLeft+1,  marginTop+29, size);
+               pt.doc.text(data[i].endCidade + ' / ' + data[i].endEstado, marginLeft+1,  marginTop+51, size);
+               pt.doc.text(data[i].endCep, marginLeft+1,  marginTop+61, size);
 
                // ticket box
                pt.doc.lineWidth(0.0);
