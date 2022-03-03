@@ -142,7 +142,9 @@ Route.group(() => {
       'auth'
      ]).validator( new Map([
       [['/pessoas.store'], ['Pessoa/Create']]
-      ]))
+      ])).middleware([
+         'versao'
+      ])
 
    Route.get('/pessoa/IsCpfCnpj/:cpfCnpj/:id', 'PessoaController.isCpfCnpj').middleware([
       'auth'
@@ -152,13 +154,17 @@ Route.group(() => {
       'auth'
    ])
 
-   Route.post('/localizar', 'LocalizarController.proxy')
+   Route.post('/localizar', 'LocalizarController.proxy').middleware([
+      'versao'
+   ])
 
    Route.resource('/fornecedores', 'FornecedorController').middleware([
       'auth'
    ]).validator( new Map([
       [['/pessoas.store'], ['Pessoa/Create']],
-      ]))
+      ])).middleware([
+         'versao'
+      ])
 
 
    Route.resource('/pessoaStatus', 'PessoaStatusController').middleware([
@@ -167,6 +173,8 @@ Route.group(() => {
 
    Route.get('/pessoaPasta/:id', 'PessoaPastaController.getPastaID').middleware([
       'auth'
+   ]).middleware([
+      'versao'
    ])
 
    Route.post('/categoria/ordenar', 'CategoriaController.ordenar').middleware([
@@ -176,7 +184,9 @@ Route.group(() => {
 
    Route.resource('/categoria', 'CategoriaController').middleware([
       'auth'
-     ])
+     ]).middleware([
+      'versao'
+   ])
 
    Route.resource('/os_config', 'ordem_servico/OsConfigController').middleware([
       'auth'
@@ -185,10 +195,16 @@ Route.group(() => {
 
    Route.resource('/equipamentos', 'EquipamentoController').middleware([
       'auth'
+   ]).middleware([
+      'versao'
    ])
 
-   Route.post('/equipamentos/localizarPorCategoria', 'EquipamentoController.localizarPorCategoria')
-   Route.get('/equipamentos/localizarPorSubCategoria/:categoria_id', 'EquipamentoController.localizarPorSubCategoria')
+   Route.post('/equipamentos/localizarPorCategoria', 'EquipamentoController.localizarPorCategoria').middleware([
+      'versao'
+   ])
+   Route.get('/equipamentos/localizarPorSubCategoria/:categoria_id', 'EquipamentoController.localizarPorSubCategoria').middleware([
+      'versao'
+   ])
 
    Route.post('/equipamentos/relatorio/adesao', 'EquipamentoController.relatorioAdesao').middleware([
       'auth'
@@ -207,22 +223,32 @@ Route.group(() => {
 
    Route.resource('/restricao', 'RestricaoController').middleware([
       'auth'
-     ])
+     ]).middleware([
+      'versao'
+   ])
 
    Route.post('/equipamentos/relatorioEquipamentoBeneficioAtivo', 'EquipamentoController.relatorioEquipamentoBeneficioAtivo').middleware([
       'auth'
+   ]).middleware([
+      'versao'
    ])
 
    Route.get('/equipamentos/baixarTodosEquipamentos/:pessoa_id', 'EquipamentoController.locBaixarTodosEquipamentos').middleware([
       'auth'
+   ]).middleware([
+      'versao'
    ])
 
    Route.post('/equipamentos/baixarTodosEquipamentos', 'EquipamentoController.endossoBaixarTodosEquipamentos').middleware([
       'auth'
+   ]).middleware([
+      'versao'
    ])
 
    Route.post('/endosso/localizarPor', 'EndossoController.localizarPor').middleware([
       'auth'
+   ]).middleware([
+      'versao'
    ])
 
    Route.post('/equipamentos/totalAtivos', 'EquipamentoController.totalAtivos')
@@ -236,17 +262,25 @@ Route.group(() => {
 
    Route.post('/equipamentos/localizarControlePor', 'EquipamentoController.localizarControlePor').middleware([
       'auth'
+   ]).middleware([
+      'versao'
    ])
 
    Route.post('/equipamentos/localizarPor', 'EquipamentoController.localizarPor').middleware([
       'auth'
+   ]).middleware([
+      'versao'
    ])
    Route.post('/equipamentos/localizarEquipaPorAssist24h', 'EquipamentoController.localizarEquipaPorAssist24h').middleware([
       'auth'
+   ]).middleware([
+      'versao'
    ])
 
    Route.post('/equipamentos/localizarBeneficioPorModelo', 'EquipamentoController.localizarBeneficioPorModelo').middleware([
       'auth'
+   ]).middleware([
+      'versao'
    ])
 
    Route.post('/equipamentos/buscarProtecoes', 'EquipamentoController.buscarProtecoes')
@@ -255,6 +289,8 @@ Route.group(() => {
 
    Route.post('/equipamento/endosso', 'EquipamentoOutrosController.endosso').middleware([
       'auth'
+   ]).middleware([
+      'versao'
    ])
 
    Route.get('/equipamentos/getLog/:equipamento_id', 'EquipamentoController.getLog').middleware([
@@ -279,111 +315,169 @@ Route.group(() => {
 
    Route.resource('/equipamentoProtecao', 'EquipamentoProtecaoController').middleware([
       'auth'
-     ])
+     ]).middleware([
+      'versao'
+   ])
 
      Route.post('/equipamentoProtecao/localizarPorMarca', 'EquipamentoProtecaoController.localizarPorMarca').middleware([
       'auth'
-     ])
+     ]).middleware([
+      'versao'
+   ])
 
      Route.post('/equipamentoProtecao/localizarSemProtecao', 'EquipamentoProtecaoController.localizarSemProtecao').middleware([
       'auth'
-     ])
+     ]).middleware([
+      'versao'
+   ])
 
    Route.resource('/equipamentoProtecaoStatus', 'EquipamentoProtecaoStatusController').middleware([
       'auth'
-     ])
+     ]).middleware([
+      'versao'
+   ])
 
    Route.resource('/equipamentoBeneficio', 'EquipamentoBeneficioController').middleware([
       'auth'
-     ])
+     ]).middleware([
+      'versao'
+   ])
 
      Route.post('/equipamentoBeneficio/getLog', 'EquipamentoBeneficioController.getLog').middleware([
       'auth'
+   ]).middleware([
+      'versao'
    ])
 
    Route.resource('/bloqueadorLocalizador', 'BloqueadorLocalizadorController').middleware([
       'auth'
-     ])
+     ]).middleware([
+      'versao'
+   ])
 
 
    Route.resource('/ocorrencias', 'OcorrenciaController').middleware([
       'auth'
+   ]).middleware([
+      'versao'
    ])
 
    Route.post('/ocorrencias/localizar', 'OcorrenciaController.localizar').middleware([
       'auth'
+   ]).middleware([
+      'versao'
    ])
 
    Route.post('/ocorrencias/localizarPor', 'OcorrenciaController.localizarPor').middleware([
       'auth'
+   ]).middleware([
+      'versao'
    ])
 
    Route.post('/ocorrencias/addTerceiro', 'OcorrenciaController.addTerceiro').middleware([
       'auth'
+   ]).middleware([
+      'versao'
    ])
 
    Route.delete('/ocorrencias/deleteTerceiro/:id', 'OcorrenciaController.destroyTerceiro').middleware([
       'auth'
+   ]).middleware([
+      'versao'
    ])
 
    Route.put('/ocorrencias/updateTerceiro/:id', 'OcorrenciaController.updateTerceiro').middleware([
       'auth'
+   ]).middleware([
+      'versao'
    ])
 
    Route.resource('/ocorrenciaStatus', 'OcorrenciaStatusController').middleware([
       'auth'
-     ])
+     ]).middleware([
+      'versao'
+   ])
 
-   Route.resource('/ocorrenciaCausa', 'OcorrenciaCausaController')
+   Route.resource('/ocorrenciaCausa', 'OcorrenciaCausaController').middleware([
+      'versao'
+   ])
    //.middleware(['auth'])
 
    Route.post('/ocorrencias/localizarPorPeriodo', 'OcorrenciaController.localizarPorPeriodo').middleware([
       'auth'
+   ]).middleware([
+      'versao'
    ])
 
    Route.post('/ocorrencias/localizarTerceiroPorPeriodo', 'OcorrenciaController.localizarTerceiroPorPeriodo').middleware([
       'auth'
+   ]).middleware([
+      'versao'
    ])
 
    Route.resource('/lancamento', 'LancamentoController').middleware([
       'auth'
-     ])
+     ]).middleware([
+      'versao'
+   ])
    Route.post('/lancamento/localizarPor', 'LancamentoController.localizarPor').middleware([
       'auth'
-     ])
+     ]).middleware([
+      'versao'
+   ])
    Route.post('/lancamento/cancelar', 'LancamentoController.cancelar').middleware([
       'auth'
-     ])
+     ]).middleware([
+      'versao'
+   ])
    Route.post('/lancamento/reverter-cancelamento', 'LancamentoController.reverter_cancelamento').middleware([
       'auth'
-     ])
+     ]).middleware([
+      'versao'
+   ])
    Route.post('/lancamento/inadimplente', 'LancamentoController.inadimplente').middleware([
       'auth'
-     ])
+     ]).middleware([
+      'versao'
+   ])
    Route.post('/lancamento/reverter_inadimplente', 'LancamentoController.reverter_inadimplente').middleware([
       'auth'
-     ])
+     ]).middleware([
+      'versao'
+   ])
    Route.post('/lancamento/cancelar_compensacao', 'LancamentoController.cancelar_compensacao').middleware([
       'auth'
-     ])
+     ]).middleware([
+      'versao'
+   ])
 
    Route.post('/lancamento/acordo', 'LancamentoController.acordo').middleware([
       'auth'
-     ])
+     ]).middleware([
+      'versao'
+   ])
    Route.post('/lancamento/gerarLancamentos', 'LancamentoController.gerarLancamentos').middleware([
       'auth'
-     ])
+     ]).middleware([
+      'versao'
+   ])
    Route.resource('/lancamentoConfig', 'LancamentoConfigController').middleware([
       'auth'
-     ])
+     ]).middleware([
+      'versao'
+   ])
 
    Route.post('/lancamento/destroyOS', 'LancamentoController.destroyOS').middleware([
       'auth'
-     ])
+     ]).middleware([
+      'versao'
+   ])
 
    Route.post('/lancamentoAddBoleto', 'LancamentoController.gerarBoleto').middleware([
       'auth'
-     ])
+     ]).middleware([
+      'versao'
+   ])
 
      Route.post('/lancamentoSegundaViaBoleto', 'LancamentoController.gerarSegundaViaBoleto').middleware([
       'auth'
@@ -395,6 +489,8 @@ Route.group(() => {
 
    Route.post('/baixarBoletoOpenBank', 'LancamentoController.baixarBoletoOpenBank').middleware([
       'auth'
+   ]).middleware([
+      'versao'
    ])
 
    /*Route.resource('/rateio', 'RateioController').middleware([
@@ -404,7 +500,9 @@ Route.group(() => {
 
    Route.get('/rateio/statusEmailMassa/:boleto_id', 'RateioController.statusEmailMassa').middleware([
       'auth'
-     ])
+     ]).middleware([
+      'versao'
+   ])
 
      Route.get('/rateio/auth', 'RateioController.auth')
 
@@ -441,10 +539,14 @@ Route.group(() => {
 
    Route.post('/rateio', 'RateioController.store').middleware([
       'auth'
-     ])
+     ]).middleware([
+      'versao'
+   ])
 
    Route.post('/rateio/simulador', 'RateioController.simulador').middleware([
    'auth'
+   ]).middleware([
+      'versao'
    ])
 
    /*Route.post('/rateio/simulador', 'RateioController.simulador').middleware([
@@ -465,10 +567,14 @@ Route.group(() => {
 
       Route.get('/rateio/:id', 'RateioController.show').middleware([
          'auth'
+         ]).middleware([
+            'versao'
          ])
 
    Route.get('/rateio', 'RateioController.index').middleware([
          'auth'
+         ]).middleware([
+            'versao'
          ])
 
    Route.post('/rateio/config', 'RateioController.config').middleware([
@@ -493,6 +599,8 @@ Route.group(() => {
 
    Route.post('/rateio/gerarFinanceiro', 'RateioController.gerarFinanceiro').middleware([
       'auth'
+      ]).middleware([
+         'versao'
       ])
 
    Route.resource('/planoConta', 'PlanoDeContaController')
@@ -500,10 +608,14 @@ Route.group(() => {
 
    Route.get('/cnab/listarArquivosRemessa', 'CnabController.listarArquivosRemessa').middleware([
       'auth'
+      ]).middleware([
+         'versao'
       ])
 
    Route.post('/cnab/downloadRemessa', 'CnabController.downloadRemessa').middleware([
          'auth'
+         ]).middleware([
+            'versao'
          ])
 
 
@@ -695,7 +807,9 @@ Route.group(() => {
       'auth'
      ])
 
-   Route.resource('/beneficio', 'BeneficioController')
+   Route.resource('/beneficio', 'BeneficioController').middleware([
+      'versao'
+   ])
 
 
    Route.resource('/pendenciaSetup', 'PendenciaSetupController').middleware([
@@ -708,9 +822,13 @@ Route.group(() => {
 
    Route.resource('/ordemServico', 'ordem_servico/OrdemServicoController').middleware([
       'auth'
-     ])
+     ]).middleware([
+      'versao'
+   ])
 
-  Route.post('/ordemServico/localizarPor', 'ordem_servico/OrdemServicoController.localizarPor')
+  Route.post('/ordemServico/localizarPor', 'ordem_servico/OrdemServicoController.localizarPor').middleware([
+   'versao'
+])
   // Route.post('/ordemServico/localizarOS', 'ordem_servico/OrdemServicoController.localizarOS')
 
   Route.post('/ordemServico/localizarBeneficiosTerceirosAssist24h', 'ordem_servico/OrdemServicoController.localizarBeneficiosTerceirosAssist24h')
