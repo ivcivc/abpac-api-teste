@@ -24,9 +24,9 @@ module.exports = {
 
 	// PIMACO 680 - Ivan
 	pimaco_6080: {
-		cols: [13.6, 211.46, 409.32],
-		//rows: [6, 78, 150, 222, 294, 366, 438, 510, 582, 654],
-		rows: [36, 108, 180, 252, 324, 396, 468, 540, 612, 684],
+		cols: [9.6, 211.46, 417.32],
+		rows: [1, 72, 144, 216, 288, 360, 432, 504, 576, 648],
+		//rows: [36, 108, 180, 252, 324, 396, 468, 540, 612, 684],
 		maxTagsInPage: 30,
 		tagSize: {
 			width: 189.07,
@@ -34,6 +34,12 @@ module.exports = {
 			align: 'left',
 		},
 		paperSize: [612.0, 792.0],
+		/*paperMargins: {
+			top: 0,
+			bottom: 0,
+			left: 0,
+			right: 0,
+		},*/
 		paperMargins: {
 			top: 36,
 			bottom: 36,

@@ -1,0 +1,28 @@
+**** LANÇAMENTOS *****
+status e situacao= ENUM('Aberto', 'Acordado', 'Inadimplente', 'Cancelado', 'Compensado', 'Bloqueado')
+
+
+1) Inadimplente (ENUM('Não', 'Sim', 'Debito', 'Credito'))
+
+- valorDebitoInad
+- valorCreditoInad
+
+a) Tornar inadimplente:
+    inadimplente= 'Sim'
+    status= 'Inadimplente'
+
+b) Reverter inadimplente
+    inadimplente= 'Não'
+    status=
+
+
+2) Acordo
+
+   a) fazer acordo
+
+      Se operaçã for "acordo-inadimplente"
+         - situacao= 'Compensado'
+
+      Se operação for operacao === 'acordo'
+         - situacao= 'Compensado'
+         - valorCompensado= valorTotal
