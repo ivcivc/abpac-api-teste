@@ -2471,6 +2471,7 @@ class Equipamento {
             modeloF3,
             categoria_id,
             beneficios.id as beneficios_id,
+            beneficios.planoDeConta_id as planoDeConta_id,
             beneficios.descricao as beneficios_descricao,
             beneficios.status as beneficios_status,
             equipamento_beneficios.dTermino as equipamento_beneficio_dTermino,
@@ -2488,6 +2489,7 @@ class Equipamento {
          WHERE
 
                beneficios.modelo = 'Assistencia 24h' and ${where}
+         ORDER BY pessoas.nome
 
          ${limit}
 

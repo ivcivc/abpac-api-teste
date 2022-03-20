@@ -1333,6 +1333,10 @@ class Rateio {
 				}
 			}
 		}
+
+		rateio.equipaAtivos = arrRateioEquipa.length
+		await rateio.save(trx)
+
 		console.log('finalizando transação')
 		//await trx.rollback()
 		await Redis.set('_isGravarRateio', false)

@@ -48,6 +48,13 @@ class OrdemServico extends Model {
 		)
 	}
 
+	beneficio() {
+		return this.hasOne(
+			'App/Models/EquipamentoBeneficio',
+			'beneficio_id',
+			'id'
+		)
+	}
 	/*statuses () {
       return this.hasMany('App/Models/OcorrenciaStatus')
    }
