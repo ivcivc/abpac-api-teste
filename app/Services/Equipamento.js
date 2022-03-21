@@ -2473,6 +2473,7 @@ class Equipamento {
             beneficios.id as beneficios_id,
             beneficios.planoDeConta_id as planoDeConta_id,
             beneficios.descricao as beneficios_descricao,
+            beneficios.modelo as beneficios_modelo,
             beneficios.status as beneficios_status,
             equipamento_beneficios.dTermino as equipamento_beneficio_dTermino,
             equipamento_beneficios.status as equipamento_beneficio_status,
