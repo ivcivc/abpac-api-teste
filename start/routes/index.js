@@ -277,6 +277,12 @@ Route.group(() => {
       'versao'
    ])
 
+   Route.post('/equipamentos/localizarProtecao', 'EquipamentoController.localizarProtecao').middleware([
+      'auth'
+   ]).middleware([
+      'versao'
+   ])
+
    Route.post('/equipamentos/localizarBeneficioPorModelo', 'EquipamentoController.localizarBeneficioPorModelo').middleware([
       'auth'
    ]).middleware([

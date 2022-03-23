@@ -2035,6 +2035,133 @@ class Equipamento {
 		return isOk
 	}
 
+	async localizarProtecao(payload) {
+		try {
+			const query = Database.select([
+				'equipamento_protecaos.id as id',
+				'equipamento_protecaos.id as protecao_id',
+				'equipamento_protecaos.dAtivacao as protecao_dAtivacao',
+				'equipamento_protecaos.dRemocao as protecao_dRemocao',
+				'equipamento_protecaos.dono as protecao_dono',
+				'equipamento_protecaos.nrSerie as protecao_nrSerie',
+				'equipamento_protecaos.tipo as protecao_tipo',
+				'equipamento_protecaos.status as protecao_status',
+				'bloqueador_localizadors.nome as protecao_marca',
+				'pessoas.nome as pessoa_nome',
+				'equipamentos.dAdesao',
+				'equipamentos.pessoa_id',
+				'equipamentos.placas',
+				'equipamentos.especie1',
+				'equipamentos.placa1',
+				'equipamentos.marca1',
+				'equipamentos.anoF1',
+				'equipamentos.modelo1',
+				'equipamentos.modeloF1',
+				'equipamentos.id as equipamento_id',
+				'equipamentos.status as equipamento_status',
+			])
+				.table('equipamento_protecaos')
+				.leftOuterJoin(
+					'equipamentos',
+					'equipamento_protecaos.equipamento_id',
+					'equipamentos.id'
+				)
+				.leftOuterJoin('pessoas', 'equipamentos.pessoa_id', 'pessoas.id')
+				.leftOuterJoin(
+					'bloqueador_localizadors',
+					'equipamento_protecaos.bloqueador_localizador_id',
+					'bloqueador_localizadors.id'
+				)
+				//.leftOuterJoin('users', 'equipamento_controles.user_id', 'users.id')
+				.orderBy('pessoas.nome', 'asc')
+
+			/*if (field_name === 'tipo') {
+				query.whereIn('equipamento_controles.tipo', field_value)
+			}*/
+
+			let protecao_status = null
+			switch (payload.field_status_value) {
+				case 'todos':
+					protecao_status = null
+					break
+				case 'pendente':
+					protecao_status = ['Instalar', 'Revisar', 'Remover']
+					break
+				case 'ativo':
+					protecao_status = ['Instalado', 'Revisado']
+					break
+				case 'inativo':
+					protecao_status = ['Removido', 'Perdido', 'Cancelado']
+					break
+			}
+
+			if (payload.field_name === 'data-remocao') {
+				protecao_status = null
+			}
+
+			switch (payload.field_name) {
+				case 'marca':
+					query.where(
+						'equipamento_protecaos.bloqueador_localizador_id',
+						payload.field_marca_value
+					)
+					break
+
+				case 'associado':
+					query.where('pessoas.nome', 'like', `%${payload.field_value}%`)
+					break
+
+				case 'placa':
+					payload.field_value = payload.field_value.replace('-', '')
+					query.where(
+						'equipamentos.placas',
+						'like',
+						`%${payload.field_value}%`
+					)
+
+					break
+
+				case 'data-ativacao':
+					query.whereBetween('equipamento_protecaos.dAtivacao', [
+						payload.field_periodo_value.start.substr(0, 10),
+						payload.field_periodo_value.end.substr(0, 10),
+					])
+					break
+				case 'data-remocao':
+					query.whereBetween('equipamento_protecaos.dRemocao', [
+						payload.field_periodo_value.start.substr(0, 10),
+						payload.field_periodo_value.end.substr(0, 10),
+					])
+					break
+				default:
+					// `%${payload.field_value}%`
+					break
+			}
+
+			if (protecao_status) {
+				console.log('status executado')
+				query.whereIn('equipamento_protecaos.status', protecao_status)
+			}
+
+			if (payload.field_tipo_value) {
+				query.where('equipamento_protecaos.tipo', payload.field_tipo_value)
+			}
+
+			if (payload.field_dono_value) {
+				query.where('equipamento_protecaos.dono', payload.field_dono_value)
+			}
+
+			await query
+
+			console.log('passou')
+
+			return query
+		} catch (error) {
+			console.log(error)
+			throw error
+		}
+	}
+
 	async buscarProtecoes(payload) {
 		try {
 			let status = !payload.status ? null : payload.status.split(',')

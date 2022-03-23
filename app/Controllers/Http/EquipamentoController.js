@@ -227,6 +227,26 @@ class EquipamentoController {
 		}
 	}
 
+	async localizarProtecao({ request, response }) {
+		// Painel proteções
+		const payload = request.all()
+
+		try {
+			const service = await new EquipamentoServices().localizarProtecao(
+				payload
+			)
+
+			response.status(200).send({ type: true, data: service })
+		} catch (error) {
+			console.log(error)
+			response.status(400).send({
+				code: error.code,
+				message: error.message,
+				name: error.name,
+			})
+		}
+	}
+
 	async buscarProtecoes({ request, response }) {
 		const payload = request.all()
 
