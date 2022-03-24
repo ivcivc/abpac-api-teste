@@ -609,6 +609,11 @@ Route.group(() => {
          'versao'
       ])
 
+      Route.get('/rateio/relatorio/RelatorioEquipamentosAtivosDoRateio/:rateio_id', 'RateioController.RelatorioEquipamentosAtivosDoRateio').middleware([
+         'auth'
+         ])
+
+
    Route.resource('/planoConta', 'PlanoDeContaController')
 
 

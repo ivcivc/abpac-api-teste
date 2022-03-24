@@ -4,17 +4,21 @@
 const Model = use('Model')
 
 class RateioEquipamento extends Model {
-   rateio() {
-      return this.hasMany('App/Models/Rateio')
-   }
+	rateio() {
+		return this.hasOne('App/Models/Rateio', 'rateio_id', 'id')
+	}
 
-   categoria() {
-      return this.hasOne('App/Models/Categoria', 'categoria_id', 'id')
-   }
+	categoria() {
+		return this.hasOne('App/Models/Categoria', 'categoria_id', 'id')
+	}
 
-   beneficios() {
-      return this.hasMany('App/Models/RateioEquipamentoBeneficio')
-   }
+	equipamento() {
+		return this.hasOne('App/Models/Equipamento', 'equipamento_id', 'id')
+	}
+
+	beneficios() {
+		return this.hasMany('App/Models/RateioEquipamentoBeneficio')
+	}
 }
 
 module.exports = RateioEquipamento

@@ -2894,6 +2894,69 @@ class Rateio {
 		})
 		return n ? n : '0,00'
 	}
+
+	async RelatorioEquipamentosAtivosDoRateio(rateio_id) {
+		try {
+			const query = await ModelRateioEquipamento.query()
+				.where('rateio_id', rateio_id)
+				.with('beneficios')
+				.with('rateio')
+				.with('categoria', build => {
+					build.select('id', 'nome', 'abreviado')
+				})
+				.with('equipamento', build => {
+					build.select('id', 'valorMercado1')
+				})
+				.orderBy('pessoa_nome')
+				.fetch()
+
+			let arr = query.toJSON()
+
+			arr.forEach(e => {
+				e.anoModelo = `${e.anoF}/${e.modeloF}`
+				e.valorMercado = e.equipamento.valorMercado1
+				e.rateio_mes_ano = moment(e.rateio.dInicio, 'YYYY-MM-DD').format(
+					'MM/YYYY'
+				)
+				let _assist24hPlano = ''
+				let _assist24h = 0
+				let _terceiroPlano = ''
+				let _terceiro = 0
+				let _outrosPlano = ''
+				let _outros = 0
+				e.beneficios.forEach(b => {
+					switch (b.modelo) {
+						case 'Terceiro':
+							_terceiroPlano = b.beneficio
+							_terceiro += b.valor
+							break
+
+						case 'Assistencia 24h':
+							_assist24hPlano = b.beneficio
+							_assist24h = +b.valor
+							break
+
+						default:
+							_outrosPlano = b.beneficio
+							_outros += b.valor
+							break
+					}
+				})
+				e._planoAssist24h = _assist24hPlano
+				e._assist24h = _assist24h
+				e._planoTerceiro = _terceiroPlano
+				e._terceiro = _terceiro
+				e._PlanoOutros = _outrosPlano
+				e._outros = _outros
+
+				//arr.push(e)
+			})
+
+			return arr
+		} catch (error) {
+			throw error
+		}
+	}
 }
 
 module.exports = Rateio
