@@ -81,6 +81,69 @@ class EtiquetaController {
 
 						// ticket box
 						pt.doc.lineWidth(0.0)
+						/*pt.doc
+							.rect(marginLeft, marginTop, size.width, size.height)
+							.stroke()*/
+						// run next function
+						next()
+					},
+					async function afterSetAllTags() {
+						// end, required for end / finish the PDF file
+						console.log('afterSetAllTags')
+						pt.doc.end()
+					}
+				)
+
+				pt.doc.on('end', () => {
+					//done();
+					console.log('end')
+					resolve(true)
+				})
+			})
+		} catch (e) {
+			response.status(200).send(false)
+		}
+	}
+
+	async nome({ request, response }) {
+		try {
+			return new Promise(async (resolve, reject) => {
+				let pt = new PrintTicket('pimaco_6080')
+
+				const { isTeste } = request.only('isTeste')
+				let data = request.only('lista').lista
+
+				if (isTeste) {
+					data = this.dadosFake()
+				}
+
+				for (const key in data) {
+					const e = data[key]
+					e.nome = e.nome === null ? '' : e.nome
+				}
+
+				// write in test/results/output.pdf , see PDFkit documentation
+				pt.doc.pipe(fs.createWriteStream(Helpers.tmpPath('etiqueta.pdf')))
+				pt.doc.fontSize(10)
+
+				pt.makeTickets(
+					{
+						count: data.length,
+					},
+					function onSetOneTag(i, marginLeft, marginTop, size, next) {
+						// write something in tag area
+						if (data[i].nome !== '') {
+							size.align = 'center'
+							pt.doc.text(
+								data[i].nome,
+								marginLeft + 1,
+								marginTop + 25,
+								size
+							)
+						}
+
+						// ticket box
+						pt.doc.lineWidth(0.0)
 						pt.doc
 							.rect(marginLeft, marginTop, size.width, size.height)
 							.stroke()

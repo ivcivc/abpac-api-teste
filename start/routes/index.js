@@ -1192,6 +1192,9 @@ Route.group(() => {
       'auth'
    ])
 
+   Route.post('/etiqueta/nome', 'Etiqueta/EtiquetaController.nome').middleware([
+      'auth'
+   ])
    /*Route.get('/filemanager/folders', 'GerenciadorArquivoController.folders')
    Route.get('/filemanager/files', 'GerenciadorArquivoController.files')
    Route.get('/filemanager/info', 'GerenciadorArquivoController.info')
