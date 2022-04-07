@@ -12,6 +12,8 @@ const ModelBoleto = use('App/Models/Boleto')
 const ModelConta = use('App/Models/Conta')
 const ModelBoletoConfig = use('App/Models/BoletoConfig')
 const ModelPessoa = use('App/Models/Pessoa')
+const ModelLancamentoGrupo = use('App/Models/LancamentoGrupo')
+const ModelLancamentoGrupoItem = use('App/Models/LancamentoGrupoItem')
 
 const Boleto = use('App/Services/Cnab')
 
@@ -895,11 +897,11 @@ class Lancamento {
 				trx = await Database.beginTransaction()
 			}
 
-			let operacao = payload.operacao
+			let operacao = 'acordo' //payload.operacao
 			let conta_id = payload.conta_id
-			let inadimplente = null
 			let forma = payload.forma
 			let tipo = payload.tipo
+			let obs = null
 
 			let grupo_id = payload.grupo_id
 			if (!operacao) {
@@ -929,10 +931,11 @@ class Lancamento {
 
 			let arrLista = []
 			let arrListaID = []
-			payload.lista.forEach(e => {
+			for (let i in payload.lista) {
+				let e = payload.lista[i]
 				arrLista.push({ id: e.id, updated_at: e.updated_at })
 				arrListaID.push(e.id)
-			})
+			}
 
 			if (arrLista.length <= 0) {
 				nrErro = -100
@@ -948,8 +951,20 @@ class Lancamento {
 				.whereIn('id', arrListaID)
 				.fetch()
 
-			modelLista.rows.forEach(e => {
-				inadimplente = e.inadimplente
+			if (modelLista.rows.length !== arrLista.length) {
+				nrErro = -100
+				throw {
+					success: false,
+					message:
+						'A conta selecionada para acordo não correspondem ao cadastro atual.',
+				}
+			}
+
+			let nValorTotalLancamento = 0
+			let nValorSaldoTotalInad = 0
+
+			for (let i in modelLista.rows) {
+				let e = modelLista.rows[i]
 
 				let o = lodash.find(arrLista, { id: e.id })
 				if (!o) {
@@ -970,7 +985,22 @@ class Lancamento {
 							'Transação abortada. Uma conta selecionada foi alterada por outro usuário.',
 					}
 				}
-			})
+
+				nValorSaldoTotalInad += e.saldoInad
+				nValorTotalLancamento += e.valorTotal
+			}
+
+			// Incluir lanamentoGrupo
+			const modelLancamentoGrupo = await ModelLancamentoGrupo.create(
+				{
+					tipo: 'Acordo',
+					valorTotal: nValorTotalLancamento,
+					saldoTotalInad: nValorSaldoTotalInad,
+					status: 'Ativo',
+					obs: payload.nota,
+				},
+				trx ? trx : null
+			)
 
 			//arrAddLancamentos.forEach( e => {
 			for (let i in arrAddLancamentos) {
@@ -982,7 +1012,7 @@ class Lancamento {
 					dVencimento: arrAddLancamentos[i].dVencimento,
 					historico:
 						operacao === 'acordo' ? 'Acordo' : 'Acordo inadimplente',
-					inadimplente: inadimplente,
+					inadimplente: arrAddLancamentos[i].inadimplente,
 					isConciliado: 0,
 					nota: arrAddLancamentos[i].nota,
 					parcelaF: arrAddLancamentos[i].parcelaF,
@@ -999,10 +1029,12 @@ class Lancamento {
 					valorTotal: arrAddLancamentos[i].valorTotal,
 					status: operacao === 'acordo' ? 'Acordado' : 'Acordado',
 					situacao: operacao === 'acordo' ? 'Aberto' : 'Aberto',
+					saldoInad: arrAddLancamentos[i].saldoInad,
+					lancamento_grupo_id: modelLancamentoGrupo.id,
 				}
 
 				let model = await Model.create(o, trx ? trx : null)
-				await model
+				const addLanc = await model
 					.items()
 					.createMany(arrAddLancamentos[i].items, trx ? trx : null)
 
@@ -1019,7 +1051,21 @@ class Lancamento {
 
 			//payload.lista.forEach(e => {
 			for (let i in arrLista) {
-				let modelUpdate = await Model.findOrFail(arrLista[i].id)
+				// Model lancamento grupo item
+				await ModelLancamentoGrupoItem.create(
+					{
+						lancamento_grupo_id: modelLancamentoGrupo.id,
+						lancamento_id: arrLista[i].id,
+						valor: arrLista[i].valorTotal,
+						saldoInad: arrLista[i].saldoInad,
+					},
+					trx ? trx : null
+				)
+
+				let modelUpdate = await Model.findOrFail(
+					arrLista[i].id,
+					trx ? trx : null
+				)
 				if (operacao === 'acordo-inadimplente') {
 					modelUpdate.situacao = 'Acordado'
 				}

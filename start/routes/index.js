@@ -58,6 +58,17 @@ Route.group(() => {
       return { message: 'Abpac Server' }
    })
 
+   Route.post('/callback_wpp_zap', ({request, response}) => {
+      const o= request.all()
+
+      if ( o.event === 'qrcode') {
+         console.log('........................... qr')
+      }
+      console.log('------------ myZap ----------------')
+      console.log(o)
+      return { message: "Deu certo o webhook"}
+   })
+
    Route.post('/myZap', ({request, response}) => {
       const o= request.all()
       console.log('------------ myZap ----------------')
