@@ -387,6 +387,22 @@ class ZapMassaController {
 			}
 		}
 	}
+
+	async onQrCode(data = null) {
+		return new Promise(async (resolve, reject) => {
+			let topic = Ws.getChannel('qrCode:*').topic('qrCode:qrCode')
+
+			/*let o = { qrCode: data ? data.qrCode : null }
+
+			if (topic) {
+				//console.log('busy')
+				this.socket.emit('qrCode', {
+					operation: 'qrCode',
+					data: o,
+				})
+			}*/
+		})
+	}
 }
 
 module.exports = ZapMassaController

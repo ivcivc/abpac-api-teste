@@ -34,5 +34,6 @@ Ws.channel('ping', 'PingController')
 
 Ws.channel('email_massa:*', 'EmailMassaController')
 Ws.channel('zap_massa:*', 'myZap/ZapMassaController')
-Ws.channel('rateio-boleto:*', 'RateioBoletoController') 
+Ws.channel('qrCode:*', 'myZap/ZapMassaController')
+Ws.channel('rateio-boleto:*', 'RateioBoletoController')
 

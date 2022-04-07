@@ -10,6 +10,7 @@ const Route = use('Route')
 const Drive = use('Drive')
 const Helpers = use('Helpers')
 const lodash = use('lodash')
+const Ws = use('Ws')
 
 Route.group(() => {
 
@@ -63,6 +64,26 @@ Route.group(() => {
 
       if ( o.event === 'qrcode') {
          console.log('........................... qr')
+         let obj = o
+
+         let topic = Ws.getChannel('qrCode:*').topic('qrCode:qrCode')
+
+			if (topic) {
+				//console.log('busy')
+            /*const fs= require("fs");
+
+            let buff = new Buffer(o.qrcode, 'base64');
+
+            fs.writeFileSync('stack-abuse-logo-out.png', buff);
+
+            obj.img= img*/
+
+				topic.broadcast('mensagem', {
+					operation: 'qrcode',
+					data: obj,
+				})
+			}
+
       }
       console.log('------------ myZap ----------------')
       console.log(o)
