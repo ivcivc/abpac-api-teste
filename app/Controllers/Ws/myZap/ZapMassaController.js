@@ -382,6 +382,7 @@ class ZapMassaController {
 			)
 			console.log(e)
 			console.log('dados ', data)
+			let topic = Ws.getChannel('zap_massa:*').topic('zap_massa:zap_massa')
 			if (topic) {
 				this.socket.emit('message')
 			}

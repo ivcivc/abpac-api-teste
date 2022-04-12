@@ -5,7 +5,7 @@ const Model = use('Model')
 
 class LancamentoGrupoItem extends Model {
 	lancamento() {
-		return this.hasMany('App/Models/Lancamento', 'lancamento_id', 'id')
+		return this.hasOne('App/Models/Lancamento', 'lancamento_id', 'id')
 	}
 }
 

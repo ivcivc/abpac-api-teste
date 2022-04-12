@@ -43,9 +43,54 @@ class Lancamento {
 			await model.load('boletos')
 			await model.load('conta')
 
+			/*if (model.lancamento_grupo_id) {
+				await model.load('acordo.items.lancamento')
+			}*/
+
 			let json = model.toJSON()
 
 			return json
+		} catch (e) {
+			throw e
+		}
+	}
+
+	async getAcordo(ID) {
+		try {
+			ID = parseInt(ID)
+
+			const grupo = await ModelLancamentoGrupo.findOrFail(ID)
+			await grupo.load('items.lancamento.pessoa')
+
+			const arrSai = []
+
+			let json = grupo.toJSON()
+
+			let pessoa = {}
+
+			json.items.forEach(e => {
+				arrSai.push(e.lancamento)
+				pessoa = {
+					id: e.lancamento.pessoa.id,
+					nome: e.lancamento.pessoa.nome,
+				}
+			})
+
+			json.pessoa = pessoa
+
+			const arrEntra = []
+
+			const model = await Model.query()
+				.where('lancamento_grupo_id', ID)
+				.fetch()
+
+			let jsonLancamento = model.toJSON()
+
+			jsonLancamento.forEach(e => {
+				arrEntra.push(e)
+			})
+
+			return { entra: arrEntra, sai: arrSai, grupo: json }
 		} catch (e) {
 			throw e
 		}
@@ -256,7 +301,7 @@ class Lancamento {
 		}
 	}
 
-	async update(ID, data, trx, auth) {
+	async update(ID, data, trx = null, auth) {
 		let nrErro = null
 		try {
 			if (!trx) {
@@ -266,6 +311,7 @@ class Lancamento {
 			let model = await Model.findOrFail(ID)
 			delete data['pessoa']
 			delete data['conta']
+			delete data['acordo']
 
 			const update_at_db = moment(model.updated_at).format()
 			const update_at = moment(data.updated_at).format()
@@ -316,7 +362,8 @@ class Lancamento {
 			await model
 				.items()
 				.where('lancamento_id', model.id)
-				.delete(trx ? trx : null)
+				.delete()
+				.transacting(trx ? trx : null)
 
 			model.merge(data)
 
@@ -902,6 +949,7 @@ class Lancamento {
 			let forma = payload.forma
 			let tipo = payload.tipo
 			let obs = null
+			let parcelas = payload.quantasParcelas
 
 			let grupo_id = payload.grupo_id
 			if (!operacao) {
@@ -995,9 +1043,10 @@ class Lancamento {
 				{
 					tipo: 'Acordo',
 					valorTotal: nValorTotalLancamento,
-					saldoTotalInad: nValorSaldoTotalInad,
+					saldoTotalInad: payload.saldoTotalInad,
 					status: 'Ativo',
 					obs: payload.nota,
+					parcelas: parcelas,
 				},
 				trx ? trx : null
 			)
@@ -1070,7 +1119,7 @@ class Lancamento {
 					modelUpdate.situacao = 'Acordado'
 				}
 				if (operacao === 'acordo') {
-					modelUpdate.situacao = 'Compensado'
+					modelUpdate.situacao = 'Acordado'
 					modelUpdate.valorCompensado = modelUpdate.valorTotal
 				}
 
@@ -1768,6 +1817,113 @@ class Lancamento {
 	}
 
 	async getConfig() {}
+
+	// Excluir assim que terminar de atualizar o banco de dados da ABPAC %%%%%%%%%%%%%%%%
+	async _gerarGrupoAcordo_TMP() {
+		const trx = await Database.beginTransaction()
+		try {
+			const queryLancamentos = await Model.query()
+				.select(
+					'id',
+					'grupo_id',
+					'subGrupo_id',
+					'lancamento_grupo_id',
+					'valorTotal'
+				)
+				.transacting(trx ? trx : null)
+				//.update({ equipamento_id: equipamentoAdd.id })
+				.whereNotNull('grupo_id')
+				.whereNull('lancamento_grupo_id')
+				.fetch()
+
+			for (let i in queryLancamentos.rows) {
+				let e = queryLancamentos.rows[i]
+
+				const querySubGrupo = await Model.query()
+					.select(
+						'id',
+						'grupo_id',
+						'subGrupo_id',
+						'lancamento_grupo_id',
+						'valorTotal'
+					)
+					.where('subGrupo_id', e.grupo_id)
+					.transacting(trx ? trx : null)
+					.fetch()
+
+				let modelLancamentoGrupo = null
+
+				if (querySubGrupo.rows.length > 0) {
+					// Incluir lanamentoGrupo
+					modelLancamentoGrupo = await ModelLancamentoGrupo.create(
+						{
+							tipo: 'Acordo',
+							valorTotal: 0,
+							saldoTotalInad: 0,
+							status: 'Ativo',
+							obs: 'Conversão automática',
+							//parcelas: e.length,
+						},
+						trx ? trx : null
+					)
+				}
+
+				let nValorTotal = 0.0
+
+				for (let ii in querySubGrupo.rows) {
+					const subgrupo = querySubGrupo.rows[ii]
+
+					nValorTotal = nValorTotal + subgrupo.valorTotal
+
+					subgrupo.lancamento_grupo_id = modelLancamentoGrupo.id
+					await subgrupo.save(trx)
+				}
+
+				const queryGrupo = await Model.query()
+					.select(
+						'id',
+						'grupo_id',
+						'subGrupo_id',
+						'lancamento_grupo_id',
+						'valorTotal'
+					)
+					.where('grupo_id', e.grupo_id)
+					.transacting(trx ? trx : null)
+					.fetch()
+
+				for (let ig in queryGrupo.rows) {
+					const grupo = queryGrupo.rows[ig]
+					await ModelLancamentoGrupoItem.create(
+						{
+							lancamento_grupo_id: modelLancamentoGrupo.id,
+							lancamento_id: grupo.id,
+							valor: grupo.valorTotal,
+							saldoInad: 0.0,
+						},
+						trx ? trx : null
+					)
+					if (grupo.situacao === 'Compensado') {
+						grupo.situacao = 'Acordado'
+						await grupo.save(trx)
+					}
+				}
+
+				if (querySubGrupo.rows.length > 0) {
+					modelLancamentoGrupo.valorTotal = nValorTotal
+					modelLancamentoGrupo.parcelas = querySubGrupo.rows.length
+					//e.lancamento_grupo_id = modelLancamentoGrupo.id
+					await modelLancamentoGrupo.save(trx)
+					await e.save(trx) /// lancamentos
+				}
+			}
+
+			await trx.commit()
+
+			return queryLancamentos.toJSON()
+		} catch (error) {
+			await trx.rollback()
+		}
+	}
 }
 
 module.exports = Lancamento

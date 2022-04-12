@@ -225,7 +225,8 @@ class Rateio {
 					'baixa',
 					'ratear',
 					'dEndosso',
-					'updated_at'
+					'updated_at',
+					'valorMercado1'
 				)
 
 				.with('pessoa', builder => {
@@ -434,7 +435,8 @@ class Rateio {
 					'baixa',
 					'ratear',
 					'dEndosso',
-					'updated_at'
+					'updated_at',
+					'valorMercado1'
 				)
 
 				.with('pessoa', builder => {
@@ -862,6 +864,7 @@ class Rateio {
 				.select(
 					'id',
 					'valorTotal',
+					'saldoInad',
 					'status',
 					'pessoa_id',
 					'dVencimento',
@@ -880,7 +883,17 @@ class Rateio {
 				.whereIn('situacao', ['Aberto', 'Compensado'])
 				.fetch()
 
-			let queryJsonDebito = query.toJSON()
+			let queryJsonDebito = [] //query.toJSON()
+
+			for (const key in query.rows) {
+				if (Object.hasOwnProperty.call(query.rows, key)) {
+					let registro = query.rows[key]
+					let e = registro.toJSON()
+					e.valorParcela = e.valorTotal
+					e.valorTotal = e.valorTotal - e.saldoInad
+					queryJsonDebito.push(e)
+				}
+			}
 
 			const queryCredito = await ModelLancamento.query()
 				.select(
@@ -926,9 +939,12 @@ class Rateio {
 		let nrErro = null
 		await Redis.set('_isGravarRateio', 'sim')
 
+		let equipaAtivos = payload.equipamento.length
+
 		let oRateio = {
 			dInicio: moment(payload.periodo.start).format('YYYY-MM-DD'),
 			dFim: moment(payload.periodo.end).format('YYYY-MM-DD'),
+			equipaAtivos,
 		}
 
 		const rateio = await Model.create(oRateio, trx ? trx : null)
@@ -1048,6 +1064,7 @@ class Rateio {
 					valorTaxaAdm: e.valorTaxaAdm,
 					valorTaxaAdmBase: e.valorTaxaAdmBase,
 					valorTotal: e.valorTotal,
+					valorMercado1: e.valorMercado1,
 				}
 				arrRateioEquipa.push(registroEquipa)
 
@@ -1132,6 +1149,7 @@ class Rateio {
 					valorTaxaAdm: e.valorTaxaAdm,
 					valorTaxaAdmBase: e.valorTaxaAdmBase,
 					valorTotal: e.valorTotal,
+					valorMercado1: e.valorMercado1,
 				}
 				arrRateioEquipaBaixa.push(registroEquipa)
 
@@ -2948,6 +2966,12 @@ class Rateio {
 				e._terceiro = _terceiro
 				e._PlanoOutros = _outrosPlano
 				e._outros = _outros
+
+				if (e.valorMercado1 > 0) {
+					if (e.equipamento) {
+						e.equipamento.valorMercado1 = e.valorMercado1
+					}
+				}
 
 				//arr.push(e)
 			})

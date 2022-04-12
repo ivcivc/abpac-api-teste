@@ -11,6 +11,7 @@ class LancamentoGrupoSchema extends Schema {
 			table.decimal('saldoTotalInad', 10, 2).defaultTo(0.0)
 			table.decimal('valorTotal', 10, 2).defaultTo(0.0)
 			table.varchar('tipo', 30)
+			table.varchar('parcelas', 5)
 
 			table.varchar('status', 30)
 

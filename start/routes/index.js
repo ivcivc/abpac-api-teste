@@ -494,6 +494,13 @@ Route.group(() => {
      ]).middleware([
       'versao'
    ])
+
+   Route.get('/lancamento/getAcordo/:id', 'LancamentoController.getAcordo').middleware([
+      'auth'
+     ]).middleware([
+      'versao'
+   ])
+
    Route.post('/lancamento/gerarLancamentos', 'LancamentoController.gerarLancamentos').middleware([
       'auth'
      ]).middleware([
@@ -1220,6 +1227,7 @@ Route.group(() => {
 
    Route.get('/etiqueta/pdf', 'Etiqueta/EtiquetaController.pdf')
 
+
    Route.post('/etiqueta/endereco', 'Etiqueta/EtiquetaController.endereco').middleware([
       'auth'
    ])
@@ -1227,6 +1235,9 @@ Route.group(() => {
    Route.post('/etiqueta/nome', 'Etiqueta/EtiquetaController.nome').middleware([
       'auth'
    ])
+
+   Route.get('/_gerarGrupoAcordo_TMP', 'LancamentoController._gerarGrupoAcordo_TMP')
+
    /*Route.get('/filemanager/folders', 'GerenciadorArquivoController.folders')
    Route.get('/filemanager/files', 'GerenciadorArquivoController.files')
    Route.get('/filemanager/info', 'GerenciadorArquivoController.info')
