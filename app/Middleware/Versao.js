@@ -12,7 +12,7 @@ class Versao {
 	async handle({ request, response }, next) {
 		// call next to advance the request
 		const headers = request.headers()
-		if (headers.versao !== '1.42') {
+		if (headers.versao !== '1.43') {
 			return response
 				.status(404)
 				.send(
