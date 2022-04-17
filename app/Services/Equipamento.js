@@ -1656,6 +1656,57 @@ class Equipamento {
 		}
 	}
 
+	async moverSubCategoria(data, trx, auth) {
+		try {
+			if (!trx) {
+				trx = await Database.beginTransaction()
+
+				for (const key in data.equipamentos) {
+					if (Object.hasOwnProperty.call(data.equipamentos, key)) {
+						const e = data.equipamentos[key]
+
+						const model = await Model.findOrFail(e.id)
+						const update_at_db = moment(model.updated_at).format()
+						const update_at = moment(e.updated_at).format()
+
+						if (update_at_db !== update_at) {
+							throw {
+								success: false,
+								message:
+									'Não foi possível alterar a subcategoria. Foi detectado alteração no registro por outro usuário.',
+							}
+						}
+
+						if (model.categoria_id !== parseInt(data.categoria_id_de)) {
+							throw {
+								success: false,
+								message:
+									'Não foi possível alterar a subcategoria. Ocorreu uma divergencia de categoria de origem.',
+							}
+						}
+
+						model.merge({ categoria_id: data.categoria_id_para })
+
+						await this.addLog(model, auth, trx)
+
+						await model.save(trx)
+					}
+				}
+
+				await trx.commit()
+
+				return {
+					success: true,
+					message: 'Transação realizada com sucesso!',
+				}
+			}
+		} catch (e) {
+			await trx.rollback()
+
+			throw e
+		}
+	}
+
 	async get(ID) {
 		try {
 			const equipamento = await Model.findOrFail(ID)

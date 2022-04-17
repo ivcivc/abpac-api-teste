@@ -26,3 +26,17 @@ b) Reverter inadimplente
       Se operação for operacao === 'acordo'
          - situacao= 'Compensado'
          - valorCompensado= valorTotal
+
+      PERDEU O valor
+
+   ABRIL/2022
+   B) NOVO ACORDO COM HISTORICO lancamento_grupo e lancamento_grupo_id   (11/04/2022)
+
+      - Tabela Lancamento:
+         - lancamento_grupo_id (id da tabela lancamento_grupo)
+         - saldoInad (guarda o saldo de inadimplente para trazer o saldo de uma conta com status de debito de inadimplente)
+         - grupo = Acordado
+         - subgrupo = novas contas em aberto
+         - ao montar o acordo, se a conta selecionada tiver inadimplente= Debito o saldoTotalInad= saldoInad + valorDebitoInad
+         - todo lancamento de origem de acordo a situação foi alterada de compensado para Acordado
+

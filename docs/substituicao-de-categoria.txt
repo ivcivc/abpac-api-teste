@@ -1,0 +1,13 @@
+Abril de 2022
+
+O Cristiano solicitou um modulo para mudança de categoria. Ele pretende
+aumentar o valor de uma categoria e transferir os equipamentos de uma categoria
+mais proxima para ela.
+
+ex: S2 de 50 a 100 aumentar para 100 a 200
+   e colocar todos os veiculos S3 (100 a 200 ) na S2
+
+modulo para mover os equipamentos de categoria
+
+12/04/2022 -> Inicio do desenvolvimento.
+

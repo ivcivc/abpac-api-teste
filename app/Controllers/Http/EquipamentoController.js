@@ -227,6 +227,28 @@ class EquipamentoController {
 		}
 	}
 
+	async moverSubCategoria({ request, response, auth }) {
+		// Função para mover um subcategoria por outra - todos registros da sub
+		const payload = request.all()
+
+		try {
+			const service = await new EquipamentoServices().moverSubCategoria(
+				payload,
+				null,
+				auth
+			)
+
+			response.status(200).send({ type: true, data: service })
+		} catch (error) {
+			console.log(error)
+			response.status(400).send({
+				code: error.code,
+				message: error.message,
+				name: error.name,
+			})
+		}
+	}
+
 	async localizarProtecao({ request, response }) {
 		// Painel proteções
 		const payload = request.all()

@@ -331,6 +331,12 @@ Route.group(() => {
       'versao'
    ])
 
+   Route.post('/equipamento/moverSubCategoria', 'EquipamentoController.moverSubCategoria').middleware([
+      'auth'
+   ]).middleware([
+      'versao'
+   ])
+
    Route.get('/equipamentos/getLog/:equipamento_id', 'EquipamentoController.getLog').middleware([
       'auth'
    ])
