@@ -142,6 +142,17 @@ class SignController {
 		response.send(query.rows)
 	}
 
+	async localizar({ request, response, auth }) {
+		try {
+			let dados = request.all()
+
+			let servico = await new Servico().localizar(dados)
+			return servico
+		} catch (e) {
+			response.status(400).send({ success: false, message: e.message })
+		}
+	}
+
 	async show({ params, response }) {
 		try {
 			let servico = await new Servico().show(params.sign_id)
@@ -161,6 +172,22 @@ class SignController {
 			dados.data.user_id = auth.user.id
 
 			let servico = await new Servico().add(dados)
+			return servico
+		} catch (e) {
+			response.status(400).send({ success: false, message: e.message })
+		}
+	}
+
+	async criarDocumentoEmPdf({ request, response, auth }) {
+		try {
+			let dados = request.all()
+			//dados.data.user_id = auth.user.id
+
+			let servico = await new Servico().criarDocumentoEmPdf(
+				dados.id,
+				dados.isAssinar,
+				dados.tipo
+			)
 			return servico
 		} catch (e) {
 			response.status(400).send({ success: false, message: e.message })

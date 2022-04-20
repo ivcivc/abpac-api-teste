@@ -20,6 +20,7 @@ const Mail = use('Mail')
 const URL_SERVIDOR_SIGN_EMAIL = Env.get('URL_SERVIDOR_SIGN_EMAIL')
 const ServiceFichaInscricao = use('App/Services/Sign/FichaInscricao')
 const ServiceAdesao = use('App/Services/Sign/Adesao')
+const ServiceSubstituicao = use('App/Services/Sign/Substituicao')
 const Drive = use('Drive')
 
 class Sign {
@@ -199,6 +200,21 @@ class Sign {
 				reject(e)
 			}
 		})
+	}
+
+	async criarDocumentoEmPdf(sign_id = null, isAssinar = false, tipo = null) {
+		try {
+			switch (tipo) {
+				case 'Requerimento de Substituição':
+					resPDF = await new ServiceSubstituicao().criarDocumentoEmPdf({
+						sign_id,
+						isAssinar,
+						tipo,
+					})
+
+					break
+			}
+		} catch (error) {}
 	}
 
 	async update(payload) {
@@ -545,6 +561,46 @@ class Sign {
 				} else throw { message: 'Arquivo PDF não localizado' }
 			}
 			throw { message: 'Arquivo PDF não localizado' }
+		} catch (e) {
+			throw e
+		}
+	}
+
+	async localizar(payload) {
+		try {
+			const query = Model.query()
+
+			let where = null
+
+			if (payload.field_tipo_value) {
+				query.where('tipo', payload.field_tipo_value)
+			}
+
+			switch (payload.field_name) {
+				case 'signatarioNome':
+					query.where('signatarioNome', 'like', `%${payload.field_value}%`)
+					break
+
+				default:
+					break
+			}
+
+			switch (payload.field_status_value) {
+				case 'Todos':
+				case null:
+					break
+
+				case 'Pendente':
+					query.whereIn('status', ['Pendente', 'Iniciado'])
+
+				default:
+					query.where('status', payload.field_status_value)
+					break
+			}
+
+			const res = await query.fetch()
+
+			return res
 		} catch (e) {
 			throw e
 		}

@@ -970,7 +970,6 @@ Route.group(() => {
       }
    })
 
-
    Route.post('/sign/equipa/contratoAdesao', 'EquipamentoSignController.contratoAdesao').middleware([
       'auth'
    ])
@@ -990,7 +989,9 @@ Route.group(() => {
    Route.get('/sign/pdf_link/:sign_id', 'PreCadastroController.pdf_link')
    //Route.get('/sign/pdf/:tipo/:arquivo', 'PreCadastroController.pdf')
 
-
+   Route.post('/sign/localizar', 'SignController.localizar').middleware([
+      'auth'
+   ])
    Route.post('/sign/inscricao/toSign', 'PreCadastroController.fichaInscricao')
    Route.get('/sign/token/:sign_id', 'PreCadastroController.enviarTokenSign')
    Route.get('/sign/retoken/:sign_id', 'PreCadastroController.reEnviarTokenSign')
@@ -1025,6 +1026,10 @@ Route.group(() => {
    Route.post('/sign/add', "SignController.add").middleware([
       'auth'
    ])
+   Route.post('/sign/criarDocumentoEmPdf', "SignController.criarDocumentoEmPdf").middleware([
+      'auth'
+   ])
+
    Route.post('/sign/update', "SignController.update").middleware([
       'auth'
    ])

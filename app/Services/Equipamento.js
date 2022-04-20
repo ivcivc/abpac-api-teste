@@ -835,8 +835,8 @@ class Equipamento {
 				delete dataUpdate['protecoes']
 				delete dataUpdate['created_at']
 
-				data.placas = gerarPlacas(dataUpdate)
-				data.tipoEndosso = 'Acerto nos dados do equipamento'
+				dataUpdate.placas = gerarPlacas(dataUpdate)
+				dataUpdate.tipoEndosso = 'Acerto nos dados do equipamento'
 				equipamento.merge(dataUpdate)
 
 				await ModelEquipamentoRestricao.query()
