@@ -197,6 +197,40 @@ class Equipamento {
 		}
 	}
 
+	async atualizarPlacas() {
+		let trx = null
+
+		try {
+			trx = await Database.beginTransaction()
+
+			const model = await Model.query()
+				.transacting(trx ? trx : null)
+				.fetch()
+
+			for (const key in model.rows) {
+				if (Object.hasOwnProperty.call(model.rows, key)) {
+					const e = model.rows[key]
+					e.placas = gerarPlacas(e)
+					await e.save(trx)
+				}
+			}
+
+			await trx.commit()
+
+			return 'ok'
+		} catch (e) {
+			await trx.rollback()
+
+			throw {
+				message: e.message,
+				sqlMessage: e.sqlMessage,
+				sqlState: e.sqlState,
+				errno: e.errno,
+				code: e.code,
+			}
+		}
+	}
+
 	async add(data, trx, auth) {
 		let showNewTrx = false
 

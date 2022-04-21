@@ -225,6 +225,7 @@ Route.group(() => {
      ]).validator( new Map([ [['/os_config.store'], ['ordem_servico/os_config']],
       [['/os_config.update'], ['ordem_servico/os_config']]]))
 
+
    Route.resource('/equipamentos', 'EquipamentoController').middleware([
       'auth'
    ]).middleware([
@@ -251,6 +252,9 @@ Route.group(() => {
    ])*/
 
    Route.get('/converterRateio', 'RateioController.converterRateio')
+
+   Route.get('/atualizarPlacas', 'EquipamentoController.atualizarPlacas')
+
 
 
    Route.resource('/restricao', 'RestricaoController').middleware([
