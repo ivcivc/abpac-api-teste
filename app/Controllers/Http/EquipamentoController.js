@@ -24,23 +24,6 @@ class EquipamentoController {
 		}
 	}
 
-	async atualizarPlacas({ request, response, auth }) {
-		const payload = request.all()
-
-		try {
-			const equipamento = await new EquipamentoServices().atualizarPlacas(
-				payload,
-				null,
-				auth
-			)
-
-			response.status(200).send({ type: true, data: equipamento })
-		} catch (error) {
-			console.log(error)
-			response.status(400).send(error)
-		}
-	}
-
 	/*async getAllRestricao({ request, response }) {
       try {
          const service = await new EquipamentoServices().getAllRestricao()

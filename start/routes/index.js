@@ -253,9 +253,6 @@ Route.group(() => {
 
    Route.get('/converterRateio', 'RateioController.converterRateio')
 
-   Route.get('/atualizarPlacas', 'EquipamentoController.atualizarPlacas')
-
-
 
    Route.resource('/restricao', 'RestricaoController').middleware([
       'auth'

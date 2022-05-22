@@ -188,6 +188,13 @@ class SignController {
 				dados.isAssinar,
 				dados.tipo
 			)
+			if (!servico) {
+				throw {
+					success: false,
+					message:
+						'Não foi possível assinar este documento. Tente mais tarde!',
+				}
+			}
 			return servico
 		} catch (e) {
 			response.status(400).send({ success: false, message: e.message })
@@ -249,6 +256,14 @@ class SignController {
 			data.ip = request.ip()
 
 			let servico = await new Servico().gerarDocumento(data)
+			if (!servico) {
+				throw {
+					success: false,
+					message:
+						'Não foi possível assinar este documento. Tente mais tarde!',
+				}
+			}
+
 			return servico
 		} catch (e) {
 			response.status(400).send({ success: false, message: e.message })

@@ -25,6 +25,7 @@ const ModelEquipamentoControleLog = use('App/Models/EquipamentoControleLog')
 const ModelEquipamentoEndosso = use('App/Models/EquipamentoEndosso')
 const ModelEquipamentoEndossoItem = use('App/Models/EquipamentoEndossoItem')
 const ModelSign = use('App/Models/Sign')
+const crypto = require('crypto')
 
 const Env = use('Env')
 
@@ -186,40 +187,6 @@ class Equipamento {
 			if (showNewTrx) {
 				await trx.rollback()
 			}
-
-			throw {
-				message: e.message,
-				sqlMessage: e.sqlMessage,
-				sqlState: e.sqlState,
-				errno: e.errno,
-				code: e.code,
-			}
-		}
-	}
-
-	async atualizarPlacas() {
-		let trx = null
-
-		try {
-			trx = await Database.beginTransaction()
-
-			const model = await Model.query()
-				.transacting(trx ? trx : null)
-				.fetch()
-
-			for (const key in model.rows) {
-				if (Object.hasOwnProperty.call(model.rows, key)) {
-					const e = model.rows[key]
-					e.placas = gerarPlacas(e)
-					await e.save(trx)
-				}
-			}
-
-			await trx.commit()
-
-			return 'ok'
-		} catch (e) {
-			await trx.rollback()
 
 			throw {
 				message: e.message,
@@ -540,6 +507,7 @@ class Equipamento {
 			)
 
 			let arrBaixaItensJson = []
+			let pessoaSign = null
 
 			for (const key in payload.equipamentos) {
 				if (Object.hasOwnProperty.call(payload.equipamentos, key)) {
@@ -556,6 +524,8 @@ class Equipamento {
 						equipaJson.updated_at,
 						'YYYY-MM-DD hh:mm:ss'
 					).toJSON()
+
+					pessoaSign = equipaJson.pessoa
 
 					arrBaixaItensJson.push(equipaJson)
 
@@ -665,6 +635,27 @@ class Equipamento {
 
 			endossoAdd.equipaJson = JSON.stringify(arrBaixaItensJson)
 			endossoAdd.save(trx ? trx : null)
+
+			// Adicionar sign
+			const oSign = {
+				signatarioNome: pessoaSign.signatarioNome,
+				signatarioCPF: pessoaSign.signatarioCpf,
+				dispositivo: pessoaSign.dispositivo,
+				signatarioDNasc: pessoaSign.dNasc,
+				signatarioEmail: pessoaSign.email,
+				tipo: 'Baixa Total de Equipamento',
+				signatarioTel: pessoaSign.telSms,
+				dataDoc: new Date(),
+				assinatura: null,
+				user_id: auth.user.id,
+				status: 'Iniciado',
+				dataJson: JSON.stringify(arrBaixaItensJson),
+				doc_id: await crypto.randomBytes(20).toString('hex'),
+			}
+			const modelSign = await ModelSign.create(oSign, trx)
+			endossoAdd.merge({ sign_id: modelSign.id })
+			await endossoAdd.save(trx)
+			await modelSign.save(trx)
 
 			// Lançamento de Financeiro
 			let modelLancamento = null
@@ -1089,6 +1080,28 @@ class Equipamento {
 					trx ? trx : null
 				)
 
+				// Adicionar sign
+				let pessoaSign = equipamentoJSON.pessoa
+				const oSign = {
+					signatarioNome: pessoaSign.signatarioNome,
+					signatarioCPF: pessoaSign.signatarioCpf,
+					dispositivo: pessoaSign.dispositivo,
+					signatarioDNasc: pessoaSign.dNasc,
+					signatarioEmail: pessoaSign.email,
+					tipo: 'Baixa de Equipamento',
+					signatarioTel: pessoaSign.telSms,
+					dataDoc: new Date(),
+					assinatura: null,
+					user_id: auth.user.id,
+					status: 'Iniciado',
+					dataJson: JSON.stringify([equipamentoJSON]),
+					doc_id: await crypto.randomBytes(20).toString('hex'),
+				}
+				const modelSign = await ModelSign.create(oSign, trx)
+				endossoAdd.merge({ sign_id: modelSign.id })
+				await endossoAdd.save(trx)
+				await modelSign.save(trx)
+
 				// Gerar Controle
 				await this.addControle(arrAddControle, trx)
 			}
@@ -1289,6 +1302,14 @@ class Equipamento {
 					}
 				}
 
+				let pessoaSign = lodash.cloneDeep(equipamentoJSON.pessoa)
+
+				let jsonEndosso = {
+					pessoa: pessoaSign,
+					sai: null,
+					entra: lodash.cloneDeep(equipamentoJSON),
+				}
+
 				// Endosso - EndossoItem
 				const endossoAdd = await ModelEquipamentoEndosso.create(
 					{
@@ -1296,6 +1317,8 @@ class Equipamento {
 						tipo: 'Reativação de Equipamento',
 						sai_id: null,
 						status: 'Ativo',
+						equipaJson: JSON.stringify([jsonEndosso.entra]), //JSON.stringify([equipamentoAdd]),
+						sign_id: null,
 					},
 					trx ? trx : null
 				)
@@ -1498,6 +1521,10 @@ class Equipamento {
 				await EquipamentoStatus.create(status, trx ? trx : null)
 
 				jsonSubstituicao.entra = equipamentoAdd.toJSON()
+				const modelCategoriaEntra = await ModelCategoria.findOrFail(
+					jsonSubstituicao.entra.categoria_id
+				)
+				jsonSubstituicao.entra.categoria = modelCategoriaEntra.toJSON()
 
 				// Restriçoes para substuição (ENTRA)
 				if (addRestricoes.length > 0) {
@@ -1591,6 +1618,7 @@ class Equipamento {
 						status: 'Ativo',
 						saiJson: JSON.stringify(equipamentoSai),
 						equipaJson: JSON.stringify([jsonSubstituicao.entra]), //JSON.stringify([equipamentoAdd]),
+						sign_id: null,
 					},
 					trx ? trx : null
 				)
@@ -1605,18 +1633,23 @@ class Equipamento {
 				// Adicionar sign
 				const oSign = {
 					signatarioNome: pessoaSign.signatarioNome,
-					signatarioCPF: pessoaSign.signatarioCPF,
+					signatarioCPF: pessoaSign.signatarioCpf,
 					dispositivo: pessoaSign.dispositivo,
 					signatarioDNasc: pessoaSign.dNasc,
 					signatarioEmail: pessoaSign.email,
 					tipo: 'Requerimento de Substituição',
-					dataDoc: null,
+					signatarioTel: pessoaSign.telSms,
+					dataDoc: new Date(),
 					assinatura: null,
 					user_id: auth.user.id,
 					status: 'Iniciado',
 					dataJson: JSON.stringify([jsonSubstituicao]),
+					doc_id: await crypto.randomBytes(20).toString('hex'),
 				}
-				await ModelSign.create(oSign, trx)
+				const modelSign = await ModelSign.create(oSign, trx)
+				endossoAdd.merge({ sign_id: modelSign.id })
+				await endossoAdd.save(trx)
+				await modelSign.save(trx)
 			}
 
 			// Ocorrencia  - Alterar ID do equipamento da ocorrencia para os equipamentos endossados - exceto para substituição de equipamento.
@@ -2010,6 +2043,8 @@ class Equipamento {
 			throw e
 		}
 	}
+
+	async addSign(data, trx = null) {}
 
 	async updateControle(payload, auth) {
 		try {

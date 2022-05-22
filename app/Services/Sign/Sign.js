@@ -21,13 +21,14 @@ const URL_SERVIDOR_SIGN_EMAIL = Env.get('URL_SERVIDOR_SIGN_EMAIL')
 const ServiceFichaInscricao = use('App/Services/Sign/FichaInscricao')
 const ServiceAdesao = use('App/Services/Sign/Adesao')
 const ServiceSubstituicao = use('App/Services/Sign/Substituicao')
+const ServiceBaixa = use('App/Services/Sign/Baixa')
 const Drive = use('Drive')
 
 class Sign {
 	async show(sign_id) {
 		try {
 			const modelSign = await Model.findOrFail(sign_id)
-
+			console.log(modelSign.toJSON())
 			return modelSign
 		} catch (e) {
 			throw e
@@ -213,6 +214,15 @@ class Sign {
 					})
 
 					break
+
+				case 'Substituição de equipamento':
+					resPDF = await new ServiceBaixa().criarDocumentoEmPdf({
+						sign_id,
+						isAssinar,
+						tipo,
+					})
+
+					break
 			}
 		} catch (error) {}
 	}
@@ -227,7 +237,8 @@ class Sign {
 			if (
 				modelSign.status !== 'Enviado para assinatura' &&
 				modelSign.status !== 'Pendente' &&
-				modelSign.status !== 'Manual'
+				modelSign.status !== 'Manual' &&
+				modelSign.status !== 'Iniciado'
 			) {
 				throw {
 					success: false,
@@ -493,6 +504,26 @@ class Sign {
 				doc = await new ServiceAdesao().criarDocumentoEmPdf(payload)
 				break
 
+			case 'Requerimento de Substituição':
+				if (payload.isAssinar) {
+					const sign_id_encrypt = payload.sign_id
+					let oDecrypt = this.decrypt(`${sign_id_encrypt}`) // Encryption.decrypt(sign_id)
+					let sign_id = oDecrypt.id
+					payload.sign_id = sign_id
+				}
+				doc = await new ServiceSubstituicao().criarDocumentoEmPdf(payload)
+				break
+
+			case 'Baixa Total de Equipamento':
+				if (payload.isAssinar) {
+					const sign_id_encrypt = payload.sign_id
+					let oDecrypt = this.decrypt(`${sign_id_encrypt}`) // Encryption.decrypt(sign_id)
+					let sign_id = oDecrypt.id
+					payload.sign_id = sign_id
+				}
+				doc = await new ServiceBaixa().criarDocumentoEmPdf(payload)
+				break
+
 			default:
 				break
 		}
@@ -503,25 +534,42 @@ class Sign {
 	async solicitarAssinatura(payload) {
 		// Proxy
 		// Parametros sign_id - tipo ("Requerimento Inscrição")
+		try {
+			let doc = null
 
-		let doc = null
+			switch (payload.tipo) {
+				case 'Requerimento de Inscrição':
+					doc = await new ServiceFichaInscricao().solicitarAssinatura(
+						payload.sign_id
+					)
+					break
 
-		switch (payload.tipo) {
-			case 'Requerimento de Inscrição':
-				doc = await new ServiceFichaInscricao().solicitarAssinatura(
-					payload.sign_id
-				)
-				break
+				case 'Requerimento de Adesão':
+					doc = await new ServiceAdesao().solicitarAssinatura(
+						payload.sign_id
+					)
+					break
 
-			case 'Requerimento de Adesão':
-				doc = await new ServiceAdesao().solicitarAssinatura(payload.sign_id)
-				break
+				case 'Requerimento de Substituição':
+					doc = await new ServiceSubstituicao().solicitarAssinatura(
+						payload.sign_id
+					)
+					break
 
-			default:
-				break
+				case 'Baixa Total de Equipamento':
+					doc = await new ServiceBaixa().solicitarAssinatura(
+						payload.sign_id
+					)
+					break
+
+				default:
+					break
+			}
+
+			return doc
+		} catch (error) {
+			throw error
 		}
-
-		return doc
 	}
 
 	getGerarTokenRandomico(min, max) {
@@ -541,6 +589,9 @@ class Sign {
 				pasta = Helpers.tmpPath(`uploads/${arqAssinado}${sign.arquivo}`)
 			}
 			if (sign.tipo === 'Requerimento de Adesão') {
+				pasta = Helpers.tmpPath(`uploads/${arqAssinado}${sign.arquivo}`)
+			}
+			if (sign.tipo === 'Requerimento de Substituição') {
 				pasta = Helpers.tmpPath(`uploads/${arqAssinado}${sign.arquivo}`)
 			}
 			console.log(sign.arquivo)
@@ -579,6 +630,10 @@ class Sign {
 			switch (payload.field_name) {
 				case 'signatarioNome':
 					query.where('signatarioNome', 'like', `%${payload.field_value}%`)
+					break
+
+				case 'id':
+					query.where('id', '=', payload.field_value)
 					break
 
 				default:

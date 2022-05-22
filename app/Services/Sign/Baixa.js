@@ -20,7 +20,7 @@ const URL_SERVIDOR_SIGN_EMAIL = Env.get('URL_SERVIDOR_SIGN_EMAIL')
 const StorageService = use('App/Services/Storage')
 const BrM = require('br-masks')
 
-class SubstituicaoController {
+class BaixaController {
 	moeda(n) {
 		let c = new Intl.NumberFormat('de-DE').format(n)
 		if (!c.includes(',')) {
@@ -141,10 +141,10 @@ class SubstituicaoController {
 
 				// Disponibilizar na Galeria
 				const file = {
-					modulo: 'Equipamento|requerimento-substituicao',
-					descricao: 'Requerimento de Substituição',
+					modulo: 'Equipamento|requerimento-baixa',
+					descricao: 'Requerimento de Baixa de Equipamento',
 					dVencimento: null,
-					idParent: equipa.entra.id,
+					idParent: equipa.id,
 					pessoa_id: equipa.pessoa.id,
 					status: 'Pendente',
 					items: [
@@ -249,7 +249,7 @@ class SubstituicaoController {
 								body: [
 									[
 										{
-											text: 'TERMO DE REQUERIMENTO DE SUBSTITUIÇÃO DE VEÍCULO DO PLANO DE BENEFÍCIO DE ACIDENTES DE VEÍCULOS DA ABPAC',
+											text: 'TERMO E DECLARAÇÃO DE REQUERIMENTO DE BAIXA DE EQUIPAMENTO DO PLANO DE BENEFÍCIO DE ACIDENTES DE VEÍCULOS DA ABPAC',
 											bold: true,
 											fontSize: 13,
 											alignment: 'center',
@@ -330,7 +330,7 @@ class SubstituicaoController {
 				},
 			})
 
-			// Sai
+			// eQUIPAMENTO
 			content.push({
 				layout: 'lightHorizontalLines',
 				margin: [0, 20, 0, 0],
@@ -338,101 +338,10 @@ class SubstituicaoController {
 					headerRows: 0,
 					widths: ['*'],
 					border: [true, true, false, false],
-					body: [
-						[
-							{
-								text: 'VEÍCULO QUE SAI',
-								bold: true,
-								alignment: 'left',
-								fontSize: 12,
-							},
-						],
-						[{ text: '' }],
-					],
-				},
-			})
-
-			content.push({
-				layout: { defaultBorder: false },
-				margin: [0, 0, 0, 0],
-				border: [false, false, false, false],
-
-				table: {
-					headerRows: 0,
-
-					widths: ['*', 3, 90],
-
 					body: [
 						[
 							{
 								text: 'VEÍCULO',
-								bold: true,
-							},
-							{ text: '' },
-							{
-								text: 'ANO/MODELO',
-								bold: true,
-								alignment: 'left',
-							},
-						],
-						[
-							{
-								text: `${equipa.sai.marca1.toUpperCase()} ${equipa.sai.modelo1.toUpperCase()}`,
-								bold: false,
-								fillColor: cor.cinzaClaro,
-							},
-							{ text: '' },
-							{
-								text: `${equipa.sai.anoF1} / ${equipa.sai.modeloF1}`,
-								bold: false,
-								alignment: 'left',
-								fillColor: cor.cinzaClaro,
-							},
-						],
-						[
-							{
-								text: 'PLACA',
-								bold: true,
-							},
-							{ text: '' },
-							{
-								text: 'CHASSI',
-								bold: true,
-								alignment: 'left',
-							},
-						],
-						[
-							{
-								text: `${this.placaMask(
-									equipa.sai.placa1.toUpperCase()
-								)}`,
-								bold: false,
-								fillColor: cor.cinzaClaro,
-							},
-							{ text: '' },
-							{
-								text: `${equipa.sai.chassi1}`,
-								bold: false,
-								alignment: 'left',
-								fillColor: cor.cinzaClaro,
-							},
-						],
-					],
-				},
-			})
-
-			// Entra
-			content.push({
-				layout: 'lightHorizontalLines',
-				margin: [0, 20, 0, 0],
-				table: {
-					headerRows: 0,
-					widths: ['*'],
-					border: [true, true, false, false],
-					body: [
-						[
-							{
-								text: 'VEÍCULO QUE ENTRA',
 								bold: true,
 								alignment: 'left',
 								fontSize: 12,
@@ -474,13 +383,13 @@ class SubstituicaoController {
 
 			addEntra.push([
 				{
-					text: `${equipa.entra.marca1.toUpperCase()} ${equipa.entra.modelo1.toUpperCase()}`,
+					text: `${equipa.marca1.toUpperCase()} ${equipa.modelo1.toUpperCase()}`,
 					bold: false,
 					fillColor: cor.cinzaClaro,
 				},
 				{ text: '' },
 				{
-					text: `${equipa.entra.anoF1} / ${equipa.entra.modeloF1}`,
+					text: `${equipa.anoF1} / ${equipa.modeloF1}`,
 					bold: false,
 					alignment: 'left',
 					fillColor: cor.cinzaClaro,
@@ -500,114 +409,33 @@ class SubstituicaoController {
 				},
 			])*/
 
-			let placas = this.placaMask(equipa.entra.placa1.toUpperCase())
-			let chassis = equipa.entra.chassi1.toUpperCase()
+			let placas = this.placaMask(equipa.placa1.toUpperCase())
+			let chassis = equipa.chassi1.toUpperCase()
 
-			if (equipa.entra.placa2) {
+			if (equipa.placa2) {
 				placas =
-					placas +
-					' / ' +
-					this.placaMask(equipa.entra.placa2.toUpperCase())
+					placas + ' / ' + this.placaMask(equipa.placa2.toUpperCase())
 			}
 
-			if (equipa.entra.placa3) {
+			if (equipa.placa3) {
 				placas =
-					placas +
-					' / ' +
-					this.placaMask(equipa.entra.placa3.toUpperCase())
+					placas + ' / ' + this.placaMask(equipa.placa3.toUpperCase())
 			}
 
-			if (equipa.entra.chassi2) {
-				chassis = chassis + ' / ' + equipa.entra.chassi2.toUpperCase()
+			if (equipa.chassi2) {
+				chassis = chassis + ' / ' + equipa.chassi2.toUpperCase()
 			}
 
-			if (equipa.entra.chassi3) {
-				chassis = chassis + ' / ' + equipa.entra.chassi3.toUpperCase()
+			if (equipa.chassi3) {
+				chassis = chassis + ' / ' + equipa.chassi3.toUpperCase()
 			}
-
-			/*addEntra.push([
-				{
-					text: `${placas}`,
-					bold: false,
-					fillColor: cor.cinzaClaro,
-				},
-				{ text: '' },
-				{
-					text: `${chassis}`,
-					bold: false,
-					alignment: 'left',
-					fillColor: cor.cinzaClaro,
-				},
-			])
-
-			addEntra.push([
-				{
-					text: 'VALOR INFORMADO',
-					bold: true,
-				},
-				{ text: '' },
-				{
-					text: 'ENQUADRAMENTO',
-					bold: true,
-					alignment: 'left',
-				},
-			])*/
 
 			const modelCategoria = await ModelCategoria.findOrFail(
-				equipa.entra.categoria_id
+				equipa.categoria_id
 			)
-
-			/*addEntra.push([
-				{
-					text: `${this.moeda(equipa.entra.valorMercado1)}`,
-					bold: false,
-					fillColor: cor.cinzaClaro,
-				},
-				{ text: '' },
-				{
-					text: `${modelCategoria.abreviado}`,
-					bold: false,
-					alignment: 'left',
-					fillColor: cor.cinzaClaro,
-				},
-			])*/
 
 			cabecalhoEntra.table.body = addEntra
 			content.push(cabecalhoEntra)
-
-			// semi-reboque
-			/*let equipa1 = `${equipa.entra.marca1} ${equipa.entra.modelo1} - Placa: ${equipa.entra.placa1}`
-			let equipa2 = ''
-			let semiReboques = equipa1 + equipa2
-			if (equipa.entra.placa1) {
-				content.push({
-					layout: { defaultBorder: false },
-					margin: [0, 0, 0, 0],
-					border: [false, false, false, false],
-
-					table: {
-						headerRows: 0,
-
-						widths: ['*'],
-
-						body: [
-							[
-								{
-									text: 'SEMI-REBOQUE',
-									bold: true,
-								},
-							],
-							[
-								{
-									text: semiReboques,
-									bold: false,
-									fillColor: cor.cinzaClaro,
-								},
-							],
-						],
-					},
-				})
-			}*/
 
 			let beneficios = ''
 			if (lodash.has(equipa.entra, 'equipamentoBeneficios')) {
@@ -747,7 +575,7 @@ class SubstituicaoController {
 						],
 						[
 							{
-								text: `${this.moeda(equipa.entra.valorMercado1)}`,
+								text: `${this.moeda(equipa.valorMercado1)}`,
 								bold: true,
 								alignment: 'left',
 								fillColor: cor.cinzaClaro,
@@ -764,15 +592,21 @@ class SubstituicaoController {
 				},
 			})
 
-			const texto1 = `Na condição de associado, venho requerer a substituição do veículo conforme descrição acima.
+			const texto1 = `Na condição de associado da ABPAC e tendo requerido a adesão do veículo acima, neste ato, por motivos particulares e de foro intimo não tenho interesse em que referido veículo permaneça, no citado plano, motivo pelo qual, venho requerer a BAIXA do mesmo
          `
-			const texto2 = `Declaro ainda a ratificação de todos os compromissos já assumidos com a ABPAC quando assinei o termo de requerimento de adesão do veículo que aqui requeri a substituição, e, demais disposições legais contidas no nosso regimento interno, todas que ficam fazendo parte integrante do presente termo, cônscio de que todos estes compromissos e obrigações permanecem intactos.
+			const texto2 = `Desse modo destaco ter consciência de que assumi o compromisso de pagar os valores de rateio, por participar do citado Plano de Benefício de Rateio para Ressarcimento de Despesas por Furto, Roubo e Acidente de Veículos desta associação, bem como demais despesas e custos inerentes à minha condição de associado ABPAC.
          `
-			const texto3 = `Tendo em vista o presente requerimento de substituição de veículo, para o mesmo especificamente, mais uma vez, declaro ter conhecimento total de que é minha obrigação, junto a ABPAC, comunicá-la sempre das substituições de equipamentos(s), mudança de enquadramento do bem, quanto aos agrupamentos dos equipamentos cadastrados, artigo 2º do regime interno, assumindo o ônus quanto a qualquer perda que venha sofrer em caso de acidente, furto e ou robo, isentando a ABPAC de qualquer responsabilidade, da mesma forma quanto ao meu ciente de que a ABPAC somente garantirá proteção ao(s) meu(s) equipamento(s), até o limite máximo previsto para os mesmos, conforme parágrafo 1º, do artigo 16, do regimento interno e, por consequência, assumo ser de minha inteira responsabilidade os valores excedentes caso existentes, eximindo assim a associação de qualquer ônus ou responsabilidade sobre o mesmo, da necessidade de os veículos estarem regularmente legalizado(s) junto ao DETRAN competente e de ter também instalados os equipamentos de rastreamento e bloqueador e que estejam estes equipamentos funcionando regularmente.
-          `
-			const texto4 = `Deverá o associado efetuar a instalação dos equipamentos obrigatórios (rastreador e bloqueador), de imediato, atendendo-se ao previsto no regimento interno.
+
+			const texto3 = `Assim, ante o presente pedido de baixa do veículo acima descrito, em consonância com as disposições do artigo 6º, parágrafo 24º, inciso IV, alínea "a" do regimento interno, assumo as obrigações advindas do mesmo, para pagamento destas obrigações pecuniárias assumidas com esta associação conforme regulamentado no citado dispositivo legal, cuja quitação se dará por recibo de pagamento do referido débito, expedido e assinado pela ABPAC.
          `
-			const texto5 = `Quanto ao veículo substituído assumo neste ato a obrigação da imediata desinstalação dos equipamentos de rastreamento e bloqueador do veículo baixado, sob pena de não o fazendo, deverei ressarcir os valores dos mesmos à ABPAC, ficando a mesma desde já autorizada a emitir a respectiva cobrança, nos valores de R$ 1.550,00 (Hum mil e quinhentos e cinquenta reais), no caso do aparelho bloqueador e o valor de R$ 350,00 (Trezentos e cinquenta reais) do aparelho rastreador, tudo conforme o Regimento interno, mais precisamente, no artigo 6º, paragrafo 9º, inciso III, alínea "c".
+
+			const texto4 = `Do mesmo modo, por força do mesmo regimento interno da ABPAC do qual sou plenamente conhecedor, em face deste pedido de baixa do veículo acima descrito, obrigo-me neste ato a desinstalar e devolver os equipamentos instalados, no veículo do qual venho pedir baixa, posto serem propriedade da ABPAC, tando o de rastreamento assim como o bloqueador, declarando que estes equipamentos estão funcionando regularmente, cuja devolução se comprova pelo respectivo recibo de devolução e entrega dos equipamentos emitido e assinado pela associação.
+         `
+
+			const texto5 = `No caso da não desinstalação e devolução dos equipamentos de rastreamento e bloqueador, neste ato, deverei ressarcir os valores dos mesmos à ABPAC, ficando a mesma desde já autorizada a emitir a respectiva cobrança, nos valores de R$ 1.550,00 (Hum mil e quinhentos e cinqueta reais), no caso do aparelho bloqueador e o valor de R$ 350,00 (Trezentos e cinquenta reais) do aparelho rastreador, tudo conforme o Regimento Interno, mais precisamente, no artigo 6º, paragrafo 9º, inciso III, alínea "c".
+         `
+
+			const texto6 = `Declaro por fim, que com o presente pedido de BAIXA do meu veículo do Plano de Benefício de Rateio para Ressarcimento de Despesas por Furto, roubo e Acidente de Veículos, a referida associação, a partir desta data, está isenta de qualquer responsabilidade por qualquer tipo de indenização quanto ao referido veículo, objeto deste requerimento de baixa.
          `
 
 			content.push({
@@ -809,6 +643,13 @@ class SubstituicaoController {
 						},
 						{
 							text: texto5,
+							bold: false,
+							fontSize: 8,
+							font: 'Roboto',
+							alignment: 'justify',
+						},
+						{
+							text: texto6,
 							bold: false,
 							fontSize: 8,
 							font: 'Roboto',
@@ -1074,7 +915,7 @@ class SubstituicaoController {
 				const resPDF = await this.criarDocumentoEmPdf({
 					sign_id: modelSign.id,
 					isAssinar: false,
-					tipo: 'Requerimento de Substituição',
+					tipo: 'Baixa de Equipamento',
 				})
 			}
 
@@ -1089,7 +930,7 @@ class SubstituicaoController {
 			})
 			await modelSign.save(trx)
 
-			const assunto = 'Assinar documento: Requerimento de Substituição'
+			const assunto = 'Assinar documento: Termo de Baixa de Equipamento'
 
 			if (modelSign.dispositivo === 'email') {
 				emailError = true
@@ -1203,4 +1044,4 @@ class SubstituicaoController {
 	}
 }
 
-module.exports = SubstituicaoController
+module.exports = BaixaController
