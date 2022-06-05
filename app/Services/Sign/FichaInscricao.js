@@ -16,6 +16,7 @@ const Mail = use('Mail')
 const factory = use('App/Services/SMS/Factory')
 const URL_SERVIDOR_SIGN_EMAIL = Env.get('URL_SERVIDOR_SIGN_EMAIL')
 const StorageService = use('App/Services/Storage')
+const ServiceZap = use('App/Services/Zap/MyZap')
 
 class FichaInscricaoController {
 	async criarDocumentoEmPdf(payload) {
@@ -987,6 +988,7 @@ class FichaInscricaoController {
 	async solicitarAssinatura(sign_id) {
 		let modelSign = null
 		let mail = false
+		let zap = false
 		let emailError = false
 		let erroStatus = false
 
@@ -1093,6 +1095,35 @@ class FichaInscricaoController {
 					isLog: true,
 					hostname: signJSON.link,
 					descricao: `Enviado para assinatura de ${signJSON.signatarioNome}, CPF: ${signJSON.signatarioCpf}, DATA NASC.: ${dNasc}, Dispositivo: ${signJSON.signatarioTel}`,
+				})
+			}
+
+			if (modelSign.dispositivo === 'zap') {
+				emailError = true
+
+				let tel = '55' + modelSign.signatarioTel.replace(/\D/g, '')
+				let msg = `A ABPAC enviou um documento (${modelSign.tipo}) para você assinar. Acesse o link acima no seu navegador.`
+
+				zap = await ServiceZap().sendLink(tel, msg, `${signJSON.link}`)
+
+				if (zap.status !== 'success') {
+					throw {
+						message: zap.message,
+						success: false,
+					}
+				}
+
+				emailError = false
+
+				const dNasc = moment(signJSON.signatarioDNasc, 'YYYY-MM-DD').format(
+					'DD/MM/YYYY'
+				)
+				await ModelSignLog.create({
+					sign_id: signJSON.id,
+					tipoEnvio: 'zap',
+					isLog: true,
+					hostname: signJSON.link,
+					descricao: `Enviado para assinatura de ${signJSON.signatarioNome} (${zap.response[0].to.remote.user}) CPF: ${signJSON.signatarioCpf} DATA NASC.: ${dNasc} ref: ${zap.response[0].me.ref} ID: ${zap.response[0].to._serialized} Status: ${zap.response[0].status}`,
 				})
 			}
 

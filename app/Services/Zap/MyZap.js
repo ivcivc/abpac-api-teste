@@ -59,7 +59,7 @@ function MyZap() {
 					method: 'post',
 					url: url,
 					data: {
-						sessionName: sessionName,
+						//sessionName: sessionName,
 						phone: tel,
 						caption: message,
 						url: link,

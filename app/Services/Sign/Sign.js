@@ -14,6 +14,7 @@ const moment = require('moment')
 moment.locale('pt-br')
 const fs = require('fs')
 const BrM = require('br-masks')
+const { query } = require('../../Models/Beneficio')
 const Database = use('Database')
 const factory = use('App/Services/SMS/Factory')
 const Mail = use('Mail')
@@ -23,11 +24,16 @@ const ServiceAdesao = use('App/Services/Sign/Adesao')
 const ServiceSubstituicao = use('App/Services/Sign/Substituicao')
 const ServiceBaixa = use('App/Services/Sign/Baixa')
 const Drive = use('Drive')
+const ServiceZap = use('App/Services/Zap/MyZap')
 
 class Sign {
 	async show(sign_id) {
 		try {
 			const modelSign = await Model.findOrFail(sign_id)
+			if (modelSign) {
+				await modelSign.load('galerias.galeria')
+			}
+
 			console.log(modelSign.toJSON())
 			return modelSign
 		} catch (e) {
@@ -371,9 +377,12 @@ class Sign {
 			const sign_id_encrypt = ID_ENCRYPT
 			let oDecrypt = this.decrypt(`${sign_id_encrypt}`) // Encryption.decrypt(sign_id)
 			let sign_id = oDecrypt.id
+			let zap = false
 			//let digito = oDecrypt.cpf
 
 			const modelSign = await Model.find(sign_id)
+
+			let token = modelSign.token
 
 			if (!modelSign) {
 				throw { message: 'Assinatura não encontrada.', success: false }
@@ -392,6 +401,7 @@ class Sign {
 					token: this.getGerarTokenRandomico(1000, 9999),
 					validate: moment(new Date()).add(5, 'day').format(),
 				})
+				token = modelSign.token
 				await modelSign.save()
 			}
 
@@ -460,6 +470,35 @@ class Sign {
 				})
 			}
 
+			if (modelSign.dispositivo === 'zap') {
+				envioError = true
+
+				let tel = '55' + modelSign.signatarioTel.replace(/\D/g, '')
+				let msg = `<Token - ABPAC> Use o código ${token} na assinatura de documento.`
+
+				zap = await ServiceZap().sendMessage(tel, msg)
+
+				if (zap.status !== 'success') {
+					throw {
+						message: zap.message,
+						success: false,
+					}
+				}
+
+				envioError = false
+
+				const dNasc = moment(signJSON.signatarioDNasc, 'YYYY-MM-DD').format(
+					'DD/MM/YYYY'
+				)
+				await ModelSignLog.create({
+					sign_id: signJSON.id,
+					tipoEnvio: 'zap',
+					isLog: true,
+					hostname: signJSON.link,
+					descricao: `Token de confirmação de assinatura de documento enviado para o dispositivo ${modelSign.signatarioTel} - ${modelSign.signatarioNome} (${zap.response[0].to.remote.user}) CPF: ${signJSON.signatarioCpf} DATA NASC.: ${dNasc} ref: ${zap.response[0].me.ref} ID: ${zap.response[0].to._serialized} Status: ${zap.response[0].status}`,
+				})
+			}
+
 			return { success: true, message: 'Token enviado com sucesso!' }
 		} catch (e) {
 			let mensagem = 'Ocorreu uma falha de transação'
@@ -524,6 +563,16 @@ class Sign {
 				doc = await new ServiceBaixa().criarDocumentoEmPdf(payload)
 				break
 
+			case 'Baixa de Equipamento':
+				if (payload.isAssinar) {
+					const sign_id_encrypt = payload.sign_id
+					let oDecrypt = this.decrypt(`${sign_id_encrypt}`) // Encryption.decrypt(sign_id)
+					let sign_id = oDecrypt.id
+					payload.sign_id = sign_id
+				}
+				doc = await new ServiceBaixa().criarDocumentoEmPdf(payload)
+				break
+
 			default:
 				break
 		}
@@ -562,6 +611,11 @@ class Sign {
 					)
 					break
 
+				case 'Baixa de Equipamento':
+					doc = await new ServiceBaixa().solicitarAssinatura(
+						payload.sign_id
+					)
+					break
 				default:
 					break
 			}
@@ -619,21 +673,223 @@ class Sign {
 
 	async localizar(payload) {
 		try {
-			const query = Model.query()
+			let busca = null
+
+			const arrEndossos = [
+				'Baixa Total de Equipamento',
+				'Baixa de Equipamento',
+				'Requerimento de Substituição',
+			]
+
+			const arrInscricao = [
+				'Requerimento de Inscrição',
+				'Requerimento de Adesão',
+			]
 
 			let where = null
-
-			if (payload.field_tipo_value) {
-				query.where('tipo', payload.field_tipo_value)
-			}
+			let isSignRoot = false
+			let model = null
 
 			switch (payload.field_name) {
+				case 'associado':
 				case 'signatarioNome':
-					query.where('signatarioNome', 'like', `%${payload.field_value}%`)
+					isSignRoot = true
 					break
 
 				case 'id':
-					query.where('id', '=', payload.field_value)
+					isSignRoot = true
+
+					model = await Model.find(payload.field_value)
+
+					break
+
+				case 'periodo':
+					if (payload.field_tipo_value === 'Requerimento de Inscrição') {
+						isSignRoot = true
+					}
+					break
+			}
+
+			let selects = [
+				'signs.*',
+				'pessoas.id as pessoa_id',
+				'pessoas.nome as pessoa_nome',
+			]
+
+			if (isSignRoot) {
+				busca = Database.from('signs').select(selects)
+			} else {
+				busca = Database.from('pessoas').select(selects)
+			}
+
+			if (payload.field_tipo_value) {
+				if (arrEndossos.includes(payload.field_tipo_value)) {
+					selects.push('equipamentos.placa1 as placa')
+
+					if (isSignRoot) {
+						busca.innerJoin(
+							'equipamento_endossos',
+							'signs.id',
+							'equipamento_endossos.sign_id'
+						)
+
+						busca.innerJoin(
+							'equipamento_endosso_items',
+							'equipamento_endossos.id',
+							'equipamento_endosso_items.equipa_endosso_id'
+						)
+
+						busca.innerJoin(
+							'equipamentos',
+							'equipamento_endosso_items.equipamento_id',
+							'equipamentos.id'
+						)
+
+						busca.innerJoin(
+							'pessoas',
+							'equipamentos.pessoa_id',
+							'pessoas.id'
+						)
+					} else {
+						busca.innerJoin(
+							'equipamentos',
+							'pessoas.id',
+							'equipamentos.pessoa_id'
+						)
+
+						busca.innerJoin(
+							'equipamento_endosso_items',
+							'equipamentos.id',
+							'equipamento_endosso_items.equipamento_id'
+						)
+
+						busca.innerJoin(
+							'equipamento_endossos',
+							'equipamento_endosso_items.equipa_endosso_id',
+							'equipamento_endossos.id'
+						)
+						busca.innerJoin(
+							'signs',
+							'equipamento_endossos.sign_id',
+							'signs.id'
+						)
+					}
+				}
+
+				if (arrInscricao.includes(payload.field_tipo_value)) {
+					if (isSignRoot) {
+						if (payload.field_tipo_value == 'Requerimento de Inscrição') {
+							busca.innerJoin(
+								'pessoa_signs',
+								'signs.id',
+								'pessoa_signs.id'
+							)
+
+							busca.innerJoin(
+								'pessoas',
+								'pessoa_signs.pessoa_id',
+								'pessoas.id'
+							)
+						} else {
+							selects.push('equipamentos.placa1 as placa')
+
+							busca.innerJoin(
+								'equipamento_signs',
+								'signs.id',
+								'equipamento_signs.sign_id'
+							)
+
+							busca.innerJoin(
+								'equipamentos',
+								'equipamento_signs.equipamento_id',
+								'equipamentos.id'
+							)
+
+							busca.innerJoin(
+								'pessoas',
+								'equipamentos.pessoa_id',
+								'pessoas.id'
+							)
+						}
+					} else {
+						/*busca.innerJoin(
+							'equipamento_signs',
+							'signs.id',
+							'equipamento_signs.sign_id'
+						)*/
+
+						selects.push('equipamentos.placa1 as placa')
+
+						busca = Database.from('signs').select(selects)
+
+						busca.innerJoin(
+							'equipamento_signs',
+							'signs.id',
+							'equipamento_signs.sign_id'
+						)
+
+						busca.innerJoin(
+							'equipamentos',
+							'equipamento_signs.equipamento_id',
+							'equipamentos.id'
+						)
+
+						busca.innerJoin(
+							'pessoas',
+							'equipamentos.pessoa_id',
+							'pessoas.id'
+						)
+						/*busca.innerJoin(
+							'equipamentos',
+							'pessoas.id',
+							'equipamentos.pessoa_id'
+						)
+
+						busca.innerJoin(
+							'equipamento_signs',
+							'equipamentos.id',
+							'equipamento_signs.equipamento_id'
+						)
+						busca.innerJoin(
+							'signs',
+							'equipamento_signs.sign_id',
+							'signs.id'
+						)*/
+					}
+				}
+
+				///query.where('tipo', payload.field_tipo_value)
+				busca.where('signs.tipo', payload.field_tipo_value)
+			}
+
+			switch (payload.field_name) {
+				case 'associado':
+					//query.where('signatarioNome', 'like', `%${payload.field_value}%`)
+					busca.where('pessoas.nome', 'like', `%${payload.field_value}%`)
+
+					break
+
+				case 'signatarioNome':
+					//query.where('signatarioNome', 'like', `%${payload.field_value}%`)
+					busca.where(
+						'signs.signatarioNome',
+						'like',
+						`%${payload.field_value}%`
+					)
+
+					break
+
+				case 'id':
+					//query.where('id', '=', payload.field_value)
+					//query.where('signs.id', '=', payload.field_value)
+					break
+
+				case 'placa':
+					busca.where(
+						'equipamentos.placa1',
+						'like',
+						`%${payload.field_value}%`
+					)
 					break
 
 				default:
@@ -646,14 +902,53 @@ class Sign {
 					break
 
 				case 'Pendente':
-					query.whereIn('status', ['Pendente', 'Iniciado'])
+					///query.whereIn('status', ['Pendente', 'Iniciado'])
+					busca.whereIn('signs.status', ['Pendente', 'Iniciado'])
 
 				default:
-					query.where('status', payload.field_status_value)
+					///query.where('status', payload.field_status_value)
+					busca.where('signs.status', payload.field_status_value)
+
 					break
 			}
 
-			const res = await query.fetch()
+			let res = []
+
+			switch (payload.field_name) {
+				case 'id':
+					let tipo = model ? model.tipo : null
+
+					if (tipo == 'Requerimento de Inscrição') {
+						await model.load('pessoa_sign.pessoa', build => {
+							build.select('id', 'nome', 'cpfCnpj', 'parcela')
+						})
+					}
+
+					if (tipo == 'Requerimento de Adesão') {
+						await model.load(
+							'equipamento_signs.preCadastro.pessoa',
+							build => {
+								build.select('id', 'nome', 'cpfCnpj', 'parcela')
+							}
+						)
+					}
+
+					if (arrEndossos.includes(tipo)) {
+						await model.load('equipamento_endossos.pessoa', build => {
+							build.select('id', 'nome', 'cpfCnpj', 'parcela')
+						})
+					}
+
+					if (!model) {
+						res = [] //await query.fetch()
+					} else {
+						res = [model.toJSON()] //await query.fetch()
+					}
+
+					break
+				default:
+					res = await busca
+			}
 
 			return res
 		} catch (e) {
