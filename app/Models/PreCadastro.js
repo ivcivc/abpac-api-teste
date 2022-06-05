@@ -4,9 +4,9 @@
 const Model = use('Model')
 
 class PreCadastro extends Model {
-   pessoa() {
-      return this.hasOne('App/Models/Pendencia')
-   }
+	pessoa() {
+		return this.hasOne('App/Models/Pessoa', 'pessoa_id', 'id')
+	}
 }
 
 module.exports = PreCadastro

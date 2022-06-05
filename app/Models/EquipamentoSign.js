@@ -4,13 +4,17 @@
 const Model = use('Model')
 
 class EquipamentoSign extends Model {
-   equipamento() {
-      return this.hasOne('App/Models/Equipamento', 'equipamento_id', 'id')
-   }
+	equipamento() {
+		return this.hasOne('App/Models/Equipamento', 'equipamento_id', 'id')
+	}
 
-   signs() {
-      return this.hasMany('App/Models/Sign', 'sign_id', 'id')
-   }
+	signs() {
+		return this.hasMany('App/Models/Sign', 'sign_id', 'id')
+	}
+
+	preCadastro() {
+		return this.hasOne('App/Models/PreCadastro', 'preCadastro_id', 'id')
+	}
 }
 
 module.exports = EquipamentoSign

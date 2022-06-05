@@ -4,17 +4,17 @@
 const Model = use('Model')
 
 class PessoaSign extends Model {
-   preCadastro() {
-      return this.hasOne('App/Models/Pessoa')
-   }
+	preCadastro() {
+		return this.hasOne('App/Models/Pessoa')
+	}
 
-   signs() {
-      return this.hasMany('App/Models/Sign', 'sign_id', 'id')
-   }
+	signs() {
+		return this.hasMany('App/Models/Sign', 'sign_id', 'id')
+	}
 
-   pessoa() {
-      return this.belongsTo('App/Models/Pessoa', 'pessoa_id', 'id')
-   }
+	pessoa() {
+		return this.belongsTo('App/Models/Pessoa', 'pessoa_id', 'id')
+	}
 }
 
 module.exports = PessoaSign

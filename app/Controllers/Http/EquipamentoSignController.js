@@ -985,7 +985,7 @@ class EquipamentoSignController {
 					message => {
 						message
 							.to(modelSign.signatarioEmail)
-							.from('investimentos@abpac.com.br')
+							.from('investimento@abpac.com.br')
 							.subject(assunto)
 						//.attach(Helpers.tmpPath('ACBr/pdf/boleto_50173.pdf'))
 						//.embed(Helpers.publicPath('images/logo-abpac.png'), 'logo')
