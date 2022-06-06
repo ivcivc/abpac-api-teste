@@ -307,7 +307,11 @@ class Sign {
 				trx = await Database.beginTransaction()
 			}
 			const modelSign = await Model.findOrFail(payload.id, trx)
-			if (modelSign.status !== 'Pendente' && modelSign.status !== 'Manual') {
+			if (
+				modelSign.status !== 'Pendente' &&
+				modelSign.status !== 'Manual' &&
+				modelSign.status !== 'Iniciado'
+			) {
 				throw {
 					success: false,
 					message: 'Não é permitido alterar o status deste documento.',
@@ -336,6 +340,7 @@ class Sign {
 			}
 
 			let modelSub = null
+			let signPai = null
 
 			const modelSign = await Model.findOrFail(ID)
 			if (modelSign.status === 'Documento assinado') {
@@ -352,19 +357,38 @@ class Sign {
 					modelSub = await ModelPessoaSign.findBy({
 						sign_id: modelSign.id,
 					})
+					signPai = modelSub.toJSON()
 					break
 
 				case 'Requerimento de Adesão':
 					modelSub = await ModelEquipamentoSign.findBy({
 						sign_id: modelSign.id,
 					})
+					signPai = modelSub.toJSON()
+					break
+
+				case 'Requerimento de Substituição':
+					signPai = {}
+					//}
+					break
+
+				case 'Baixa de Equipamento':
+					//if (lodash.isEmpty(modelSign.arquivo)) {
+					signPai = {}
+					//}
+					break
+
+				case 'Baixa Total de Equipamento':
+					//if (lodash.isEmpty(modelSign.arquivo)) {
+					signPai = {}
+					//}
 					break
 			}
 
 			await modelSign.save(trx)
 			await trx.commit()
 
-			return { sign: modelSign.toJSON(), signPai: modelSub.toJSON() }
+			return { sign: modelSign.toJSON(), signPai }
 		} catch (e) {
 			await trx.rollback()
 			throw { success: false, message: e.message }
