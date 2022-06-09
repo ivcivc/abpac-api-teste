@@ -23,6 +23,8 @@ Route.group(() => {
       }
    })*/
 
+   Route.post('/relatorios/buscarDataNascPorPeriodo', 'PessoaController.localizarPorMesAno')
+
    Route.get('/web/:token','RateioController.exibirLinkRelatorioBoleto')
 
    Route.get('/view/:file/:tipo',async ({params, response}) => {

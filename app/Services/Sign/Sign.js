@@ -798,6 +798,8 @@ class Sign {
 							'signs.id'
 						)
 					}
+
+					busca.where('signs.tipo', payload.field_tipo_value)
 				}
 
 				if (arrInscricao.includes(payload.field_tipo_value)) {
@@ -880,10 +882,11 @@ class Sign {
 							'signs.id'
 						)*/
 					}
+
+					busca.where('signs.tipo', payload.field_tipo_value)
 				}
 
 				///query.where('tipo', payload.field_tipo_value)
-				busca.where('signs.tipo', payload.field_tipo_value)
 			}
 
 			switch (payload.field_name) {

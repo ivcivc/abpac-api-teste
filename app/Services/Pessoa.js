@@ -447,6 +447,39 @@ class Pessoa {
 			throw e
 		}
 	}
+
+	async localizarPorMesAno(payload) {
+		const Database = use('Database')
+
+		let inicio = payload.mesDia.inicio
+		let fim = payload.mesDia.fim
+		let tipo = payload.tipo
+		let status = null
+
+		let params = []
+		let cWhere = []
+
+		cWhere = `tipo= ? `
+		params.push(tipo)
+
+		if (inicio) {
+			params.push(inicio)
+			params.push(fim)
+			cWhere = cWhere + `AND  DATE_FORMAT(dNasc,"%m%d") BETWEEN ? AND  ? `
+		}
+
+		if (payload.status) {
+			status = payload.status
+			params.push(status)
+			cWhere = cWhere + `AND status = ? `
+		}
+
+		let sql = `select * from Pessoas WHERE ` + cWhere + ' ORDER BY nome'
+		const query = Database.raw(sql, params)
+
+		const res = await query
+		return res[0]
+	}
 }
 
 module.exports = Pessoa
