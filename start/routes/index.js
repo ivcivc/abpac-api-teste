@@ -211,6 +211,10 @@ Route.group(() => {
       'versao'
    ])
 
+   Route.get('/pessoa/localizar/LocalizarCidadeEstadoAgrupado', 'PessoaController.LocalizarCidadeEstadoAgrupado').middleware([
+      'auth'
+   ])
+
    Route.post('/categoria/ordenar', 'CategoriaController.ordenar').middleware([
       'auth'
      ])

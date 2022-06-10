@@ -147,6 +147,22 @@ class PessoaController {
 			})
 		}
 	}
+
+	async LocalizarCidadeEstadoAgrupado({ response }) {
+		try {
+			const query =
+				await new PessoaServices().LocalizarCidadeEstadoAgrupado()
+
+			response.status(200).send({ success: true, data: query })
+		} catch (error) {
+			console.log(error)
+			response.status(400).send({
+				code: error.code,
+				message: error.message,
+				name: error.name,
+			})
+		}
+	}
 }
 
 module.exports = PessoaController

@@ -449,12 +449,12 @@ class Pessoa {
 	}
 
 	async localizarPorMesAno(payload) {
-		const Database = use('Database')
-
 		let inicio = payload.mesDia.inicio
 		let fim = payload.mesDia.fim
 		let tipo = payload.tipo
 		let status = null
+		let cidade = null
+		let estado = null
 
 		let params = []
 		let cWhere = []
@@ -474,11 +474,32 @@ class Pessoa {
 			cWhere = cWhere + `AND status = ? `
 		}
 
-		let sql = `select * from Pessoas WHERE ` + cWhere + ' ORDER BY nome'
+		if (payload.cidade) {
+			cWhere = cWhere + ' AND endCidade = ? '
+			params.push(payload.cidade)
+		}
+
+		if (payload.estado) {
+			cWhere = cWhere + ' AND endEstado= ?'
+			params.push(payload.estado)
+		}
+
+		console.log(cWhere, params)
+		let sql = `select * from pessoas WHERE ` + cWhere + ' ORDER BY nome'
 		const query = Database.raw(sql, params)
 
 		const res = await query
 		return res[0]
+	}
+
+	async LocalizarCidadeEstadoAgrupado() {
+		const query = await Database.table('pessoas')
+			.select('endCidade as cidade', 'endEstado as estado')
+			.groupByRaw('endCidade, endEstado')
+			.orderBy('endCidade', 'asc')
+			.whereNotNull('endCidade')
+
+		return query
 	}
 }
 
