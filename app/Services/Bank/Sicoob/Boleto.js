@@ -599,6 +599,7 @@ function Boleto() {
 				const meta = {
 					'Content-Type': 'application/json',
 					Authorization: `Bearer ${retToken.token}`,
+					//Authorization: `Bearer 59a1ff60-252b-34bb-b0b1-a21708edddd9`,
 					Client_id: Env.get('SICOOB_CLIENT_ID'),
 				}
 				const headers = new Headers(meta)
@@ -805,6 +806,15 @@ function Boleto() {
 						message: 'Acesso não autorizado!',
 					}
 				}
+
+				if (response.status === 403) {
+					throw {
+						success: false,
+						erroNr: 403,
+						message: 'Acesso proibido!', // forbidden
+					}
+				}
+
 				if (response.status === 500) {
 					throw {
 						success: false,
@@ -834,6 +844,10 @@ function Boleto() {
 					}
 
 					if (e.erroNr === 401) {
+						return e
+					}
+
+					if (e.erroNr === 403) {
 						return e
 					}
 

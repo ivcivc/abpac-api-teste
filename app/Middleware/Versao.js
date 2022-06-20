@@ -13,7 +13,7 @@ class Versao {
 		// call next to advance the request
 
 		const headers = request.headers()
-		if (headers.versao !== '1.49') {
+		if (headers.versao !== '1.50') {
 			return response
 				.status(404)
 				.send(
