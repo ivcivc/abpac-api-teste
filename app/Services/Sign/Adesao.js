@@ -466,7 +466,7 @@ class AdesaoController {
 							],
 							[
 								{
-									text: `${equipa.marca1.toUpperCase()} ${equipa.modelo2.toUpperCase()}`,
+									text: `${equipa.marca2.toUpperCase()} ${equipa.modelo2.toUpperCase()}`,
 									bold: false,
 									fillColor: cor.cinzaClaro,
 								},
@@ -550,7 +550,7 @@ class AdesaoController {
 							],
 							[
 								{
-									text: `${equipa.marca1.toUpperCase()} ${equipa.modelo3.toUpperCase()}`,
+									text: `${equipa.marca3.toUpperCase()} ${equipa.modelo3.toUpperCase()}`,
 									bold: false,
 									fillColor: cor.cinzaClaro,
 								},
