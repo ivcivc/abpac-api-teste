@@ -7,6 +7,7 @@ const Model = use('App/Models/EquipamentoProtecao')
 const EquipamentoProtecaoStatus = use('App/Models/EquipamentoProtecaoStatus')
 const LogProtecao = use('App/Models/LogProtecao')
 const ModelEquipamentoControle = use('App/Models/EquipamentoControle')
+const ModelBloqueadorLocalizador = use('App/Models/BloqueadorLocalizador')
 
 const moment = require('moment')
 
@@ -221,6 +222,30 @@ class EquipamentoProtecao {
 								field: 'equipamento_id',
 								valueOld: old.equipamento_id,
 								valueNew: data.equipamento_id,
+								equipamento_protecao_id: old.id,
+								user_id: auth.user.id,
+							},
+							trx ? trx : null
+						)
+					}
+					if (
+						old.bloqueador_localizador_id !==
+						data.bloqueador_localizador_id
+					) {
+						const modelFabricanteNovo =
+							await ModelBloqueadorLocalizador.find(
+								data.bloqueador_localizador_id
+							)
+						const modelFabricanteOld =
+							await ModelBloqueadorLocalizador.find(
+								old.bloqueador_localizador_id
+							)
+
+						await LogProtecao.create(
+							{
+								field: 'Fabricante',
+								valueOld: `${modelFabricanteOld.nome} - ${modelFabricanteOld.id}`,
+								valueNew: `${modelFabricanteNovo.nome} - ${modelFabricanteNovo.id}`,
 								equipamento_protecao_id: old.id,
 								user_id: auth.user.id,
 							},

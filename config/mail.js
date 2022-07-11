@@ -2,6 +2,8 @@
 
 const Env = use('Env')
 
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0' // adicionado em 07/07/2022 certifificad autoassinado
+
 module.exports = {
 	/*
   |--------------------------------------------------------------------------

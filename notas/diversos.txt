@@ -1,3 +1,9 @@
+22/06/2022 =>
+
+1) LANCAMENTO - RECEBER - RATEIO: Quando tem baixa, o valor do beneficio não é somado
+ao beneficio do equipamento. Exemplo rodney - rateio 16 - valor 1.047,03
+
+
 2022 - abril
 
 1) (ok) aumentar o campo nrSerie da proteção.

@@ -383,6 +383,12 @@ class Sign {
 					signPai = {}
 					//}
 					break
+
+				case 'Inativação Equipamento':
+					//if (lodash.isEmpty(modelSign.arquivo)) {
+					signPai = {}
+					//}
+					break
 			}
 
 			await modelSign.save(trx)
@@ -597,6 +603,16 @@ class Sign {
 				doc = await new ServiceBaixa().criarDocumentoEmPdf(payload)
 				break
 
+			case 'Inativação Equipamento':
+				if (payload.isAssinar) {
+					const sign_id_encrypt = payload.sign_id
+					let oDecrypt = this.decrypt(`${sign_id_encrypt}`) // Encryption.decrypt(sign_id)
+					let sign_id = oDecrypt.id
+					payload.sign_id = sign_id
+				}
+				doc = await new ServiceBaixa().criarDocumentoEmPdf(payload)
+				break
+
 			default:
 				break
 		}
@@ -640,6 +656,12 @@ class Sign {
 						payload.sign_id
 					)
 					break
+
+				case 'Inativação Equipamento':
+					doc = await new ServiceBaixa().solicitarAssinatura(
+						payload.sign_id
+					)
+					break
 				default:
 					break
 			}
@@ -672,6 +694,19 @@ class Sign {
 			if (sign.tipo === 'Requerimento de Substituição') {
 				pasta = Helpers.tmpPath(`uploads/${arqAssinado}${sign.arquivo}`)
 			}
+
+			if (sign.tipo === 'Baixa Total de Equipamento') {
+				pasta = Helpers.tmpPath(`uploads/${arqAssinado}${sign.arquivo}`)
+			}
+
+			if (sign.tipo === 'Baixa de Equipamento') {
+				pasta = Helpers.tmpPath(`uploads/${arqAssinado}${sign.arquivo}`)
+			}
+
+			if (sign.tipo === 'Inativação Equipamento') {
+				pasta = Helpers.tmpPath(`uploads/${arqAssinado}${sign.arquivo}`)
+			}
+
 			console.log(sign.arquivo)
 
 			if (sign.arquivo) {
@@ -703,6 +738,7 @@ class Sign {
 				'Baixa Total de Equipamento',
 				'Baixa de Equipamento',
 				'Requerimento de Substituição',
+				'Inativação Equipamento',
 			]
 
 			const arrInscricao = [

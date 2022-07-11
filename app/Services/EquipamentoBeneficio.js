@@ -26,7 +26,7 @@ class EquipamentoBeneficio {
 				)
 			}
 
-			// status beneficio
+			// status beneficio.
 			const status = {
 				equipamento_beneficio_id: model.id,
 				user_id: auth.user.id,

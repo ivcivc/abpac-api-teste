@@ -205,6 +205,14 @@ class Equipamento {
 			console.log('metodo add')
 
 			let protecoes = data.protecoes
+			protecoes.forEach(p => {
+				p.dAtivacao = moment(p.dAtivacao, 'YYYY-MM-DD').format('YYYY-MM-DD')
+				if (p.dRemocao) {
+					p.dRemocao = moment(p.dRemocao, 'YYYY-MM-DD').format(
+						'YYYY-MM-DD'
+					)
+				}
+			})
 			let beneficios = data.beneficios
 
 			let addRestricoes = null
@@ -216,6 +224,8 @@ class Equipamento {
 			delete data['protecoes']
 			delete data['beneficios']
 			delete data['equipamentoRestricaos']
+			delete data['categoria_nome']
+			delete data['logs']
 
 			if (!trx) {
 				showNewTrx = true
@@ -642,7 +652,7 @@ class Equipamento {
 				signatarioCPF: pessoaSign.signatarioCpf,
 				dispositivo: pessoaSign.dispositivo,
 				signatarioDNasc: pessoaSign.dNasc,
-				signatarioEmail: pessoaSign.email,
+				signatarioEmail: pessoaSign.email_sign,
 				tipo: 'Baixa Total de Equipamento',
 				signatarioTel: pessoaSign.telSms,
 				dataDoc: new Date(),
@@ -1087,7 +1097,7 @@ class Equipamento {
 					signatarioCPF: pessoaSign.signatarioCpf,
 					dispositivo: pessoaSign.dispositivo,
 					signatarioDNasc: pessoaSign.dNasc,
-					signatarioEmail: pessoaSign.email,
+					signatarioEmail: pessoaSign.email_sign,
 					tipo: 'Baixa de Equipamento',
 					signatarioTel: pessoaSign.telSms,
 					dataDoc: new Date(),
@@ -1197,9 +1207,11 @@ class Equipamento {
 				const endossoAdd = await ModelEquipamentoEndosso.create(
 					{
 						pessoa_id: equipamentoJSON.pessoa_id,
-						tipo: 'Baixa de Equipamento',
-						sai_id: equipamento.id,
+						tipo: 'Inativação Equipamento',
+						sai_id: null,
 						status: 'Ativo',
+						saiJson: null,
+						equipaJson: JSON.stringify([equipamentoJSON]), //JSON.stringify([equipamentoAdd]),
 					},
 					trx ? trx : null
 				)
@@ -1210,6 +1222,28 @@ class Equipamento {
 					},
 					trx ? trx : null
 				)
+
+				// Adicionar sign
+				let pessoaSign = equipamentoJSON.pessoa
+				const oSign = {
+					signatarioNome: pessoaSign.signatarioNome,
+					signatarioCPF: pessoaSign.signatarioCpf,
+					dispositivo: pessoaSign.dispositivo,
+					signatarioDNasc: pessoaSign.dNasc,
+					signatarioEmail: pessoaSign.email_sign,
+					tipo: 'Inativação Equipamento',
+					signatarioTel: pessoaSign.telSms,
+					dataDoc: new Date(),
+					assinatura: null,
+					user_id: auth.user.id,
+					status: 'Iniciado',
+					dataJson: JSON.stringify([equipamentoJSON]),
+					doc_id: await crypto.randomBytes(20).toString('hex'),
+				}
+				const modelSign = await ModelSign.create(oSign, trx)
+				endossoAdd.merge({ sign_id: modelSign.id })
+				await endossoAdd.save(trx)
+				await modelSign.save(trx)
 
 				// Gerar Controle
 				await this.addControle(arrAddControle, trx)
@@ -1636,7 +1670,7 @@ class Equipamento {
 					signatarioCPF: pessoaSign.signatarioCpf,
 					dispositivo: pessoaSign.dispositivo,
 					signatarioDNasc: pessoaSign.dNasc,
-					signatarioEmail: pessoaSign.email,
+					signatarioEmail: pessoaSign.email_sign,
 					tipo: 'Requerimento de Substituição',
 					signatarioTel: pessoaSign.telSms,
 					dataDoc: new Date(),

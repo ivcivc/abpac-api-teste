@@ -19,7 +19,7 @@ class EmailController {
 			message => {
 				message
 					.to(data.email)
-					.from('financeiro@abpac.com.br')
+					.from(Env.get('MAIL_EMPRESA'))
 					.subject('Teste de Email ABPAC')
 					.attach(Helpers.tmpPath('ACBr/pdf/boleto_17951.pdf'))
 					.embed(Helpers.publicPath('images/logo-abpac.png'), 'logo')

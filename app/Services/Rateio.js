@@ -1167,6 +1167,9 @@ class Rateio {
 								beneficio: el.beneficio.descricao,
 								modelo: el.beneficio.modelo,
 								valor: el.valor,
+								pessoa_id: e.pessoa_id,
+								rateio_id: rateio.id,
+								planoDeConta_id: el.beneficio.planoDeConta_id,
 							}
 							await ModelRateioEquipamentoBaixaBeneficio.create(
 								oBene,
@@ -1596,6 +1599,15 @@ class Rateio {
 				.sum('b.valor as somaBeneficios')
 				.where('b.rateio_id', payload.rateio_id)
 
+			const queryBaixaBeneficiosAgrupados = await Database.select([
+				'b.pessoa_id',
+				'b.planoDeConta_id',
+			])
+				.from('rateio_equipamento_baixa_beneficios as b')
+				.groupBy('b.pessoa_id', 'b.planoDeConta_id')
+				.sum('b.valor as somaBeneficios')
+				.where('b.rateio_id', payload.rateio_id)
+
 			const query = await Database.select([
 				'e.rateio_id',
 				'e.pessoa_id',
@@ -1658,6 +1670,7 @@ class Rateio {
 					r.valorRateio = r.valorRateio + e.valorRateio
 					r.valorTaxaAdm = r.valorTaxaAdm + e.valorTaxaAdm
 					r.valorTaxaAdmBase = r.valorTaxaAdmBase + e.valorTaxaAdmBase
+					r.valorBeneficios = r.valorBeneficios + e.valorBeneficios
 					r.valorTotal = r.valorTotal + e.valorTotal
 				}
 			})
@@ -1726,7 +1739,8 @@ class Rateio {
 						auth,
 						e,
 						rateioConfig,
-						queryBeneficiosAgrupados
+						queryBeneficiosAgrupados,
+						queryBaixaBeneficiosAgrupados
 					)
 					e.lancamento_id = lancamentoAdd.id
 
@@ -1760,7 +1774,8 @@ class Rateio {
 		auth,
 		item,
 		contaRateio,
-		queryBeneficiosAgrupados = null
+		queryBeneficiosAgrupados = null,
+		queryBaixaBeneficiosAgrupados = null
 	) {
 		return new Promise(async (resolve, reject) => {
 			const lanca = {
@@ -1817,6 +1832,27 @@ class Rateio {
 					items.push(oItem)
 				})
 			}
+
+			if (queryBaixaBeneficiosAgrupados) {
+				let arrBenef = queryBaixaBeneficiosAgrupados.filter(
+					f => f.pessoa_id === item.pessoa_id
+				)
+				arrBenef.forEach(benef => {
+					const busca = lodash.find(this.planoDeContas, {
+						id: benef.planoDeConta_id,
+					})
+
+					let oItem = {
+						DC: 'C',
+						tag: 'LF',
+						descricao: busca.descricao,
+						planoDeConta_id: benef.planoDeConta_id,
+						valor: benef.somaBeneficios,
+					}
+					items.push(oItem)
+				})
+			}
+
 			//agfhjgghjhjg()
 			if (item.valorTaxaAdm > 0) {
 				const busca = lodash.find(this.planoDeContas, {
