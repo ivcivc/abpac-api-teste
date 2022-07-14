@@ -68,6 +68,7 @@ class BaixaController {
 				throw { message: 'Registro não encontrado para gerar PDF' }
 			}
 
+			let equipamentos = equipa
 			equipa = equipa[0]
 
 			let arquivo = null
@@ -332,6 +333,7 @@ class BaixaController {
 			})
 
 			// eQUIPAMENTO
+
 			content.push({
 				layout: 'lightHorizontalLines',
 				margin: [0, 20, 0, 0],
@@ -342,7 +344,7 @@ class BaixaController {
 					body: [
 						[
 							{
-								text: 'VEÍCULO',
+								text: 'VEÍCULO(S)',
 								bold: true,
 								alignment: 'left',
 								fontSize: 12,
@@ -353,245 +355,262 @@ class BaixaController {
 				},
 			})
 
-			const cabecalhoEntra = {
-				layout: { defaultBorder: false },
-				margin: [0, 0, 0, 0],
-				border: [false, false, false, false],
+			let nVeic = 0
+			let cQtdEquipa = ''
 
-				table: {
-					headerRows: 0,
+			for (const key in equipamentos) {
+				if (Object.hasOwnProperty.call(equipamentos, key)) {
+					const e = equipamentos[key]
 
-					widths: ['*', 3, 90],
+					const cabecalhoEntra = {
+						layout: { defaultBorder: false },
+						margin: [0, nVeic === 0 ? 0 : 10, 0, 0],
+						border: [false, false, false, false],
 
-					body: [],
-				},
-			}
+						table: {
+							headerRows: 0,
 
-			let addEntra = []
+							widths: ['*', 3, 90],
 
-			addEntra.push([
-				{
-					text: 'VEÍCULO',
-					bold: true,
-				},
-				{ text: '' },
-				{
-					text: 'ANO/MODELO',
-					bold: true,
-					alignment: 'left',
-				},
-			])
+							body: [],
+						},
+					}
 
-			addEntra.push([
-				{
-					text: `${equipa.marca1.toUpperCase()} ${equipa.modelo1.toUpperCase()}`,
-					bold: false,
-					fillColor: cor.cinzaClaro,
-				},
-				{ text: '' },
-				{
-					text: `${equipa.anoF1} / ${equipa.modeloF1}`,
-					bold: false,
-					alignment: 'left',
-					fillColor: cor.cinzaClaro,
-				},
-			])
+					let addEntra = []
 
-			/*addEntra.push([
-				{
-					text: 'PLACA(S)',
-					bold: true,
-				},
-				{ text: '' },
-				{
-					text: 'CHASSI',
-					bold: true,
-					alignment: 'left',
-				},
-			])*/
+					nVeic = nVeic + 1
 
-			let placas = this.placaMask(equipa.placa1.toUpperCase())
-			let chassis = equipa.chassi1.toUpperCase()
+					if (equipamentos.lenght === 1) {
+						cQtdEquipa = ''
+					} else {
+						cQtdEquipa = `${nVeic}) `
+					}
 
-			if (equipa.placa2) {
-				placas =
-					placas + ' / ' + this.placaMask(equipa.placa2.toUpperCase())
-			}
+					addEntra.push([
+						{
+							text: `${cQtdEquipa}DESCRIÇÃO`,
+							bold: true,
+						},
+						{ text: '' },
+						{
+							text: 'ANO/MODELO',
+							bold: true,
+							alignment: 'left',
+						},
+					])
 
-			if (equipa.placa3) {
-				placas =
-					placas + ' / ' + this.placaMask(equipa.placa3.toUpperCase())
-			}
+					addEntra.push([
+						{
+							text: `${e.marca1.toUpperCase()} ${e.modelo1.toUpperCase()}`,
+							bold: false,
+							fillColor: cor.cinzaClaro,
+						},
+						{ text: '' },
+						{
+							text: `${e.anoF1} / ${e.modeloF1}`,
+							bold: false,
+							alignment: 'left',
+							fillColor: cor.cinzaClaro,
+						},
+					])
 
-			if (equipa.chassi2) {
-				chassis = chassis + ' / ' + equipa.chassi2.toUpperCase()
-			}
+					/*addEntra.push([
+                  {
+                     text: 'PLACA(S)',
+                     bold: true,
+                  },
+                  { text: '' },
+                  {
+                     text: 'CHASSI',
+                     bold: true,
+                     alignment: 'left',
+                  },
+               ])*/
 
-			if (equipa.chassi3) {
-				chassis = chassis + ' / ' + equipa.chassi3.toUpperCase()
-			}
+					let placas = this.placaMask(e.placa1.toUpperCase())
+					let chassis = e.chassi1.toUpperCase()
 
-			const modelCategoria = await ModelCategoria.findOrFail(
-				equipa.categoria_id
-			)
+					if (e.placa2) {
+						placas =
+							placas + ' / ' + this.placaMask(e.placa2.toUpperCase())
+					}
 
-			cabecalhoEntra.table.body = addEntra
-			content.push(cabecalhoEntra)
+					if (e.placa3) {
+						placas =
+							placas + ' / ' + this.placaMask(e.placa3.toUpperCase())
+					}
 
-			let beneficios = ''
-			if (lodash.has(equipa.entra, 'equipamentoBeneficios')) {
-				for (const key in equipa.entra.equipamentoBeneficios) {
-					if (
-						Object.hasOwnProperty.call(
-							equipa.entra.equipamentoBeneficios,
-							key
-						)
-					) {
-						const b = equipa.entra.equipamentoBeneficios[key]
-						if (b.status === 'Ativo') {
-							let espaco = beneficios === '' ? '' : '  -  '
-							let nr = parseInt(key) + 1
-							beneficios +=
-								espaco +
-								`${nr}) ${b.beneficio.descricao} R$ ${this.moeda(
-									b.beneficio.valor
-								)}`
+					if (e.chassi2) {
+						chassis = chassis + ' / ' + e.chassi2.toUpperCase()
+					}
+
+					if (e.chassi3) {
+						chassis = chassis + ' / ' + e.chassi3.toUpperCase()
+					}
+
+					const modelCategoria = await ModelCategoria.findOrFail(
+						e.categoria_id
+					)
+
+					cabecalhoEntra.table.body = addEntra
+					content.push(cabecalhoEntra)
+
+					let beneficios = ''
+					if (lodash.has(e.entra, 'equipamentoBeneficios')) {
+						for (const key in e.entra.equipamentoBeneficios) {
+							if (
+								Object.hasOwnProperty.call(
+									e.entra.equipamentoBeneficios,
+									key
+								)
+							) {
+								const b = e.entra.equipamentoBeneficios[key]
+								if (b.status === 'Ativo') {
+									let espaco = beneficios === '' ? '' : '  -  '
+									let nr = parseInt(key) + 1
+									beneficios +=
+										espaco +
+										`${nr}) ${b.beneficio.descricao} R$ ${this.moeda(
+											b.beneficio.valor
+										)}`
+								}
+							}
 						}
 					}
+
+					// Placas
+					content.push({
+						layout: { defaultBorder: false },
+						margin: [0, 0, 0, 0],
+						border: [false, false, false, false],
+
+						table: {
+							headerRows: 0,
+
+							widths: ['*'],
+
+							body: [
+								[
+									{
+										text: 'PLACA(S)',
+										bold: true,
+									},
+								],
+								[
+									{
+										text: placas,
+										bold: false,
+										fillColor: cor.cinzaClaro,
+									},
+								],
+							],
+						},
+					})
+					// Chassis
+					content.push({
+						layout: { defaultBorder: false },
+						margin: [0, 0, 0, 0],
+						border: [false, false, false, false],
+
+						table: {
+							headerRows: 0,
+
+							widths: ['*'],
+
+							body: [
+								[
+									{
+										text: 'CHASSI(S)',
+										bold: true,
+									},
+								],
+								[
+									{
+										text: chassis,
+										bold: false,
+										fillColor: cor.cinzaClaro,
+									},
+								],
+							],
+						},
+					})
+
+					// Beneficios
+					content.push({
+						layout: { defaultBorder: false },
+						margin: [0, 0, 0, 0],
+						border: [false, false, false, false],
+
+						table: {
+							headerRows: 0,
+
+							widths: ['*'],
+
+							body: [
+								[
+									{
+										text: 'BENEFÍCIO(S)',
+										bold: true,
+									},
+								],
+								[
+									{
+										text:
+											beneficios === ''
+												? 'NÃO CONTRATADO'
+												: beneficios.toUpperCase(),
+										bold: false,
+										fillColor: cor.cinzaClaro,
+									},
+								],
+							],
+						},
+					})
+
+					// Valor de mercado / Enquadramento
+					content.push({
+						layout: { defaultBorder: false },
+						margin: [0, 0, 0, 0],
+						border: [false, false, false, false],
+
+						table: {
+							headerRows: 0,
+
+							widths: ['*', 3, 90],
+
+							body: [
+								[
+									{
+										text: 'VALOR INFORMADO',
+										bold: true,
+									},
+									{ text: '' },
+									{
+										text: 'ENQUADRAMENTO',
+										bold: true,
+										alignment: 'left',
+									},
+								],
+								[
+									{
+										text: `${this.moeda(e.valorMercado1)}`,
+										bold: true,
+										alignment: 'left',
+										fillColor: cor.cinzaClaro,
+									},
+									{ text: '' },
+									{
+										text: `${modelCategoria.abreviado}`,
+										bold: true,
+										alignment: 'left',
+										fillColor: cor.cinzaClaro,
+									},
+								],
+							],
+						},
+					})
 				}
 			}
-
-			// Placas
-			content.push({
-				layout: { defaultBorder: false },
-				margin: [0, 0, 0, 0],
-				border: [false, false, false, false],
-
-				table: {
-					headerRows: 0,
-
-					widths: ['*'],
-
-					body: [
-						[
-							{
-								text: 'PLACA(S)',
-								bold: true,
-							},
-						],
-						[
-							{
-								text: placas,
-								bold: false,
-								fillColor: cor.cinzaClaro,
-							},
-						],
-					],
-				},
-			})
-			// Chassis
-			content.push({
-				layout: { defaultBorder: false },
-				margin: [0, 0, 0, 0],
-				border: [false, false, false, false],
-
-				table: {
-					headerRows: 0,
-
-					widths: ['*'],
-
-					body: [
-						[
-							{
-								text: 'CHASSI(S)',
-								bold: true,
-							},
-						],
-						[
-							{
-								text: chassis,
-								bold: false,
-								fillColor: cor.cinzaClaro,
-							},
-						],
-					],
-				},
-			})
-
-			// Beneficios
-			content.push({
-				layout: { defaultBorder: false },
-				margin: [0, 0, 0, 0],
-				border: [false, false, false, false],
-
-				table: {
-					headerRows: 0,
-
-					widths: ['*'],
-
-					body: [
-						[
-							{
-								text: 'BENEFÍCIO(S)',
-								bold: true,
-							},
-						],
-						[
-							{
-								text:
-									beneficios === ''
-										? 'NÃO CONTRATADO'
-										: beneficios.toUpperCase(),
-								bold: false,
-								fillColor: cor.cinzaClaro,
-							},
-						],
-					],
-				},
-			})
-
-			// Valor de mercado / Enquadramento
-			content.push({
-				layout: { defaultBorder: false },
-				margin: [0, 0, 0, 0],
-				border: [false, false, false, false],
-
-				table: {
-					headerRows: 0,
-
-					widths: ['*', 3, 90],
-
-					body: [
-						[
-							{
-								text: 'VALOR INFORMADO',
-								bold: true,
-							},
-							{ text: '' },
-							{
-								text: 'ENQUADRAMENTO',
-								bold: true,
-								alignment: 'left',
-							},
-						],
-						[
-							{
-								text: `${this.moeda(equipa.valorMercado1)}`,
-								bold: true,
-								alignment: 'left',
-								fillColor: cor.cinzaClaro,
-							},
-							{ text: '' },
-							{
-								text: `${modelCategoria.abreviado}`,
-								bold: true,
-								alignment: 'left',
-								fillColor: cor.cinzaClaro,
-							},
-						],
-					],
-				},
-			})
 
 			const texto1 = `Na condição de associado da ABPAC e tendo requerido a adesão do veículo acima, neste ato, por motivos particulares e de foro intimo não tenho interesse em que referido veículo permaneça, no citado plano, motivo pelo qual, venho requerer a BAIXA do mesmo
          `
@@ -844,7 +863,7 @@ class BaixaController {
 			const pdfDoc = printer.createPdfKitDocument(docDefinition)
 			pdfDoc.pipe(fs.createWriteStream(pasta + arquivo))
 			pdfDoc.end()
-
+			//throw { message: 'teste' }
 			await modelSign.save(trx)
 			await trx.commit()
 
@@ -857,6 +876,9 @@ class BaixaController {
 
 			return modelSign
 		} catch (e) {
+			if (trx) {
+				await trx.rollback()
+			}
 			let mensagem = 'Ocorreu uma falha de transação'
 			if (lodash.has(e, 'message')) {
 				mensagem = e.message
@@ -938,7 +960,7 @@ class BaixaController {
 				emailError = true
 
 				mail = await Mail.send(
-					'emails.sign_requerimento_substituicao',
+					'emails.sign_requerimento_baixa',
 					signJSON,
 					message => {
 						message

@@ -18,7 +18,7 @@
          "name": "Debug Server",
          "runtimeExecutable": "npm",
          "runtimeArgs": ["run", "dev"],
-         "port": 9229,
+         "port": 9228,
          "internalConsoleOptions":"openOnSessionStart"  ,
          //"console": "internalConsole" "neverOpen",
       },

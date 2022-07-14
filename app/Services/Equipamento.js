@@ -204,7 +204,7 @@ class Equipamento {
 		try {
 			console.log('metodo add')
 
-			let protecoes = data.protecoes
+			let protecoes = data.protecoes ? data.protecoes : []
 			protecoes.forEach(p => {
 				p.dAtivacao = moment(p.dAtivacao, 'YYYY-MM-DD').format('YYYY-MM-DD')
 				if (p.dRemocao) {
@@ -213,7 +213,7 @@ class Equipamento {
 					)
 				}
 			})
-			let beneficios = data.beneficios
+			let beneficios = data.beneficios ? data.beneficios : []
 
 			let addRestricoes = null
 
