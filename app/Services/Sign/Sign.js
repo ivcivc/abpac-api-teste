@@ -525,7 +525,7 @@ class Sign {
 					tipoEnvio: 'zap',
 					isLog: true,
 					hostname: signJSON.link,
-					descricao: `Token de confirmação de assinatura de documento enviado para o dispositivo ${modelSign.signatarioTel} - ${modelSign.signatarioNome} (${zap.response[0].to.remote.user}) CPF: ${signJSON.signatarioCpf} DATA NASC.: ${dNasc} ref: ${zap.response[0].me.ref} ID: ${zap.response[0].to._serialized} Status: ${zap.response[0].status}`,
+					descricao: `Token de confirmação de assinatura de documento enviado para o dispositivo ${modelSign.signatarioTel} - ${modelSign.signatarioNome} CPF: ${signJSON.signatarioCpf} DATA NASC.: ${dNasc} - ID: ${zap.response[0].id} - Status: ${zap.status}`,
 				})
 			}
 

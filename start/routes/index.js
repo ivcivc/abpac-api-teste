@@ -57,8 +57,31 @@ Route.group(() => {
 
    })
 
+   Route.post('/localweb/smtp/bounces', async ({params, response, request}) =>{
+      let r= request.all()
+      let s= r
+
+   })
+
    Route.get('/', () => {
-      return { message: 'Abpac Server' }
+
+      process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
+      var locaweb = require('smtp-locaweb-nodejs');
+      var email = new locaweb.Email();
+      email.addTo(['ivan888@abpac.com.br', 'ivan@abpac.com.br']);
+      email.addSubject('Apenas um do localweb!!!');
+      email.addFrom('ivan.a.oliveira@terra.com.br');
+      email.addBody('<html><body>A cool and useful content.</body></html>');
+      //email.addCc('optionalcc@address.com');
+      email.addBcc('optionalbcc@address.com');
+      //email.addHeaders({x-source: api});
+      email.addHeaders({"x-meu-id": "890"})
+
+      let r= locaweb.sendMail(email);
+      console.log('r= ', r)
+
+      return { message: 'Abpac Server', email: true, r }
    })
 
    Route.post('/callback_wpp_zap', ({request, response}) => {

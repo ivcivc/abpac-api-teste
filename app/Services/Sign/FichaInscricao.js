@@ -1123,7 +1123,7 @@ class FichaInscricaoController {
 					tipoEnvio: 'zap',
 					isLog: true,
 					hostname: signJSON.link,
-					descricao: `Enviado para assinatura de ${signJSON.signatarioNome} (${zap.response[0].to.remote.user}) CPF: ${signJSON.signatarioCpf} DATA NASC.: ${dNasc} ref: ${zap.response[0].me.ref} ID: ${zap.response[0].to._serialized} Status: ${zap.response[0].status}`,
+					descricao: `Enviado para assinatura de ${signJSON.signatarioNome} CPF: ${signJSON.signatarioCpf} DATA NASC.: ${dNasc} ID: ${zap.response[0].id} - Status: ${zap.status}`,
 				})
 			}
 

@@ -19,16 +19,36 @@ axios.defaults.headers.common = {
 }
 
 function MyZap() {
+	function validarTel(tel) {
+		console.log('validar o tel ', tel)
+		const numberDDI = tel.substr(0, 2) //'55'
+		const numberDDD = tel.substr(2, 2)
+		const numberUser = tel.substr(-8, 10)
+		let numberZDG = null
+
+		if (numberDDD <= 30) {
+			numberZDG = numberDDI + numberDDD + '9' + numberUser //+ "@c.us";
+		} else {
+			numberZDG = numberDDI + numberDDD + numberUser //+ "@c.us";
+		}
+		return numberZDG
+	}
+
 	async function sendMessage(tel, message) {
 		return new Promise((resolve, reject) => {
 			try {
 				const url = url_zap + `/${sessionName}/send-message`
 
+				console.log(
+					'************************* sendMessage telefone ',
+					validarTel(tel)
+				)
+
 				axios({
 					method: 'post',
 					url: url,
 					data: {
-						phone: tel,
+						phone: validarTel(tel),
 						message: message,
 					},
 				})
@@ -53,6 +73,8 @@ function MyZap() {
 	async function sendLink(tel, message, link) {
 		return new Promise((resolve, reject) => {
 			try {
+				tel = validarTel(tel)
+
 				const url = url_zap + `/${sessionName}/send-link-preview`
 				console.log('link ', link)
 				axios({
@@ -88,6 +110,8 @@ function MyZap() {
 			try {
 				const url = url_zap + '/sendImageStorie'
 
+				tel = validarTel(tel)
+
 				axios({
 					method: 'post',
 					url: url,
@@ -122,6 +146,8 @@ function MyZap() {
 				const url = url_zap + `/${sessionName}/send-file-base64`
 
 				let base64 = 'data:application/pdf;base64,' + base64Data
+
+				tel = validarTel(tel)
 
 				axios({
 					method: 'post',
@@ -251,10 +277,14 @@ function MyZap() {
 		})
 	}
 
-	async function test(tel = '31987034132') {
+	function test(tel = '31987034132') {
 		return new Promise(async (resolve, reject) => {
 			try {
 				tel = '55' + tel
+
+				tel = validarTel(tel)
+
+				console.log('******************* celular ', tel)
 
 				const r = await sendMessage(tel, 'ABPAC - Teste ZAP')
 
