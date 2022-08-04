@@ -2,7 +2,7 @@
 
 const Env = use('Env')
 
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0' // adicionado em 07/07/2022 certifificad autoassinado
+//process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0' // adicionado em 07/07/2022 certifificad autoassinado
 
 module.exports = {
 	/*
@@ -31,7 +31,7 @@ module.exports = {
 		host: Env.get('MAIL_HOST'),
 		secure: true,
 		auth: {
-			user: Env.get('MAIL_USERNAME'),
+			user: Env.get('MAIL_LOGIN'),
 			pass: Env.get('MAIL_PASSWORD'),
 		},
 		maxConnections: 5,
@@ -57,6 +57,8 @@ module.exports = {
   */
 	sparkpost: {
 		driver: 'sparkpost',
+		host: 'smtplw.com.br',
+		port: 465,
 		apiKey: Env.get('SPARKPOST_API_KEY'),
 		extras: {},
 	},

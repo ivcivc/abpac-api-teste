@@ -63,9 +63,28 @@ Route.group(() => {
 
    })
 
-   Route.get('/', () => {
+   /*Route.get('/email',async () => {
+      const Mail = use('Mail')
+      const Env= use('Env')
 
-      process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+      let send = await Mail.connection('smtp').send(
+         'emails.ola',
+         {},
+         message => {
+            message
+               .to('ivan.a.oliveira@terra.com.br')
+               .from('financeiro@abpac.com.br')
+               .subject('Teste locaweb ABPAC')
+
+         }
+      )
+
+      return send
+   })*/
+
+   Route.get('/', () => {
+      return { api: "abpac-app.com.br"}
+      /*process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
       var locaweb = require('smtp-locaweb-nodejs');
       var email = new locaweb.Email();
@@ -81,7 +100,7 @@ Route.group(() => {
       let r= locaweb.sendMail(email);
       console.log('r= ', r)
 
-      return { message: 'Abpac Server', email: true, r }
+      return { message: 'Abpac Server', email: true, r }*/
    })
 
    Route.post('/callback_wpp_zap', ({request, response}) => {
