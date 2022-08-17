@@ -2594,6 +2594,7 @@ class Equipamento {
 				'especie1',
 				'especie2',
 				'especie3',
+				'placaProvisoria',
 				'placa1',
 				'placa2',
 				'placa3',
@@ -3298,6 +3299,10 @@ const gerarPlacas = r => {
 	}
 	if ((lodash.r, 'placa3')) {
 		if (r.placa3) placas = placas + '|' + r.placa3.replace(/\W/g, '')
+	}
+	if ((lodash.r, 'placaProvisoria')) {
+		if (r.placaProvisoria)
+			placas = placas + '|' + r.placaProvisoria.replace(/\W/g, '')
 	}
 	return placas == '' ? null : placas
 }

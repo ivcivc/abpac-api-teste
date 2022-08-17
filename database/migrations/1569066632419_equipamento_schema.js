@@ -91,7 +91,7 @@ class EquipamentoSchema extends Schema {
 
 			table.text('obs')
 
-			table.varchar('placas', 26).index()
+			table.varchar('placas', 35).index()
 
 			table.timestamps()
 		})
