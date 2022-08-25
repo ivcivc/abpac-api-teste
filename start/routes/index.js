@@ -1311,6 +1311,7 @@ Route.group(() => {
 Route.post('/lucidql', 'LucidQlController.query').prefix('api')
 
 require('./permission')
+require('./mobile')
 
 /*
 

@@ -41,6 +41,7 @@ const namedMiddleware = {
 	is: 'Adonis/Acl/Is',
 	can: 'Adonis/Acl/Can',
 	versao: 'App/Middleware/Versao',
+	MobileAuth: 'App/Middleware/MobileAuth',
 }
 
 /*
