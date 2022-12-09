@@ -2069,6 +2069,10 @@ class Rateio {
 						.with('beneficios')
 						.fetch()
 
+				if (model.rows.length == 0 && modelEquipamentoBaixa.rows.length == 0 )			 {
+					throw {message: "Não existem equipamentos para o associado selecionado."}
+				}
+
 				const equipaJsonBaixa = modelEquipamentoBaixa.toJSON()
 
 				if (model.rows.length === 0) {

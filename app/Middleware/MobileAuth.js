@@ -7,6 +7,7 @@ class MobileAuth {
 	async handle(ctx, next) {
 		const headers = ctx.request.headers()
 		try {
+			console.log('midle auth')
 			if (!headers.authorization) {
 				throw false
 			}

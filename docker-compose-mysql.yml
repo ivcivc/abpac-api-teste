@@ -1,0 +1,23 @@
+version: '3.9'
+
+services:
+  mysql:
+    image: mysql:8
+    restart: always
+    command: --default-authentication-plugin=mysql_native_password
+    ports:
+      - 3306:3306
+    volumes:
+      - ~/apps/mysql:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=0U1rantia2
+      - MYSQL_PASSWORD=0U1rantia2
+      - MYSQL_USER=0U1rantia2
+      - MYSQL_DATABASE=app_abpac
+
+
+#CREATE USER 'ivan'@'localhost' IDENTIFIED WITH mysql_native_password BY '0U1rantia2';
+#GRANT USAGE ON *.* TO 'ivan'@'localhost';
+#ALTER USER 'ivan'@'localhost' REQUIRE NONE WITH MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0 MAX_USER_CONNECTIONS 0;
+#GRANT ALL PRIVILEGES ON `ivan`.* TO 'ivan'@'localhost';
+#FLUSH PRIVILEGES;
