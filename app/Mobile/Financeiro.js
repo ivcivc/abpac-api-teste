@@ -1,5 +1,5 @@
 const Service = use("App/Services/Lancamento")
-// oi
+// oi.
 class Financeiro {
     async localizarPor(payload) {
         try {
