@@ -5,6 +5,7 @@ const serviceEquipamento= use("App/Mobile/Equipamento")
 const servicePessoa= use("App/Mobile/Pessoa")
 const serviceEquipamentoPDF = use("App/Mobile/relatorios/Pdf_Equipamento")
 const serviceOcorrenciasPDF = use("App/Mobile/relatorios/Pdf_Ocorrencia")
+const serviceFinanceiro = use("App/Mobile/Financeiro")
 
 Route.group(() => {
 	Route.post('/login', async ({ request, response }) => {ocooooooodd
@@ -248,6 +249,21 @@ Route.group(() => {
 		}
 
 	})	
+
+	// Financeiro
+
+	// Localizar financeiro.
+	Route.post('/financiro/localizarPor', async ({response, request}) => {
+		try {
+			let payload= request.all()
+			
+			const res= await new serviceFinanceiro().localizarPor(payload)
+			response.status(200).send(res)
+		} catch (error) {
+			response.status(400).send({message: "Não foi possivel recuperar o registro solicitado."})
+
+		}
+	})
 
 }).prefix('api/mobile')
 

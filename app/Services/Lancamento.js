@@ -413,6 +413,31 @@ class Lancamento {
 
 			let query = null //.fetch()
 
+			if (modulo === 'Aberto') {
+				query = Model.query().with('pessoa' , (build) => {
+					build.select('id', 'nome')
+				})
+				query.with('boletos', (build) => {
+					build.where('status', 'Aberto')
+				})
+
+				if (localizarPor === 'nome') {
+					query.where('pessoa_id', pessoa_id)
+				}
+
+				if (tipo !== 'ambos') {
+					query.where('tipo', tipo)
+				}				
+
+				if (status) {
+					query.where('situacao', status)
+				}
+
+				
+				query = await query.fetch()				
+
+			}
+
 			if (modulo === 'todos') {
 				query = Model.query().with('pessoa')
 

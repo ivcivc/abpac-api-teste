@@ -53,3 +53,21 @@ arquivo pm2.json
 comando: pm2 startOrRestart pm2.json
 
 log: pm2 logs
+
+
+
+
+/// TESTES
+
+…or create a new repository on the command line
+echo "# abpac-api-teste" >> README.md
+git init
+git add README.md
+git commit -m "first commit"
+git branch -M main
+git remote add origin https://github.com/ivcivc/abpac-api-teste.git
+git push -u origin main
+…or push an existing repository from the command line
+git remote add origin https://github.com/ivcivc/abpac-api-teste.git
+git branch -M main
+git push -u origin main
