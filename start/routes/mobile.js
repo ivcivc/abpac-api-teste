@@ -253,7 +253,7 @@ Route.group(() => {
 	// Financeiro
 
 	// Localizar financeiro.
-	Route.post('/financiro/localizarPor', async ({response, request}) => {
+	Route.post('/financeiro/localizarContaEmAberto', async ({response, request}) => {
 		try {
 			let payload= request.all()
 			
@@ -264,6 +264,58 @@ Route.group(() => {
 
 		}
 	})
+	// Retorna conta a receber por ANO-MES de uma pessoa.
+	Route.post('/financeiro/localizarPorAnoMes', async ({response, request}) => {
+		/* 
+			Parametros {
+				"pessoa_id": "2062",
+				"anomes": "2021-02"
+			}			
+		*/
+		try {
+			let payload= request.all()
+			
+			const res= await new serviceFinanceiro().localizarPorAnoMes(payload)
+			response.status(200).send(res)
+		} catch (error) {
+			response.status(400).send({message: "Não foi possivel recuperar o registro solicitado."})
+
+		}
+	})
+
+
+	// Retornar o boleto em PDF.base64
+	// retorno { success: true, pdfBase64: ""}
+	Route.get('/financeiro/getBoletoPDFBase64/:arquivo', async ({response, params}) => {
+		try {
+	
+			const res= await new serviceFinanceiro().pdfBoletoBase64(params)
+			if ( !res) throw {}
+			response.status(200).send(res)
+		} catch (error) {
+			response.status(400).send({message: "Não foi possivel recuperar o boleto solicitado."})
+
+		}
+	})
+
+	// Retornar o boleto em PDF.link dowload
+	// retorno pdf
+	Route.get('/financeiro/getBoletoPDF/:lancamento_id', async ({response, params}) => {
+		try {
+	
+			const res= await new serviceFinanceiro().pdfBoleto(params)
+			if ( res.success) {
+				return response
+				.header('Content-type', 'application/pdf')
+				.download(res.fullPath)
+			}
+			throw res
+		} catch (error) {
+			response.status(400).send({message: "Não foi possivel recuperar o boleto solicitado."})
+
+		}
+	})
+	
 
 }).prefix('api/mobile')
 

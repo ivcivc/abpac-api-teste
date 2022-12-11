@@ -413,6 +413,34 @@ class Lancamento {
 
 			let query = null //.fetch()
 
+			if (modulo === 'AnoMes') {
+				let d= moment(payload.anomes,"YYYY/MM").endOf('month')
+				
+				dVencInicio= payload.anomes + `-01`
+				dVencFim= d.format("YYYY-MM-DD")
+
+				query = Model.query().with('pessoa')
+
+				query.where('pessoa_id', payload.field_value_pessoa_id)
+
+
+				query.where('tipo', "Receita")
+
+
+				query.whereBetween('dVencimento', [
+						dVencInicio,
+						dVencFim,
+					])
+			
+				
+				if (status) {
+					query.whereIn('situacao', ["Compensado", "Aberto"])
+				}
+
+				query = await query.fetch()
+
+			}
+
 			if (modulo === 'Aberto') {
 				query = Model.query().with('pessoa' , (build) => {
 					build.select('id', 'nome')
